@@ -1,0 +1,15 @@
+name: Refresh CDN cache
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Purge jsDelivr cache for latest.json
+        run: |
+          for i in 1 2 3; do
+            curl -fsS "https://purge.jsdelivr.net/gh/meisamodin/v2fall-updates@main/latest.json" && break
+            sleep 20
+          done
