@@ -47,6 +47,18 @@ Fix opening a subscription code on desktop, lock configs to V2Fall, SMS tool, re
 
 این نسخه‌ها برای تست هستند و هنوز رسمی منتشر نشده‌اند. برای دریافتشان در برنامه به «تنظیمات → درباره و به‌روزرسانی» بروید و «نسخه‌های آزمایشی» را روشن کنید.
 
+### 18.8.7 (آزمایشی rc7+rc8) — ۲۰۲۶-۱۱-۰۹
+- **پشتیبانی از AmneziaWG**: فایل‌های ‎.conf‎ با پارامترهای مبهم‌سازی (Jc/Jmin/Jmax/S1-S2/H1-H4 و…) مستقیم وارد و وصل می‌شوند — هستهٔ جداگانهٔ AmneziaWG v3.1 روی اندروید، ویندوز، مک و لینوکس
+- **پاک‌سازی لیست سرورها**: حذف سرورهای کند (بالای ۱۵۰۰ میلی‌ثانیه) و بی‌پاسخ از منوی سرورها + فیلتر «سریع»
+- **گزینهٔ «فقط سریع‌ترین‌های هر اشتراک»**: بعد از هر بروزرسانی اشتراک، سرورهای کند حذف می‌شوند (پین‌شده‌ها می‌مانند)
+- **پیشنهاد هوشمند WARP**: بعد از چند اتصال ناموفق پشت سر هم، اپ WARP کلادفلر (بدون نیاز به سرور) را پیشنهاد می‌دهد
+
+### Experimental 18.8.7 (rc7+rc8) — 2026-11-09 (English)
+- **AmneziaWG support**: .conf files with obfuscation parameters (Jc/Jmin/Jmax/S1-S2/H1-H4…) import and connect directly — standalone AmneziaWG v3.1 core on Android, Windows, macOS and Linux
+- **Server list cleanup**: remove slow (over 1500 ms) and dead servers from the servers menu + a «Fast» filter chip
+- **«Keep only the fastest of each subscription»**: slow servers are pruned after every subscription update (pinned ones stay)
+- **Smart WARP suggestion**: after several failed connections in a row, the app suggests built-in Cloudflare WARP (no server needed)
+
 ### 18.8.6 (آزمایشی rc6) — ۲۰۲۶-۱۱-۰۹
 - **WARP داخلی کلادفلر**: اتصال بدون نیاز به سرور شخصی از «افزودن → WARP» — حالت گول (وارپ‌در‌وارپ، پیش‌فرض)، حالت سایفون (CFON، عبور وارپ از شبکهٔ Psiphon با انتخاب کشور)، وارپ ساده، و اسکن خودکار اندپوینت کلادفلر — روی اندروید، ویندوز، مک و لینوکس
 - **دکمهٔ «دریافت نسخهٔ پایدار»** در «تنظیمات → درباره»: اگر نسخهٔ آزمایشی مشکل داشت، با یک لمس به نسخهٔ رسمی برگردید (کانال آزمایشی خودکار خاموش می‌شود)
