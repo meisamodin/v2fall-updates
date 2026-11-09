@@ -1,38 +1,48 @@
 {
-  "app": "V2Fall",
-  "version": "18.8.5",
-  "date": "2026-11-09",
-  "channel": "experimental",
-  "notes": "نسخهٔ آزمایشی ۱۸٫۸ — تغییرات:\n• اتصال کانفیگ‌های VLESS با رمزنگاری mlkem768 (هستهٔ Xray جدید) برطرف شد\n• خواندن فایل WireGuard با فرمت ‎.conf\n• حذف خودکار سطرهای تبلیغاتی و اطلاعاتی از لیست اشتراک\n• دکمهٔ اتصال با حلقهٔ نئون و تم سبز کامل هنگام اتصال\n• زبان اعلان برنامه مطابق زبان داخل برنامه\n• افزودن خودکار کانفیگ و لینک از کلیبورد\n• پشتیبانی از پروتکل Mieru\n• پشتیبانی از Android TV (اجرا با ریموت کنترل)\n• کانال به‌روزرسانی آزمایشی در تنظیمات برنامه",
-  "notes_en": "Experimental 18.8 changes:\n• Fixed VLESS configs with mlkem768 encryption (new Xray core)\n• Read WireGuard .conf files\n• Filter promo/info rows out of subscription lists\n• Neon power ring + full green theme while connected\n• Notification language follows the app language\n• Auto-import configs and links from the clipboard\n• Mieru protocol support\n• Android TV support (remote control)\n• Experimental update channel in settings",
-  "page": "https://github.com/meisamodin/v2fall-updates/tree/main/experimental",
-  "android_arm64": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/experimental/download/V2Fall-18.8rc5-arm64.apk",
-    "sha256": "7605881b8e10dfe928377b1ed8677fe2a3cf3171adc4ae5eb493198b4018231d",
-    "size": 44083343,
-    "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@c7c78d24dd1775640350ea97a2228e6f528b037e/experimental/parts/V2Fall-18.8rc5-arm64.apk.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@c7c78d24dd1775640350ea97a2228e6f528b037e/experimental/parts/V2Fall-18.8rc5-arm64.apk.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@c7c78d24dd1775640350ea97a2228e6f528b037e/experimental/parts/V2Fall-18.8rc5-arm64.apk.p02"
-    ]
-  },
-  "android_armv7": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/experimental/download/V2Fall-18.8rc5-armv7.apk",
-    "sha256": "2e06206de96ae69111b9c6dbdccb7d2adc0b964f0fbe229453171040427d5301",
-    "size": 45066391,
-    "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@c7c78d24dd1775640350ea97a2228e6f528b037e/experimental/parts/V2Fall-18.8rc5-armv7.apk.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@c7c78d24dd1775640350ea97a2228e6f528b037e/experimental/parts/V2Fall-18.8rc5-armv7.apk.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@c7c78d24dd1775640350ea97a2228e6f528b037e/experimental/parts/V2Fall-18.8rc5-armv7.apk.p02"
-    ]
-  },
-  "windows": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/experimental/download/V2Fall-Setup-18.8rc5.exe",
-    "sha256": "82db3e0cd2019d73c85e56ed715cdabe172d58b7096d8827cbc4d31f620a07d0",
-    "size": 34482580,
-    "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@c7c78d24dd1775640350ea97a2228e6f528b037e/experimental/parts/V2Fall-Setup-18.8rc5.exe.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@c7c78d24dd1775640350ea97a2228e6f528b037e/experimental/parts/V2Fall-Setup-18.8rc5.exe.p01"
-    ]
-  }
+ "app": "V2Fall",
+ "version": "18.8.6",
+ "date": "2026-11-09",
+ "channel": "experimental",
+ "notes": "نسخهٔ آزمایشی rc6 — ۱۸.۸.۶\n\n✨ WARP داخلی کلادفلر: بدون نیاز به سرور شخصی وصل شوید — «افزودن → WARP»\n• حالت گول (وارپ‌در‌وارپ) — پیش‌فرض، مناسب ایران\n• حالت سایفون (CFON) — عبور وارپ از شبکهٔ Psiphon با انتخاب کشور\n• وارپ ساده + اسکن خودکار برای پیدا کردن بهترین اندپوینت کلادفلر\n↩️ دکمهٔ «دریافت نسخهٔ پایدار»: اگر نسخهٔ آزمایشی مشکل داشت، از «تنظیمات → درباره» به نسخهٔ رسمی برگردید (کانال آزمایشی خودکار خاموش می‌شود)\n🔧 WARP روی اندروید، ویندوز، مک و لینوکس کار می‌کند",
+ "notes_en": "Experimental build rc6 — 18.8.6\n\n✨ Built-in Cloudflare WARP: connect without your own server — Add → WARP\n• Gool mode (warp-in-warp) — default, best for Iran\n• CFON mode — WARP over the Psiphon network with country selection\n• Plain WARP + automatic endpoint scan to find the best Cloudflare IP\n↩️ \"Get the stable version\" button: if an experimental build misbehaves, return to the official release from Settings → About (the experimental channel turns off automatically)\n🔧 WARP works on Android, Windows, macOS and Linux",
+ "page": "https://github.com/meisamodin/v2fall-updates/tree/main/experimental",
+ "android": {
+  "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/download/V2Fall-18.8rc6-arm64.apk",
+  "sha256": "0e54cf2d9a17329066ed1796bbe75a3c9db866b2ddbf34a8d1aba517da3d72bf",
+  "size": 51312853,
+  "parts": [
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p02"
+  ]
+ },
+ "android_arm64": {
+  "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/download/V2Fall-18.8rc6-arm64.apk",
+  "sha256": "0e54cf2d9a17329066ed1796bbe75a3c9db866b2ddbf34a8d1aba517da3d72bf",
+  "size": 51312853,
+  "parts": [
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p02"
+  ]
+ },
+ "android_armv7": {
+  "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/download/V2Fall-18.8rc6-armv7.apk",
+  "sha256": "b995d0256e1187a553fdf508c1d298375b466d2e49d6fa6d07c7734318e16ac6",
+  "size": 52668639,
+  "parts": [
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-armv7.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-armv7.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-armv7.apk.p02"
+  ]
+ },
+ "windows": {
+  "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/download/V2Fall-Setup-18.8rc6.exe",
+  "sha256": "9ee14727b8b6bfd95761e8583c2f58488328a0d6580f612be67db4cb3fcd4ab4",
+  "size": 38553740,
+  "parts": [
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-Setup-18.8rc6.exe.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-Setup-18.8rc6.exe.p01"
+  ]
+ }
 }
