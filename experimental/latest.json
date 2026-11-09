@@ -1,48 +1,48 @@
 {
  "app": "V2Fall",
- "version": "18.8.6",
+ "version": "18.8.7",
  "date": "2026-11-09",
  "channel": "experimental",
- "notes": "نسخهٔ آزمایشی rc6 — ۱۸.۸.۶\n\n✨ WARP داخلی کلادفلر: بدون نیاز به سرور شخصی وصل شوید — «افزودن → WARP»\n• حالت گول (وارپ‌در‌وارپ) — پیش‌فرض، مناسب ایران\n• حالت سایفون (CFON) — عبور وارپ از شبکهٔ Psiphon با انتخاب کشور\n• وارپ ساده + اسکن خودکار برای پیدا کردن بهترین اندپوینت کلادفلر\n↩️ دکمهٔ «دریافت نسخهٔ پایدار»: اگر نسخهٔ آزمایشی مشکل داشت، از «تنظیمات → درباره» به نسخهٔ رسمی برگردید (کانال آزمایشی خودکار خاموش می‌شود)\n🔧 WARP روی اندروید، ویندوز، مک و لینوکس کار می‌کند",
- "notes_en": "Experimental build rc6 — 18.8.6\n\n✨ Built-in Cloudflare WARP: connect without your own server — Add → WARP\n• Gool mode (warp-in-warp) — default, best for Iran\n• CFON mode — WARP over the Psiphon network with country selection\n• Plain WARP + automatic endpoint scan to find the best Cloudflare IP\n↩️ \"Get the stable version\" button: if an experimental build misbehaves, return to the official release from Settings → About (the experimental channel turns off automatically)\n🔧 WARP works on Android, Windows, macOS and Linux",
+ "notes": "🧪 نسخهٔ آزمایشی 18.8.7 (rc7+rc8)\n\n✨ AmneziaWG — پروتکل جدید:\n• فایل‌های ‎.conf‎ مربوط به AmneziaWG (با پارامترهای مبهم‌سازی Jc/Jmin/Jmax/S1-S2/H1-H4) مستقیم وارد و وصل می‌شوند\n• هستهٔ جداگانهٔ AmneziaWG v3.1 (کاربرمحور، gvisor netstack) — اندروید، ویندوز، مک و لینوکس\n• کانفیگ‌های WireGuard معمولی همچنان با مسیر قبلی کار می‌کنند\n\n🧹 نظافت لیست سرورها:\n• حذف سرورهای کند (بالای ۱۵۰۰ میلی‌ثانیه) و بی‌پاسخ از منوی سرورها\n• فیلتر «سریع» بین فیلترهای لیست سرورها\n• گزینهٔ «فقط سریع‌ترین‌های هر اشتراک» در تنظیمات اشتراک‌ها — بعد از هر بروزرسانی، سرورهای کند حذف و پین‌شده‌ها حفظ می‌شوند\n\n💡 پیشنهاد هوشمند:\n• وقتی چند اتصال پشت سر هم ناموفق باشد، اپ استفاده از WARP کلادفلر (بدون نیاز به سرور) را پیشنهاد می‌دهد",
+ "notes_en": "🧪 Experimental build 18.8.7 (rc7+rc8)\n\n✨ AmneziaWG — new protocol:\n• AmneziaWG .conf files (obfuscation params Jc/Jmin/Jmax/S1-S2/H1-H4) import and connect directly\n• Standalone AmneziaWG v3.1 core (userspace, gvisor netstack) — Android, Windows, macOS, Linux\n• Plain WireGuard configs keep working on the existing path\n\n🧹 Server list cleanup:\n• Remove slow (over 1500 ms) and dead servers from the servers menu\n• «Fast» filter chip in the server list\n• «Keep only the fastest of each subscription» option — slow servers pruned after each update, pinned ones kept\n\n💡 Smart suggestion:\n• After several failed connections in a row, the app suggests built-in Cloudflare WARP (no server needed)",
  "page": "https://github.com/meisamodin/v2fall-updates/tree/main/experimental",
  "android": {
-  "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/download/V2Fall-18.8rc6-arm64.apk",
-  "sha256": "0e54cf2d9a17329066ed1796bbe75a3c9db866b2ddbf34a8d1aba517da3d72bf",
-  "size": 51312853,
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.7/V2Fall-18.8rc8-arm64.apk",
+  "sha256": "6951f74cafd9846af725aaf631a35f7b29d24f719049b2a2a135e1873dfa4f21",
+  "size": 53573914,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-arm64.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-arm64.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-arm64.apk.p02"
   ]
  },
  "android_arm64": {
-  "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/download/V2Fall-18.8rc6-arm64.apk",
-  "sha256": "0e54cf2d9a17329066ed1796bbe75a3c9db866b2ddbf34a8d1aba517da3d72bf",
-  "size": 51312853,
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.7/V2Fall-18.8rc8-arm64.apk",
+  "sha256": "6951f74cafd9846af725aaf631a35f7b29d24f719049b2a2a135e1873dfa4f21",
+  "size": 53573914,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-arm64.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-arm64.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-arm64.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-arm64.apk.p02"
   ]
  },
  "android_armv7": {
-  "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/download/V2Fall-18.8rc6-armv7.apk",
-  "sha256": "b995d0256e1187a553fdf508c1d298375b466d2e49d6fa6d07c7734318e16ac6",
-  "size": 52668639,
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.7/V2Fall-18.8rc8-armv7.apk",
+  "sha256": "6b9086d4b219be1d854739275a5e56ff4e21058ee576aad43daa30c914602a2c",
+  "size": 54974758,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-armv7.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-armv7.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-18.8rc6-armv7.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-armv7.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-armv7.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-18.8rc8-armv7.apk.p02"
   ]
  },
  "windows": {
-  "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/download/V2Fall-Setup-18.8rc6.exe",
-  "sha256": "9ee14727b8b6bfd95761e8583c2f58488328a0d6580f612be67db4cb3fcd4ab4",
-  "size": 38553740,
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.7/V2Fall-Setup-18.8rc8.exe",
+  "sha256": "0b430d38ad3f76f137dac8c3a790d6077744f69f7b9c2a8aa1eb35a3fc205230",
+  "size": 39467520,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-Setup-18.8rc6.exe.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@39198e9181ba32d310e18fc4ff476846b527f53d/experimental/parts/V2Fall-Setup-18.8rc6.exe.p01"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-Setup-18.8rc8.exe.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@54a18814debf2397a9b3e4560422ad70deb49f99/experimental/parts/V2Fall-Setup-18.8rc8.exe.p01"
   ]
  }
 }
