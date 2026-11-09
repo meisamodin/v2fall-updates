@@ -45,7 +45,21 @@ New «Experimental updates» toggle in Settings → About & updates — get new 
 
 ## تغییرات نسخهٔ آزمایشی (Experimental)
 
-این نسخه‌ها برای تست هستند و هنوز رسمی منتشر نشده‌اند. برای دریافتشان در برنامه به «تنظیمات → درباره و به‌روزرسانی» بروید و «نسخه‌های آزمایشی» را روشن کنید.
+این نسخه‌ها برای تست هستند و هنوز رسمی منتشر نشده‌اند. برای دریافتشان در برنامه به «تنظیمات → درباره و به‌روزرسانی» بروید و دکمهٔ «دریافت نسخهٔ آزمایشی» را بزنید (یا «نسخه‌های آزمایشی» را روشن کنید). نصب روی نسخهٔ فعلی انجام می‌شود و نیازی به حذف برنامه نیست — یا مستقیم دانلود کنید:
+
+| سیستم | دانلود مستقیم ۱۸٫۸٫۸ (rc9) | حجم |
+|---|---|---|
+| اندروید — گوشی‌های جدید (arm64، پیشنهادی) | [V2Fall-18.8rc9-arm64.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-18.8rc9-arm64.apk) | 54 MB |
+| اندروید — گوشی‌های قدیمی (armv7) | [V2Fall-18.8rc9-armv7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-18.8rc9-armv7.apk) | 55 MB |
+| ویندوز | [V2Fall-Setup-18.8rc9.exe](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-Setup-18.8rc9.exe) | 39 MB |
+
+### 18.8.8 (آزمایشی rc9) — ۲۰۲۶-۱۱-۰۹
+- **دو دکمهٔ جدا** در «تنظیمات → درباره و به‌روزرسانی»: «دریافت نسخهٔ آزمایشی» و «دریافت نسخهٔ پایدار» — جابه‌جایی بین کانال‌ها با یک لمس
+- **نصب بدون حذف برنامه**: شمارهٔ ساخت نسخهٔ آزمایشی همیشه از پایدار جدیدتر است، پس روی نسخهٔ پایدار مستقیم نصب می‌شود (رفع خطای INSTALL_FAILED_VERSION_DOWNGRADE)
+
+### Experimental 18.8.8 (rc9) — 2026-11-09 (English)
+- **Two separate buttons** in Settings → About & updates: «Get the experimental version» and «Get the stable version» — switch channels with one tap
+- **Installs without uninstalling**: the experimental build number is always newer than stable, so it installs right over the stable release (fixes INSTALL_FAILED_VERSION_DOWNGRADE)
 
 ### 18.8.7 (آزمایشی rc7+rc8) — ۲۰۲۶-۱۱-۰۹
 - **پشتیبانی از AmneziaWG**: فایل‌های ‎.conf‎ با پارامترهای مبهم‌سازی (Jc/Jmin/Jmax/S1-S2/H1-H4 و…) مستقیم وارد و وصل می‌شوند — هستهٔ جداگانهٔ AmneziaWG v3.1 روی اندروید، ویندوز، مک و لینوکس
