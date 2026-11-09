@@ -1,4 +1,4 @@
-# V2Fall 18.6
+# V2Fall 18.7
 
 [![downloads](https://img.shields.io/github/downloads/meisamodin/v2fall-updates/total?label=downloads&color=34D399)](https://github.com/meisamodin/v2fall-updates/releases) [![jsDelivr](https://data.jsdelivr.com/v1/package/gh/meisamodin/v2fall-updates/badge?style=rounded)](https://www.jsdelivr.com/package/gh/meisamodin/v2fall-updates?tab=stats) [![stars](https://img.shields.io/github/stars/meisamodin/v2fall-updates?style=flat&color=FBBF24)](https://github.com/meisamodin/v2fall-updates/stargazers)
 
@@ -6,14 +6,14 @@
 
 | سیستم | دانلود | حجم |
 |---|---|---|
-| اندروید — گوشی‌های جدید (arm64، پیشنهادی) | [V2Fall-18.6-arm64.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.6/V2Fall-18.6-arm64.apk) | 38 MB |
-| اندروید — گوشی‌های قدیمی (armv7) | [V2Fall-18.6-armv7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.6/V2Fall-18.6-armv7.apk) | 39 MB |
-| اندروید — همه‌کاره (اگر نمی‌دانید کدام) | [V2Fall-18.6.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.6/V2Fall-18.6.apk) | 77 MB |
-| ویندوز | [V2Fall-Setup-18.6.exe](https://github.com/meisamodin/v2fall-updates/releases/download/v18.6/V2Fall-Setup-18.6.exe) | 31 MB |
-| مک (Apple Silicon: M1/M2/M3/M4) | [V2Fall-18.6-macOS-Apple-Silicon.dmg](https://github.com/meisamodin/v2fall-updates/releases/download/v18.6/V2Fall-18.6-macOS-Apple-Silicon.dmg) | 54 MB |
-| مک (Intel) | [V2Fall-18.6-macOS-Intel.dmg](https://github.com/meisamodin/v2fall-updates/releases/download/v18.6/V2Fall-18.6-macOS-Intel.dmg) | 60 MB |
-| لینوکس (.deb اوبونتو/دبیان) | [v2fall_18.6_amd64.deb](https://github.com/meisamodin/v2fall-updates/releases/download/v18.6/v2fall_18.6_amd64.deb) | 38 MB |
-| لینوکس (tar.gz) | [V2Fall-18.6-Linux-x64.tar.gz](https://github.com/meisamodin/v2fall-updates/releases/download/v18.6/V2Fall-18.6-Linux-x64.tar.gz) | 48 MB |
+| اندروید — گوشی‌های جدید (arm64، پیشنهادی) | [V2Fall-18.7-arm64.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.7/V2Fall-18.7-arm64.apk) | 39 MB |
+| اندروید — گوشی‌های قدیمی (armv7) | [V2Fall-18.7-armv7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.7/V2Fall-18.7-armv7.apk) | 40 MB |
+| اندروید — همه‌کاره (اگر نمی‌دانید کدام) | [V2Fall-18.7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.7/V2Fall-18.7.apk) | 79 MB |
+| ویندوز | [V2Fall-Setup-18.7.exe](https://github.com/meisamodin/v2fall-updates/releases/download/v18.7/V2Fall-Setup-18.7.exe) | 33 MB |
+| مک (Apple Silicon: M1/M2/M3/M4) | [V2Fall-18.7-macOS-Apple-Silicon.dmg](https://github.com/meisamodin/v2fall-updates/releases/download/v18.7/V2Fall-18.7-macOS-Apple-Silicon.dmg) | 56 MB |
+| مک (Intel) | [V2Fall-18.7-macOS-Intel.dmg](https://github.com/meisamodin/v2fall-updates/releases/download/v18.7/V2Fall-18.7-macOS-Intel.dmg) | 63 MB |
+| لینوکس (.deb اوبونتو/دبیان) | [v2fall_18.7_amd64.deb](https://github.com/meisamodin/v2fall-updates/releases/download/v18.7/v2fall_18.7_amd64.deb) | 40 MB |
+| لینوکس (tar.gz) | [V2Fall-18.7-Linux-x64.tar.gz](https://github.com/meisamodin/v2fall-updates/releases/download/v18.7/V2Fall-18.7-Linux-x64.tar.gz) | 50 MB |
 
 ## سرور شخصی برای قطعی اینترنت (اختیاری)
 روی سرور خودتان (اوبونتو/دبیان) با کاربر root اجرا کنید:
@@ -32,14 +32,14 @@ bash <(curl -fsSL https://github.com/meisamodin/v2fall-updates/raw/main/tools/v2
 - **اندروید:** فایل APK را باز کنید. اگر Play Protect پیغام داد، «Install without scanning» یا «Scan app» را بزنید (برای هر برنامهٔ خارج از گوگل‌پلی پیش می‌آید).
 - **ویندوز:** Setup را اجرا کنید. اگر SmartScreen آمد: More info → Run anyway.
 - **مک:** فایل dmg را باز کنید و V2Fall را داخل Applications بکشید. بار اول روی برنامه کلیک راست → Open (چون امضای اپل ندارد). اگر گفت «آسیب دیده»: در Terminal بزنید `xattr -cr /Applications/V2Fall.app`
-- **لینوکس:** `sudo apt install ./v2fall_18.6_amd64.deb` یا tar.gz را باز کنید و `./V2Fall` را اجرا کنید (نیاز به libwebkit2gtk-4.1).
+- **لینوکس:** `sudo apt install ./v2fall_18.7_amd64.deb` یا tar.gz را باز کنید و `./V2Fall` را اجرا کنید (نیاز به libwebkit2gtk-4.1).
 
 ## تغییرات این نسخه
-رفع مشکل باز کردن کد اشتراک روی کامپیوتر، قفل کانفیگ به V2Fall، ابزار ارسال با پیامک، شروع و اتصال خودکار
+**گزینهٔ «نسخه‌های آزمایشی»** در «تنظیمات → درباره و به‌روزرسانی» — قابلیت‌های جدید را قبل از انتشار رسمی دریافت کنید و هر وقت خواستید با دکمهٔ «دریافت نسخهٔ پایدار» برگردید. بررسی به‌روزرسانی هوشمندتر شد و منوی انتخاب متن اندروید دیگر روی رابط برنامه ظاهر نمی‌شود.
 
 ---
 
-Fix opening a subscription code on desktop, lock configs to V2Fall, SMS tool, reliable autostart
+New «Experimental updates» toggle in Settings → About & updates — get new features before the official release and roll back any time with «Get the stable version». Smarter update check (ignores stale CDN answers); the Android text-selection menu no longer pops up over the UI.
 
 ---
 
