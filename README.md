@@ -47,11 +47,19 @@ New «Experimental updates» toggle in Settings → About & updates — get new 
 
 این نسخه‌ها برای تست هستند و هنوز رسمی منتشر نشده‌اند. برای دریافتشان در برنامه به «تنظیمات → درباره و به‌روزرسانی» بروید و دکمهٔ «دریافت نسخهٔ آزمایشی» را بزنید (یا «نسخه‌های آزمایشی» را روشن کنید). نصب روی نسخهٔ فعلی انجام می‌شود و نیازی به حذف برنامه نیست — یا مستقیم دانلود کنید:
 
-| سیستم | دانلود مستقیم ۱۸٫۸٫۹ (rc10) | حجم |
+| سیستم | دانلود مستقیم ۱۸٫۸٫۱۰ (rc11) | حجم |
 |---|---|---|
-| اندروید — گوشی‌های جدید (arm64، پیشنهادی) | [V2Fall-18.8rc10-arm64.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-arm64.apk) | 54 MB |
-| اندروید — گوشی‌های قدیمی (armv7) | [V2Fall-18.8rc10-armv7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-armv7.apk) | 55 MB |
-| ویندوز | [V2Fall-Setup-18.8rc10.exe](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-Setup-18.8rc10.exe) | 39 MB |
+| اندروید — گوشی‌های جدید (arm64، پیشنهادی) | [V2Fall-18.8rc11-arm64.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.10/V2Fall-18.8rc11-arm64.apk) | 54 MB |
+| اندروید — گوشی‌های قدیمی (armv7) | [V2Fall-18.8rc11-armv7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.10/V2Fall-18.8rc11-armv7.apk) | 55 MB |
+| ویندوز | [V2Fall-Setup-18.8rc11.exe](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.10/V2Fall-Setup-18.8rc11.exe) | 39 MB |
+
+### 18.8.10 (آزمایشی rc11) — ۲۰۲۶-۱۱-۰۹
+- **رفع وصل‌نشدن کانفیگ‌های تحت Xray روی اندروید** (VLESS با رمزنگاری mlkem768x25519plus و…): هستهٔ Xray حالا دامنه‌ها را با DNSهای داخل ایران (شکن/الکترو/بگذر) resolve می‌کند — قبلاً روی اندروید به DNS مردهٔ 127.0.0.1 می‌افتاد
+- **دانلود به‌روزرسانی دسکتاپ**: دیگر از پروکسی سیستم رد نمی‌شود (با VPN روشن روی ۰٪ گیر نمی‌کند) و با قطع‌شدن وسط دانلود، از همان‌جا ادامه می‌دهد
+
+### Experimental 18.8.10 (rc11) — 2026-11-09 (English)
+- **Fix Xray-routed configs not connecting on Android** (VLESS with mlkem768x25519plus encryption etc.): the Xray helper now resolves domains via Iranian public DNS (Shekan/Electro/Begzar) instead of hitting a dead 127.0.0.1 resolver
+- **Desktop update downloads**: no longer go through the system proxy (no more 0% stall with the VPN on) and resume where they left off after a connection drop
 
 ### 18.8.9 (آزمایشی rc10) — ۲۰۲۶-۱۱-۰۹
 - **پاک‌سازی مهربان‌تر**: سرورهای کند و بی‌پاسخ دیگر حذف نمی‌شوند — به انتهای لیست می‌روند، کم‌رنگ می‌شوند و دیگر پینگ نمی‌خورند؛ از منوی هر سرور می‌توانید برگردانیدش

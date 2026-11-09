@@ -1,48 +1,48 @@
 {
  "app": "V2Fall",
- "version": "18.8.9",
+ "version": "18.8.10",
  "date": "2026-11-09",
  "channel": "experimental",
- "notes": "🧪 نسخهٔ آزمایشی 18.8.9 (rc10)\n\n• پاک‌سازی مهربان‌تر: سرورهای کند و بی‌پاسخ دیگر حذف نمی‌شوند — به انتهای لیست می‌روند، کم‌رنگ می‌شوند و دیگر پینگ نمی‌خورند؛ از منوی هر سرور برمی‌گردند\n• «فقط سریع‌ترین‌های هر اشتراک» هم به‌جای حذف، سرورهای اضافه را به انتهای لیست می‌فرستد\n• شامل همهٔ قابلیت‌های rc6 تا rc9: دو دکمهٔ به‌روزرسانی، AmneziaWG، WARP داخلی و پیشنهاد هوشمند WARP",
- "notes_en": "🧪 Experimental build 18.8.9 (rc10)\n\n• Gentler cleanup: slow and dead servers are no longer deleted — they sink to the end of the list, dimmed, and stop being pinged; restore them from each server's menu\n• «Keep only the fastest of each subscription» now demotes extras instead of deleting them\n• Includes everything from rc6–rc9: two update buttons, AmneziaWG, built-in Cloudflare WARP and the smart WARP suggestion",
+ "notes": "🧪 نسخهٔ آزمایشی 18.8.10 (rc11)\n\n• رفع وصل‌نشدن کانفیگ‌های تحت Xray روی اندروید (VLESS با رمزنگاری mlkem768x25519plus و…): هستهٔ Xray حالا دامنه‌ها را با DNSهای داخل ایران (شکن/الکترو/بگذر) resolve می‌کند\n• دانلود به‌روزرسانی دسکتاپ: دیگر از پروکسی سیستم رد نمی‌شود (با VPN روشن گیر نمی‌کند) و با قطع‌شدن وسط دانلود، از همان‌جا ادامه می‌دهد\n• شامل همهٔ قابلیت‌های rc6 تا rc10: دو دکمهٔ به‌روزرسانی، پاک‌سازی بدون حذف، AmneziaWG، WARP داخلی و…",
+ "notes_en": "🧪 Experimental build 18.8.10 (rc11)\n\n• Fix Xray-routed configs not connecting on Android (VLESS with mlkem768x25519plus encryption etc.): the Xray helper now resolves domains via Iranian public DNS (Shekan/Electro/Begzar)\n• Desktop update downloads bypass the system proxy (no 0% stall with the VPN on) and resume after drops\n• Includes everything from rc6–rc10: two update buttons, delete-free cleanup, AmneziaWG, built-in WARP and more",
  "page": "https://github.com/meisamodin/v2fall-updates/tree/main/experimental",
  "android": {
-  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-arm64.apk",
-  "sha256": "3f5e6e46f2527f4d30b56b2c0f7edbe08ee22921f655d9d1fcee5f29a4a549c7",
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.10/V2Fall-18.8rc11-arm64.apk",
+  "sha256": "52d1bbf825a438411c720c0647195fd5c9fda05f9dfcd3297b966e6a42d6f22d",
   "size": 53573914,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-arm64.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-arm64.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-arm64.apk.p02"
   ]
  },
  "android_arm64": {
-  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-arm64.apk",
-  "sha256": "3f5e6e46f2527f4d30b56b2c0f7edbe08ee22921f655d9d1fcee5f29a4a549c7",
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.10/V2Fall-18.8rc11-arm64.apk",
+  "sha256": "52d1bbf825a438411c720c0647195fd5c9fda05f9dfcd3297b966e6a42d6f22d",
   "size": 53573914,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-arm64.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-arm64.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-arm64.apk.p02"
   ]
  },
  "android_armv7": {
-  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-armv7.apk",
-  "sha256": "62cd99897775bdc6a02c9c37d6c89096e2d14b8768870cca1e47b8850618bce1",
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.10/V2Fall-18.8rc11-armv7.apk",
+  "sha256": "a08bc303a9378df11c59dfa96bb5772b54e4d465dbcff8169462ae742fed9a2d",
   "size": 54974758,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-armv7.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-armv7.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-armv7.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-armv7.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-armv7.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-18.8rc11-armv7.apk.p02"
   ]
  },
  "windows": {
-  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-Setup-18.8rc10.exe",
-  "sha256": "dbcfc7bfd5f10b8a87f6ac919bff12df59f69ad4b1974463027e67ce1e584737",
-  "size": 39472133,
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.10/V2Fall-Setup-18.8rc11.exe",
+  "sha256": "f0e8fb045da682e6fa6ce239e0e34f005335ac109451525036d68f9d803caefc",
+  "size": 39480336,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-Setup-18.8rc10.exe.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-Setup-18.8rc10.exe.p01"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-Setup-18.8rc11.exe.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@96a4d86d1a0cf09c7c465b1e7ef7f5cf7b7e0cf3/experimental/parts/V2Fall-Setup-18.8rc11.exe.p01"
   ]
  }
 }
