@@ -40,3 +40,31 @@ bash <(curl -fsSL https://github.com/meisamodin/v2fall-updates/raw/main/tools/v2
 ---
 
 Fix opening a subscription code on desktop, lock configs to V2Fall, SMS tool, reliable autostart
+
+---
+
+## تغییرات نسخهٔ آزمایشی (Experimental)
+
+این نسخه‌ها برای تست هستند و هنوز رسمی منتشر نشده‌اند. برای دریافتشان در برنامه به «تنظیمات → درباره و به‌روزرسانی» بروید و «نسخه‌های آزمایشی» را روشن کنید.
+
+### 18.8 (آزمایشی) — ۲۰۲۶-۱۱-۰۹
+- اتصال کانفیگ‌های VLESS با رمزنگاری mlkem768 (هستهٔ Xray جدید) برطرف شد
+- خواندن فایل WireGuard با فرمت ‎.conf
+- حذف خودکار سطرهای تبلیغاتی و اطلاعاتی از لیست اشتراک
+- دکمهٔ اتصال با حلقهٔ نئون و تم سبز کامل هنگام اتصال
+- زبان اعلان برنامه مطابق زبان داخل برنامه
+- افزودن خودکار کانفیگ و لینک از کلیبورد
+- پشتیبانی از پروتکل Mieru
+- پشتیبانی از Android TV (اجرا با ریموت کنترل)
+- کانال به‌روزرسانی آزمایشی در تنظیمات برنامه
+
+### Experimental 18.8 — 2026-11-09 (English)
+- Fixed VLESS configs with mlkem768 encryption (new Xray core)
+- Read WireGuard .conf files
+- Promo/info rows filtered out of subscription lists
+- Neon power ring + full green theme while connected
+- Notification language follows the app language
+- Auto-import configs and links from the clipboard
+- Mieru protocol support
+- Android TV support (remote control)
+- Experimental update channel in settings
