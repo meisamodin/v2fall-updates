@@ -1,48 +1,48 @@
 {
  "app": "V2Fall",
- "version": "18.8.8",
+ "version": "18.8.9",
  "date": "2026-11-09",
  "channel": "experimental",
- "notes": "🧪 نسخهٔ آزمایشی 18.8.8 (rc9)\n\n• دو دکمهٔ جدا در «تنظیمات → درباره و به‌روزرسانی»: «دریافت نسخهٔ آزمایشی» و «دریافت نسخهٔ پایدار» — جابه‌جایی بین کانال‌ها با یک لمس\n• نصب روی نسخهٔ پایدار بدون حذف برنامه (رفع خطای INSTALL_FAILED_VERSION_DOWNGRADE)\n• شامل همهٔ قابلیت‌های rc6 تا rc8: AmneziaWG، WARP داخلی کلادفلر، پاک‌سازی سرورهای کند، «فقط سریع‌ترین‌های هر اشتراک» و پیشنهاد هوشمند WARP",
- "notes_en": "🧪 Experimental build 18.8.8 (rc9)\n\n• Two separate buttons in Settings → About & updates: «Get the experimental version» and «Get the stable version» — switch channels with one tap\n• Installs over the stable release without uninstalling (fixes INSTALL_FAILED_VERSION_DOWNGRADE)\n• Includes everything from rc6–rc8: AmneziaWG, built-in Cloudflare WARP, slow-server cleanup, «Keep only the fastest» and the smart WARP suggestion",
+ "notes": "🧪 نسخهٔ آزمایشی 18.8.9 (rc10)\n\n• پاک‌سازی مهربان‌تر: سرورهای کند و بی‌پاسخ دیگر حذف نمی‌شوند — به انتهای لیست می‌روند، کم‌رنگ می‌شوند و دیگر پینگ نمی‌خورند؛ از منوی هر سرور برمی‌گردند\n• «فقط سریع‌ترین‌های هر اشتراک» هم به‌جای حذف، سرورهای اضافه را به انتهای لیست می‌فرستد\n• شامل همهٔ قابلیت‌های rc6 تا rc9: دو دکمهٔ به‌روزرسانی، AmneziaWG، WARP داخلی و پیشنهاد هوشمند WARP",
+ "notes_en": "🧪 Experimental build 18.8.9 (rc10)\n\n• Gentler cleanup: slow and dead servers are no longer deleted — they sink to the end of the list, dimmed, and stop being pinged; restore them from each server's menu\n• «Keep only the fastest of each subscription» now demotes extras instead of deleting them\n• Includes everything from rc6–rc9: two update buttons, AmneziaWG, built-in Cloudflare WARP and the smart WARP suggestion",
  "page": "https://github.com/meisamodin/v2fall-updates/tree/main/experimental",
  "android": {
-  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-18.8rc9-arm64.apk",
-  "sha256": "cf4fd8d468d43835469b40590e99a8fcadf28432bf213f928ab49fa845df14b7",
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-arm64.apk",
+  "sha256": "3f5e6e46f2527f4d30b56b2c0f7edbe08ee22921f655d9d1fcee5f29a4a549c7",
   "size": 53573914,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-arm64.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-arm64.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-arm64.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p02"
   ]
  },
  "android_arm64": {
-  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-18.8rc9-arm64.apk",
-  "sha256": "cf4fd8d468d43835469b40590e99a8fcadf28432bf213f928ab49fa845df14b7",
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-arm64.apk",
+  "sha256": "3f5e6e46f2527f4d30b56b2c0f7edbe08ee22921f655d9d1fcee5f29a4a549c7",
   "size": 53573914,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-arm64.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-arm64.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-arm64.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-arm64.apk.p02"
   ]
  },
  "android_armv7": {
-  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-18.8rc9-armv7.apk",
-  "sha256": "e1a12d1347ac828982124b315387cf72ac1f7600dad287d1b56c00cc643f5c17",
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-armv7.apk",
+  "sha256": "62cd99897775bdc6a02c9c37d6c89096e2d14b8768870cca1e47b8850618bce1",
   "size": 54974758,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-armv7.apk.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-armv7.apk.p01",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-18.8rc9-armv7.apk.p02"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-armv7.apk.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-armv7.apk.p01",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-18.8rc10-armv7.apk.p02"
   ]
  },
  "windows": {
-  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-Setup-18.8rc9.exe",
-  "sha256": "9c57b1209e9f85e2411964b11cbba0ba71fb805597201fff8af765c3df4e76c4",
-  "size": 39466299,
+  "url": "https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-Setup-18.8rc10.exe",
+  "sha256": "dbcfc7bfd5f10b8a87f6ac919bff12df59f69ad4b1974463027e67ce1e584737",
+  "size": 39472133,
   "parts": [
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-Setup-18.8rc9.exe.p00",
-   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@0ff7bf167a6178acc2e1877b98341230a2f91965/experimental/parts/V2Fall-Setup-18.8rc9.exe.p01"
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-Setup-18.8rc10.exe.p00",
+   "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5ba63d03ee7031ce30dfe1888a4f802084d2bb2d/experimental/parts/V2Fall-Setup-18.8rc10.exe.p01"
   ]
  }
 }

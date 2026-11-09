@@ -47,11 +47,19 @@ New «Experimental updates» toggle in Settings → About & updates — get new 
 
 این نسخه‌ها برای تست هستند و هنوز رسمی منتشر نشده‌اند. برای دریافتشان در برنامه به «تنظیمات → درباره و به‌روزرسانی» بروید و دکمهٔ «دریافت نسخهٔ آزمایشی» را بزنید (یا «نسخه‌های آزمایشی» را روشن کنید). نصب روی نسخهٔ فعلی انجام می‌شود و نیازی به حذف برنامه نیست — یا مستقیم دانلود کنید:
 
-| سیستم | دانلود مستقیم ۱۸٫۸٫۸ (rc9) | حجم |
+| سیستم | دانلود مستقیم ۱۸٫۸٫۹ (rc10) | حجم |
 |---|---|---|
-| اندروید — گوشی‌های جدید (arm64، پیشنهادی) | [V2Fall-18.8rc9-arm64.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-18.8rc9-arm64.apk) | 54 MB |
-| اندروید — گوشی‌های قدیمی (armv7) | [V2Fall-18.8rc9-armv7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-18.8rc9-armv7.apk) | 55 MB |
-| ویندوز | [V2Fall-Setup-18.8rc9.exe](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.8/V2Fall-Setup-18.8rc9.exe) | 39 MB |
+| اندروید — گوشی‌های جدید (arm64، پیشنهادی) | [V2Fall-18.8rc10-arm64.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-arm64.apk) | 54 MB |
+| اندروید — گوشی‌های قدیمی (armv7) | [V2Fall-18.8rc10-armv7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-18.8rc10-armv7.apk) | 55 MB |
+| ویندوز | [V2Fall-Setup-18.8rc10.exe](https://github.com/meisamodin/v2fall-updates/releases/download/exp-v18.8.9/V2Fall-Setup-18.8rc10.exe) | 39 MB |
+
+### 18.8.9 (آزمایشی rc10) — ۲۰۲۶-۱۱-۰۹
+- **پاک‌سازی مهربان‌تر**: سرورهای کند و بی‌پاسخ دیگر حذف نمی‌شوند — به انتهای لیست می‌روند، کم‌رنگ می‌شوند و دیگر پینگ نمی‌خورند؛ از منوی هر سرور می‌توانید برگردانیدش
+- **«فقط سریع‌ترین‌های هر اشتراک»** هم به‌جای حذف، سرورهای اضافه را به انتهای لیست می‌فرستد
+
+### Experimental 18.8.9 (rc10) — 2026-11-09 (English)
+- **Gentler cleanup**: slow and dead servers are no longer deleted — they sink to the end of the list, dimmed, and stop being pinged; restore any of them from its menu
+- **«Keep only the fastest of each subscription»** now demotes extra servers instead of deleting them
 
 ### 18.8.8 (آزمایشی rc9) — ۲۰۲۶-۱۱-۰۹
 - **دو دکمهٔ جدا** در «تنظیمات → درباره و به‌روزرسانی»: «دریافت نسخهٔ آزمایشی» و «دریافت نسخهٔ پایدار» — جابه‌جایی بین کانال‌ها با یک لمس
