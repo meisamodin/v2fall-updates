@@ -47,6 +47,14 @@ Fix opening a subscription code on desktop, lock configs to V2Fall, SMS tool, re
 
 این نسخه‌ها برای تست هستند و هنوز رسمی منتشر نشده‌اند. برای دریافتشان در برنامه به «تنظیمات → درباره و به‌روزرسانی» بروید و «نسخه‌های آزمایشی» را روشن کنید.
 
+### 18.8.6 (آزمایشی rc6) — ۲۰۲۶-۱۱-۰۹
+- **WARP داخلی کلادفلر**: اتصال بدون نیاز به سرور شخصی از «افزودن → WARP» — حالت گول (وارپ‌در‌وارپ، پیش‌فرض)، حالت سایفون (CFON، عبور وارپ از شبکهٔ Psiphon با انتخاب کشور)، وارپ ساده، و اسکن خودکار اندپوینت کلادفلر — روی اندروید، ویندوز، مک و لینوکس
+- **دکمهٔ «دریافت نسخهٔ پایدار»** در «تنظیمات → درباره»: اگر نسخهٔ آزمایشی مشکل داشت، با یک لمس به نسخهٔ رسمی برگردید (کانال آزمایشی خودکار خاموش می‌شود)
+
+### Experimental 18.8.6 (rc6) — 2026-11-09 (English)
+- **Built-in Cloudflare WARP**: connect without your own server via Add → WARP — Gool (warp-in-warp, default), CFON (WARP over the Psiphon network, country selectable), plain WARP, and automatic Cloudflare endpoint scan — on Android, Windows, macOS and Linux
+- **«Get the stable version» button** in Settings → About: one tap back to the official release if an experimental build misbehaves (the experimental channel turns off automatically)
+
 ### 18.8 (آزمایشی) — ۲۰۲۶-۱۱-۰۹
 - اتصال کانفیگ‌های VLESS با رمزنگاری mlkem768 (هستهٔ Xray جدید) برطرف شد
 - خواندن فایل WireGuard با فرمت ‎.conf
