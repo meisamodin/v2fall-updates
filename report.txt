@@ -1,0 +1,4 @@
+desk {"title":"V2Fall — کلاینت VPN سریع و امن","hscroll":false,"dl":["https://github.com/meisamodin/v2fall-updates/raw/main/download/v2fall_18.9.19_amd64.deb","https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.19-Linux-x64.tar.gz"]}
+no errors
+mob {"title":"V2Fall — کلاینت VPN سریع و امن","hscroll":false,"dl":["https://github.com/meisamodin/v2fall-updates/raw/main/download/v2fall_18.9.19_amd64.deb","https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.19-Linux-x64.tar.gz"]}
+no errors
