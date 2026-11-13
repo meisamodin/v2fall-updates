@@ -105,6 +105,13 @@ async function turnServers(env) {
     turnErr = r.ok ? '' : 'id length ' + String(env.CF_TURN_KEY_ID).trim().length + ', HTTP ' + r.status + ' ' + txt.slice(0, 120).replace(/[A-Za-z0-9_-]{20,}/g, '…');
     const list = [].concat(j.iceServers || []).filter(x => x && x.urls && x.username)
       .map(x => ({ urls: [].concat(x.urls).filter(u => /^turns?:/.test(u) && !/:53(\?|$)/.test(u)), username: x.username, credential: x.credential })).filter(x => x.urls.length);
+    // Cloudflare also answers on the alternate ports 80 (TCP) and 443 (TLS): in Iran 3478/5349 are often
+    // closed, 443 almost never
+    for (const x of list) {
+      if (x.urls.some(u => u.startsWith('turn:turn.cloudflare.com'))) x.urls.push('turn:turn.cloudflare.com:80?transport=tcp');
+      if (x.urls.some(u => u.startsWith('turns:turn.cloudflare.com'))) x.urls.push('turns:turn.cloudflare.com:443?transport=tcp');
+      x.urls = [...new Set(x.urls)];
+    }
     if (list.length) turnCache = { ice: list, at: Date.now() };
     return list;
   } catch (e) { turnErr = String(e).slice(0, 120); return turnCache.ice; }
