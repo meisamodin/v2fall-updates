@@ -3,14 +3,18 @@
 split into parts, commit, then write latest.json + experimental/latest.json (copy, stable:true).
 usage: publish_all.py VERSION NOTES_FA NOTES_EN"""
 import sys, os, json, subprocess, hashlib, glob, shutil, datetime
-sys.path.insert(0, '/tmp/claude-0/key')
+# The signer lives here (tools/apksign.py); only the key is outside the repo. Always sign with THIS tool: it
+# re-compresses deterministically, and switching signers between releases makes every file "changed", so the
+# next small update becomes a full download (that happened with 18.9.48).
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, TOOLS)
 import apksign
 
 V, FA, EN = sys.argv[1], sys.argv[2], sys.argv[3]
 REPO = 'meisamodin/v2fall-updates'
 U = '/home/claude/v2fall-updates'
 W = f'/tmp/claude-0/pub-{V}'
-KEY = '/tmp/claude-0/key/V2Fall-signing-key'
+KEY = os.environ.get('V2F_KEY_DIR', '/tmp/claude-0/key/V2Fall-signing-key')  # key.pem + cert.pem, never in the repo
 os.makedirs(W, exist_ok=True)
 
 def sh(*a, cwd=None, out=False):
@@ -40,7 +44,7 @@ for p in sorted(glob.glob(os.path.join(W, '*'))):
         al = os.path.join(W, 'al-' + clean)
         apksign.zipalign(p, al)
         dst = os.path.join(out, clean)
-        sh('python3', '/tmp/claude-0/key/apksign.py', 'sign', al, dst, f'{KEY}/key.pem', f'{KEY}/cert.pem')
+        sh('python3', f'{TOOLS}/apksign.py', 'sign', al, dst, f'{KEY}/key.pem', f'{KEY}/cert.pem')
         os.remove(al)
     elif n.endswith(('.exe', '.dmg', '.deb', '.tar.gz')):
         shutil.copy(p, os.path.join(out, n))
@@ -61,7 +65,7 @@ K = {
     'linux_tar': find(lambda f: f.endswith('.tar.gz')),
 }
 assert K['android'] and K['android_arm64'] and K['windows'] and K['linux'], K
-vcode = int(sh('python3', '/tmp/claude-0/key/apksign.py', 'vcode', os.path.join(out, K['android']), out=True).strip().split()[-1])
+vcode = int(sh('python3', f'{TOOLS}/apksign.py', 'vcode', os.path.join(out, K['android']), out=True).strip().split()[-1])
 old = json.load(open(f'{U}/latest.json'))
 assert vcode > old['vcode'], (vcode, old['vcode'])
 for k in ('experimental/latest.json',):
@@ -147,7 +151,7 @@ for k, newname, oldname in (('windows', f'V2Fall-{V}-Windows-x64-portable.zip', 
     except Exception as e: print('desktop delta', k, 'skipped:', e)
 sh('git', 'add', '-A', 'download', cwd=U)
 sh('git', '-c', 'user.name=Claude', '-c', 'user.email=noreply@anthropic.com', 'commit', '-qm',
-   f'V2Fall {V}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_014VLmUmwrxWR4EsJPQ9VJe1', cwd=U)
+   f'V2Fall {V}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01WgJmrnMdYo7ybEAikyer79', cwd=U)
 sh('git', 'pull', '-q', '--rebase', cwd=U); sh('git', 'push', '-q', cwd=U)
 sha = sh('git', 'rev-parse', 'HEAD', cwd=U, out=True).strip()
 
@@ -177,6 +181,6 @@ os.makedirs(f'{U}/experimental', exist_ok=True)
 json.dump(e, open(f'{U}/experimental/latest.json', 'w'), ensure_ascii=False, indent=2)
 sh('git', 'add', 'latest.json', 'experimental/latest.json', cwd=U)
 sh('git', '-c', 'user.name=Claude', '-c', 'user.email=noreply@anthropic.com', 'commit', '-qm',
-   f'V2Fall {V}: manifest (stable and experimental)\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_014VLmUmwrxWR4EsJPQ9VJe1', cwd=U)
+   f'V2Fall {V}: manifest (stable and experimental)\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01WgJmrnMdYo7ybEAikyer79', cwd=U)
 sh('git', 'pull', '-q', '--rebase', cwd=U); sh('git', 'push', '-q', cwd=U)
 print('DONE', V, vcode, sha)
