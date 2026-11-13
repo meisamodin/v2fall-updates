@@ -4,7 +4,7 @@
 //   volunteer: POST /rb/poll {}            → {id, sdp} | {next}             (held up to ~20 s)
 //              POST /rb/ans {id, sdp}      → {ok}
 //   anyone:    GET  /rb/ping               → {ok}
-//              POST /rb/ice                → {ice: [{urls, username, credential}]}  TURN relays (may be empty)
+//              POST /rb/ice                → {ice: [{urls, username, credential}], cc}  TURN relays (may be empty), caller's country
 //              GET  /rb/stats              → {vol}   volunteers online
 // Rows live in D1 (env.STATS) for two minutes at most — KV's free tier allows only 1000 writes a day.
 // No IPs are stored. Rate limits are in memory per isolate (no storage writes), like /tgapi.
@@ -133,7 +133,8 @@ async function handle({ request, env, params }) {
   if (a === 'ice') {
     if (limited('i:' + ip, 30, 60)) return J({ error: 'too many' }, 429);
     const ice = await turnServers(env);
-    return J({ ice, turn: Object.assign(await turnStatus(env), ice.length ? {} : { err: turnErr }) });
+    // cc: the caller's country as Cloudflare sees it, so a client in Iran can go straight to the TLS relay
+    return J({ ice, cc: (request.cf && request.cf.country) || '', turn: Object.assign(await turnStatus(env), ice.length ? {} : { err: turnErr }) });
   }
   if (a === 'stats') {
     if (limited('s:' + ip, 20, 60)) return J({ error: 'too many' }, 429);
