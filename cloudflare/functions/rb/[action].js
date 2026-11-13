@@ -63,7 +63,7 @@ async function init(db) {
 const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join('');
 const okSdp = s => typeof s === 'string' && s.length > 20 && s.length < 16000 && /^v=0/.test(s);
 
-let turnCache = { ice: [], at: 0 };
+let turnCache = { ice: [], at: 0 }, turnErr = '';
 // Monthly allowance: Cloudflare's free TURN tier is 1000 GB a month. Usage is read from the GraphQL
 // analytics (cached 10 min); at TURN_CAP_GB (default 900) no more relays are handed out until the
 // month turns, so the card on the account is never charged. Unknown usage counts as over the cap.
@@ -100,12 +100,14 @@ async function turnServers(env) {
     const r = await fetch('https://rtc.live.cloudflare.com/v1/turn/keys/' + env.CF_TURN_KEY_ID + '/credentials/generate-ice-servers', {
       method: 'POST', headers: { Authorization: 'Bearer ' + env.CF_TURN_KEY_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ ttl: 43200 })
     });
-    const j = await r.json();
+    const txt = await r.text(); let j = {};
+    try { j = JSON.parse(txt); } catch (e) {}
+    turnErr = r.ok ? '' : 'HTTP ' + r.status + ' ' + txt.slice(0, 120).replace(/[A-Za-z0-9_-]{20,}/g, '…');
     const list = [].concat(j.iceServers || []).filter(x => x && x.urls && x.username)
       .map(x => ({ urls: [].concat(x.urls).filter(u => /^turns?:/.test(u) && !/:53(\?|$)/.test(u)), username: x.username, credential: x.credential })).filter(x => x.urls.length);
     if (list.length) turnCache = { ice: list, at: Date.now() };
     return list;
-  } catch (e) { return turnCache.ice; }
+  } catch (e) { turnErr = String(e).slice(0, 120); return turnCache.ice; }
 }
 
 async function handle({ request, env, params }) {
@@ -117,7 +119,8 @@ async function handle({ request, env, params }) {
   // shared by every request of this isolate for an hour (they live 12 hours).
   if (a === 'ice') {
     if (limited('i:' + ip, 30, 60)) return J({ error: 'too many' }, 429);
-    return J({ ice: await turnServers(env), turn: await turnStatus(env) });
+    const ice = await turnServers(env);
+    return J({ ice, turn: Object.assign(await turnStatus(env), ice.length ? {} : { err: turnErr }) });
   }
   if (a === 'stats') {
     if (limited('s:' + ip, 20, 60)) return J({ error: 'too many' }, 429);
