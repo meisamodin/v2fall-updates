@@ -1,0 +1,31 @@
+name: Ashflake test volunteer
+# A volunteer outside Iran for real tests: runs v2f-relay in volunteer mode for a while (public, or a private code)
+on:
+  workflow_dispatch:
+    inputs:
+      code: { description: 'private code (ASH-XXXX-XXXX-XX), empty = public', default: '' }
+      minutes: { description: 'how long', default: '20' }
+jobs:
+  vol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: main
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26", cache: false }
+      - name: build
+        run: cd tools/v2f-relay && go mod tidy && CGO_ENABLED=0 go build -o /tmp/v2f-relay . && /tmp/v2f-relay -version
+      - name: volunteer
+        env: { CODE: "${{ inputs.code }}", MIN: "${{ inputs.minutes }}" }
+        run: |
+          A=(-mode proxy -users 5 -mbit 5 -stats /tmp/st.json)
+          [ -n "$CODE" ] && A+=(-room "$CODE")
+          /tmp/v2f-relay "${A[@]}" > /tmp/vol.log 2>&1 &
+          end=$(( $(date +%s) + MIN*60 ))
+          while [ $(date +%s) -lt $end ]; do sleep 30; echo "--- $(date -u +%T) $(cat /tmp/st.json 2>/dev/null | head -c 300)"; tail -n 5 /tmp/vol.log; done
+          echo "=== full log"; cat /tmp/vol.log
