@@ -64,8 +64,37 @@ const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.
 const okSdp = s => typeof s === 'string' && s.length > 20 && s.length < 16000 && /^v=0/.test(s);
 
 let turnCache = { ice: [], at: 0 };
+// Monthly allowance: Cloudflare's free TURN tier is 1000 GB a month. Usage is read from the GraphQL
+// analytics (cached 10 min); at TURN_CAP_GB (default 900) no more relays are handed out until the
+// month turns, so the card on the account is never charged. Unknown usage counts as over the cap.
+let usageCache = { gb: null, at: 0 };
+async function turnUsedGB(env) {
+  if (Date.now() - usageCache.at < 600e3) return usageCache.gb;
+  let gb = null;
+  try {
+    const d = new Date(), from = d.toISOString().slice(0, 8) + '01', to = d.toISOString().slice(0, 10);
+    const q = `query { viewer { accounts(filter: {accountTag: "${env.CF_ACCOUNT_ID}"}) { callsTurnUsageAdaptiveGroups(limit: 1, filter: {date_geq: "${from}", date_leq: "${to}", keyId: "${env.CF_TURN_KEY_ID}"}) { sum { egressBytes ingressBytes } } } } }`;
+    const r = await fetch('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { Authorization: 'Bearer ' + env.CF_API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q }) });
+    const j = await r.json();
+    const acc = j && j.data && j.data.viewer && j.data.viewer.accounts && j.data.viewer.accounts[0];
+    if (acc) {
+      const g = (acc.callsTurnUsageAdaptiveGroups || [])[0];
+      const s = g ? g.sum : { egressBytes: 0, ingressBytes: 0 };
+      gb = ((s.egressBytes || 0) + (s.ingressBytes || 0)) / 1e9;
+    }
+  } catch (e) {}
+  usageCache = { gb, at: Date.now() };
+  return gb;
+}
+async function turnStatus(env) {
+  if (!env.CF_TURN_KEY_ID || !env.CF_TURN_KEY_TOKEN) return { on: false, why: 'no key' };
+  const used = await turnUsedGB(env), cap = +(env.TURN_CAP_GB || 900);
+  if (used == null) return { on: false, why: 'usage unknown' };
+  return { on: used < cap, used: Math.round(used * 10) / 10, cap };
+}
 async function turnServers(env) {
   if (!env.CF_TURN_KEY_ID || !env.CF_TURN_KEY_TOKEN) return [];
+  if (!(await turnStatus(env)).on) return [];
   if (Date.now() - turnCache.at < 3600e3 && turnCache.ice.length) return turnCache.ice;
   try {
     const r = await fetch('https://rtc.live.cloudflare.com/v1/turn/keys/' + env.CF_TURN_KEY_ID + '/credentials/generate-ice-servers', {
@@ -88,7 +117,7 @@ async function handle({ request, env, params }) {
   // shared by every request of this isolate for an hour (they live 12 hours).
   if (a === 'ice') {
     if (limited('i:' + ip, 30, 60)) return J({ error: 'too many' }, 429);
-    return J({ ice: await turnServers(env) });
+    return J({ ice: await turnServers(env), turn: await turnStatus(env) });
   }
   if (a === 'stats') {
     if (limited('s:' + ip, 20, 60)) return J({ error: 'too many' }, 429);

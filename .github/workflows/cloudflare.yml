@@ -119,6 +119,7 @@ jobs:
           if [ -n "$CF_TURN_KEY_ID" ] && [ -n "$CF_TURN_KEY_TOKEN" ]; then
             printf %s "$CF_TURN_KEY_ID" | npx --yes wrangler@4 pages secret put CF_TURN_KEY_ID --project-name "$PROJECT" >/dev/null
             printf %s "$CF_TURN_KEY_TOKEN" | npx --yes wrangler@4 pages secret put CF_TURN_KEY_TOKEN --project-name "$PROJECT" >/dev/null && echo "TURN key set"
+            printf %s "$CLOUDFLARE_ACCOUNT_ID" | npx --yes wrangler@4 pages secret put CF_ACCOUNT_ID --project-name "$PROJECT" >/dev/null && echo "account id set"
           else echo "no TURN key secrets yet"; fi
           # the stats page reads the website analytics with the same Cloudflare token
           printf %s "$CLOUDFLARE_API_TOKEN" | npx --yes wrangler@4 pages secret put CF_API_TOKEN --project-name "$PROJECT" >/dev/null && echo "analytics token set"
