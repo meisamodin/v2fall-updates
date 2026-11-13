@@ -146,6 +146,22 @@ jobs:
           done
 
       # Telegram bot (functions/tg.js): token and admin id go to the Pages project as secrets, never to the log
+      # app tools that lean on outside services: proxy lists and channels through /px, the DNS leak services,
+      # the game-region endpoints. Only reports (warnings), never fails the deploy.
+      - name: Check proxy lists and tool endpoints
+        continue-on-error: true
+        run: |
+          for u in https://dl.v2fall.com/px/tg/mtproto.json https://dl.v2fall.com/px/px/proxies.json https://dl.v2fall.com/px/ch/proxyir01 https://dl.v2fall.com/px/ch/ProxyMTProto; do
+            echo "== $u: $(curl -s -m 25 -o /tmp/b -w '%{http_code}' "$u") $(head -c 300 /tmp/b)"; done
+          echo "== t.me/s direct: $(curl -s -m 20 -o /tmp/t -w '%{http_code}' https://t.me/s/proxyir01) links=$(grep -oE 'proxy\?server=' /tmp/t | wc -l) size=$(wc -c </tmp/t)"
+          ID=$(curl -s -m 15 https://bash.ws/id); echo "== bash.ws id: '${ID:0:40}'"
+          for i in 1 2; do curl -s -m 8 -o /dev/null "https://$i.$ID.bash.ws" || true; done
+          echo "== bash.ws result: $(curl -s -m 15 "https://bash.ws/dnsleak/test/$ID?json" | head -c 300)"
+          R=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n'); echo "== ipleak: $(curl -s -m 15 "https://$R.ipleak.net/dnsdetection/" | head -c 200)"
+          echo "== ip-api edns: $(curl -s -m 15 "http://$R.edns.ip-api.com/json" | head -c 200)"
+          for r in me-south-1 me-central-1 eu-central-1 ap-southeast-1; do
+            echo "== $r dynamodb: $(curl -s -m 10 -o /dev/null -w '%{http_code} %{time_total}' https://dynamodb.$r.amazonaws.com/ping) s3: $(curl -s -m 10 -o /dev/null -w '%{http_code} %{time_total}' https://s3.$r.amazonaws.com/)"; done
+
       - name: Telegram bot
         working-directory: cloudflare
         env:
