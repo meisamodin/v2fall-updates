@@ -1,0 +1,19 @@
+name: Ashflake broker probe
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: routes to the broker
+        run: |
+          t() { echo "== $1"; shift; curl -s -m 20 -o /tmp/b -w "HTTP %{http_code} %{http_version} %{time_total}s\n" "$@"; head -c 200 /tmp/b; echo; }
+          for h in dl.v2fall.com dl.multiapvps.org multiap-files.pages.dev; do
+            t "direct $h ping" https://$h/rb/ping
+            t "direct $h stats" https://$h/rb/stats
+          done
+          for f in speed.cloudflare.com www.cloudflare.com; do
+            t "front $f h1" --http1.1 -H "Host: dl.v2fall.com" https://$f/rb/ping
+            t "front $f h2" --http2 -H "Host: dl.v2fall.com" https://$f/rb/ping
+          done
+          for ip in $(dig +short A dl.v2fall.com | head -2); do t "cfip $ip" --resolve dl.v2fall.com:443:$ip https://dl.v2fall.com/rb/ping; done
+          echo "== DNS"; dig +short A dl.v2fall.com; dig +short A dl.multiapvps.org
