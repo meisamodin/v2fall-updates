@@ -1,0 +1,114 @@
+name: Publish website
+
+# Builds the V2Fall website from website/ in the private source repo and publishes it on Cloudflare
+# Pages under the own domain(s), so it opens in Iran without a VPN (pages.dev and github.io are often
+# filtered). The current update manifests are baked in; the page also refreshes them live, so every
+# new release shows on the site without a rebuild. Everything is created on the first run.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "source branch"
+        default: main
+  push:
+    branches: [main]
+    paths: [latest.json, experimental/latest.json, .github/workflows/site.yml]
+  workflow_run:
+    workflows: ["Build stable (source)", "Build experimental (source)", "Publish release (download counter)"]
+    types: [completed]
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+env:
+  PROJECT: v2fall-site
+  # own domains: the first one is the canonical address used in share previews
+  DOMAINS: v2fall.com www.v2fall.com v2fall.multiapvps.org
+  KV_TITLE: v2fall-likes
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: updates
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+          sparse-checkout: website
+          path: src
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build
+        working-directory: src/website
+        env:
+          RELEASE_JSON: ${{ github.workspace }}/updates/latest.json
+          RELEASE_EXP_JSON: ${{ github.workspace }}/updates/experimental/latest.json
+        run: |
+          set -e
+          export SITE_URL="https://${DOMAINS%% *}"
+          npm ci --no-audit --no-fund
+          npx vite build --config vite.site.config.ts
+          printf '/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n/index.html\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n' > dist-site/_headers
+          ls -la dist-site; du -sh dist-site
+
+      - name: Make sure the Pages project and the likes store exist
+        working-directory: src/website
+        run: |
+          set -e
+          api() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" "$@"; }
+          A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          R=$(api "$A/pages/projects/$PROJECT")
+          if ! echo "$R" | jq -e .success >/dev/null; then
+            R=$(api -X POST "$A/pages/projects" -d "{\"name\":\"$PROJECT\",\"production_branch\":\"main\"}")
+            echo "$R" | jq -c '{success, errors}'; echo "$R" | jq -e .success >/dev/null
+          fi
+          R=$(api "$A/storage/kv/namespaces?per_page=100")
+          KV=$(echo "$R" | jq -r --arg t "$KV_TITLE" '.result[]? | select(.title==$t) | .id' | head -1)
+          if [ -z "$KV" ]; then
+            R=$(api -X POST "$A/storage/kv/namespaces" -d "{\"title\":\"$KV_TITLE\"}"); echo "$R" | jq -c '{success, errors}'
+            KV=$(echo "$R" | jq -r .result.id)
+          fi
+          [ -n "$KV" ] && [ "$KV" != null ]
+          printf 'name = "%s"\npages_build_output_dir = "dist-site"\ncompatibility_date = "2026-11-01"\n\n[[kv_namespaces]]\nbinding = "LIKES"\nid = "%s"\n' "$PROJECT" "$KV" > wrangler.toml
+
+      - name: Deploy
+        working-directory: src/website
+        run: npx --yes wrangler@4 pages deploy --project-name "$PROJECT" --branch main --commit-dirty=true
+
+      - name: Connect the domains (first run only)
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" "$@"; }
+          A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          for D in $DOMAINS; do
+            api "$A/pages/projects/$PROJECT/domains/$D" | jq -e .success >/dev/null || api -X POST "$A/pages/projects/$PROJECT/domains" -d "{\"name\":\"$D\"}" | jq -c '{success, errors}'
+            # the zone is the domain itself (v2fall.net) or its parent (multiapvps.org)
+            Z=$(api "https://api.cloudflare.com/client/v4/zones?name=$D" | jq -r '.result[0].id')
+            if [ -z "$Z" ] || [ "$Z" = null ]; then Z=$(api "https://api.cloudflare.com/client/v4/zones?name=${D#*.}" | jq -r '.result[0].id'); fi
+            if [ -n "$Z" ] && [ "$Z" != null ]; then
+              echo "$D: zone $(api "https://api.cloudflare.com/client/v4/zones/$Z" | jq -r '.result.status')"
+              api "https://api.cloudflare.com/client/v4/zones/$Z/dns_records?name=$D" | jq -c '.result[]? | {type, name, content, proxied}'
+              N=$(api "https://api.cloudflare.com/client/v4/zones/$Z/dns_records?name=$D" | jq '(.result // []) | length')
+              [ "$N" = 0 ] && api -X POST "https://api.cloudflare.com/client/v4/zones/$Z/dns_records" \
+                -d "{\"type\":\"CNAME\",\"name\":\"$D\",\"content\":\"$PROJECT.pages.dev\",\"proxied\":true}" | jq -c '{success, errors}'
+            else
+              echo "::warning::no access to the zone of $D — check the token's zone permissions"
+              api "https://api.cloudflare.com/client/v4/zones?name=$D" | jq -c '{success, errors, n: (.result // [] | length)}'
+            fi
+          done
+          sleep 25
+          for D in $DOMAINS; do
+            curl -sS -o /dev/null -w "https://$D/ → %{http_code}\n" "https://$D/" || true
+            curl -sS -w " ← https://$D/api/likes\n" "https://$D/api/likes" || true
+          done

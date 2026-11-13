@@ -1,0 +1,19 @@
+name: Conduit probe
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release assets
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          curl -fsSL https://github.com/Psiphon-Inc/conduit/releases/download/cli-2.1.0/checksums.txt
+      - name: Run linux-amd64 for 90s
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          set -x
+          A=$(gh api repos/Psiphon-Inc/conduit/releases/latest --jq '[.assets[]|select(.name|test("linux.*amd64";"i"))][0].browser_download_url')
+          echo "$A"; curl -fsSL -o conduit "$A"; file conduit; chmod +x conduit
+          ./conduit --help || true; ./conduit start --help || true
+          mkdir -p d; (timeout 20 ./conduit start --data-dir d --set InproxyMaxCommonClients=5 -v > log.txt 2>&1 || true)
+          tail -c 6000 log.txt; ls -la d

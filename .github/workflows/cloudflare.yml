@@ -1,0 +1,174 @@
+name: Publish to Cloudflare
+
+# Mirrors the update manifests and their download parts to Cloudflare Pages (free, unlimited
+# bandwidth, 25 MB per file — the parts are 19 MB) and serves the short SMS codes from the same
+# site (Pages Functions + KV). Reachable from Iran through the own domain; jsDelivr/GitHub stay
+# as fallbacks in the app. Everything is created on the first run.
+on:
+  push:
+    branches: [main]
+    paths: [latest.json, experimental/latest.json, 'cloudflare/**', .github/workflows/cloudflare.yml]
+  workflow_dispatch:
+  # builds publish with GITHUB_TOKEN, and those pushes do not trigger other workflows: run after them
+  workflow_run:
+    workflows: ["Build stable (source)", "Build experimental (source)", "Publish release (download counter)"]
+    types: [completed]
+
+concurrency:
+  group: cloudflare
+  cancel-in-progress: false
+
+env:
+  PROJECT: multiap-files
+  DOMAIN: dl.multiapvps.org
+  ZONE: multiapvps.org
+  # more addresses for the same files (the manifests keep pointing at DOMAIN)
+  EXTRA_DOMAINS: dl.v2fall.com
+  KV_TITLE: v2fall-codes
+  D1_NAME: v2fall-stats
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the secrets
+        run: |
+          [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "::error::Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in Settings → Secrets → Actions"; exit 1; }
+
+      - name: Make sure the Pages project and the KV namespace exist
+        run: |
+          set -e
+          api() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" "$@"; }
+          A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          api "https://api.cloudflare.com/client/v4/user/tokens/verify" | jq -c '{success, errors, status: .result.status}'
+          R=$(api "$A/pages/projects/$PROJECT")
+          if ! echo "$R" | jq -e .success >/dev/null; then
+            echo "project lookup: $(echo "$R" | jq -c .errors)"
+            R=$(api -X POST "$A/pages/projects" -d "{\"name\":\"$PROJECT\",\"production_branch\":\"main\"}")
+            echo "$R" | jq -c '{success, errors}'
+            echo "$R" | jq -e .success >/dev/null
+          fi
+          R=$(api "$A/storage/kv/namespaces?per_page=100"); echo "$R" | jq -c '{success, errors}'
+          KV=$(echo "$R" | jq -r --arg t "$KV_TITLE" '.result[]? | select(.title==$t) | .id' | head -1)
+          if [ -z "$KV" ]; then
+            R=$(api -X POST "$A/storage/kv/namespaces" -d "{\"title\":\"$KV_TITLE\"}"); echo "$R" | jq -c '{success, errors}'
+            KV=$(echo "$R" | jq -r .result.id)
+            echo "created KV namespace $KV"
+          fi
+          [ -n "$KV" ] && [ "$KV" != null ]
+          printf 'name = "%s"\npages_build_output_dir = "../site"\ncompatibility_date = "2026-11-01"\n\n[[kv_namespaces]]\nbinding = "CODES"\nid = "%s"\n' "$PROJECT" "$KV" > cloudflare/wrangler.toml
+          # download / active-user counters (D1). Needs "D1: Edit" on the token; without it the site still deploys, uncounted
+          R=$(api "$A/d1/database?name=$D1_NAME")
+          D1=$(echo "$R" | jq -r --arg t "$D1_NAME" '.result[]? | select(.name==$t) | .uuid' | head -1)
+          if [ -z "$D1" ]; then
+            R=$(api -X POST "$A/d1/database" -d "{\"name\":\"$D1_NAME\"}"); D1=$(echo "$R" | jq -r '.result.uuid // empty')
+            [ -n "$D1" ] && echo "created D1 database $D1" || echo "::warning::stats database not available ($(echo "$R" | jq -c .errors)) — give the token 'D1: Edit'"
+          fi
+          [ -n "$D1" ] && printf '\n[[d1_databases]]\nbinding = "STATS"\ndatabase_name = "%s"\ndatabase_id = "%s"\n' "$D1_NAME" "$D1" >> cloudflare/wrangler.toml
+          cat cloudflare/wrangler.toml | grep -v '^id\|database_id'
+
+      - name: Build the site (parts + manifests pointing at the own domain)
+        run: |
+          set -e
+          mkdir -p site/experimental
+          [ -d download/parts ] && mkdir -p site/download && cp -r download/parts site/download/
+          [ -d download/delta ] && mkdir -p site/download && cp -r download/delta site/download/
+          [ -d cloudflare/static ] && cp -r cloudflare/static/. site/
+          [ -d experimental/parts ] && cp -r experimental/parts site/experimental/
+          python3 - <<'EOF'
+          import json, os, re
+          dom = os.environ['DOMAIN']
+          for m in ['latest.json', 'experimental/latest.json']:
+              if not os.path.exists(m): continue
+              j = json.load(open(m, encoding='utf-8'))
+              for v in j.values():
+                  if isinstance(v, dict) and isinstance(v.get('parts'), list):
+                      new = []
+                      for u in v['parts']:
+                          p = re.sub(r'^https://cdn\.jsdelivr\.net/gh/[^/]+/[^@/]+@[^/]+/', '', u)
+                          new.append(f'https://{dom}/{p}' if p != u and os.path.exists('site/' + p) else u)
+                      v['parts'] = new
+                  for d in (v.get('delta') or []) if isinstance(v, dict) else []:
+                      p = re.sub(r'^https://cdn\.jsdelivr\.net/gh/[^/]+/[^@/]+@[^/]+/', '', d.get('url', ''))
+                      if p != d.get('url') and os.path.exists('site/' + p): d['url'] = f'https://{dom}/{p}'
+              json.dump(j, open('site/' + m, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+          EOF
+          printf '/*\n  Access-Control-Allow-Origin: *\n/*.json\n  Cache-Control: no-cache\n' > site/_headers
+          echo '<!doctype html><meta charset="utf-8"><title>V2Fall</title><p>V2Fall</p>' > site/index.html
+          find site -type f | wc -l; du -sh site
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # secrets first: a Pages deployment only sees the secrets that existed when it was made
+      - name: Telegram bot secrets
+        working-directory: cloudflare
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_ID: ${{ secrets.TELEGRAM_ADMIN_ID }}
+        run: |
+          # the stats page reads the website analytics with the same Cloudflare token
+          printf %s "$CLOUDFLARE_API_TOKEN" | npx --yes wrangler@4 pages secret put CF_API_TOKEN --project-name "$PROJECT" >/dev/null && echo "analytics token set"
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then echo "no TELEGRAM_BOT_TOKEN secret"; exit 0; fi
+          printf %s "$TELEGRAM_BOT_TOKEN" | npx --yes wrangler@4 pages secret put TELEGRAM_BOT_TOKEN --project-name "$PROJECT" >/dev/null && echo "token set"
+          [ -n "$TELEGRAM_ADMIN_ID" ] && printf %s "$TELEGRAM_ADMIN_ID" | npx --yes wrangler@4 pages secret put TELEGRAM_ADMIN_ID --project-name "$PROJECT" >/dev/null && echo "admin set" || echo "no TELEGRAM_ADMIN_ID yet"
+
+      - name: Deploy
+        working-directory: cloudflare
+        run: npx --yes wrangler@4 pages deploy ../site --project-name "$PROJECT" --branch main --commit-dirty=true
+
+      # «اینترنت برای ایران» broker (functions/rb): live round trip on both domains (offer → poll → answer)
+      - name: Check the relay broker
+        run: |
+          sleep 20
+          for h in dl.v2fall.com "$DOMAIN"; do
+            B="https://$h/rb"; ok=""
+            for i in 1 2 3 4 5 6; do curl -fs --max-time 15 "$B/ping" | grep -q '"ok":1' && { ok=1; break; }; sleep 10; done
+            [ -n "$ok" ] || { echo "::warning::relay broker not answering on $h"; continue; }
+            ID=$(curl -fs -X POST "$B/offer" -d '{"sdp":"v=0 ci-check offer xxxxxxxxxxxx"}' | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))')
+            GOT=$(curl -fs -X POST "$B/poll" -d '{"hold":3000}' | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))')
+            [ -n "$ID" ] && [ -n "$GOT" ] && echo "ok: broker on $h pairs (D1 works)" || echo "::warning::relay broker on $h: offer=$ID poll=$GOT (a real volunteer may have taken it)"
+            [ -n "$GOT" ] && curl -fs -X POST "$B/ans" -d "{\"id\":\"$GOT\",\"sdp\":\"v=0 ci-check answer xxxxxxxxxxx\"}" >/dev/null || true
+          done
+
+      # Telegram bot (functions/tg.js): token and admin id go to the Pages project as secrets, never to the log
+      - name: Telegram bot
+        working-directory: cloudflare
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_ID: ${{ secrets.TELEGRAM_ADMIN_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then echo "no TELEGRAM_BOT_TOKEN secret — bot skipped"; exit 0; fi
+          SEC=$(printf %s "v2fall-tg:$TELEGRAM_BOT_TOKEN" | sha256sum | cut -c1-32)
+          B="https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN"
+          curl -sS "$B/getMe" | jq -c '{ok, username: .result.username}'
+          curl -sS -X POST "$B/setWebhook" -d "url=https://$EXTRA_DOMAINS/tg" -d "secret_token=$SEC" -d 'allowed_updates=["message","callback_query","channel_post"]' -d "drop_pending_updates=false" | jq -c '{ok, description}'
+          curl -sS "$B/getWebhookInfo" | jq -c '.result | {url, pending_update_count, last_error_message}'
+          # menu button opens the mini app; commands in the "/" list
+          curl -sS -X POST "$B/setChatMenuButton" -H 'Content-Type: application/json' -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"V2Fall\",\"web_app\":{\"url\":\"https://$EXTRA_DOMAINS/app/\"}}}" | jq -c '{ok, description}'
+          curl -sS -X POST "$B/setMyCommands" -H 'Content-Type: application/json' -d '{"commands":[{"command":"start","description":"شروع"},{"command":"download","description":"دریافت آخرین نسخه"},{"command":"test","description":"تست کانفیگ"},{"command":"guide","description":"آموزش‌ها"},{"command":"ashflake","description":"Ashflake: کمک به کاربران داخل ایران"},{"command":"dns","description":"حالت فقط DNS"},{"command":"support","description":"پشتیبانی"}]}' | jq -c '{ok}'
+
+      - name: Connect the own domains (first run only)
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" "$@"; }
+          A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          for D in $DOMAIN $EXTRA_DOMAINS; do
+            api "$A/pages/projects/$PROJECT/domains/$D" | jq -e .success >/dev/null || api -X POST "$A/pages/projects/$PROJECT/domains" -d "{\"name\":\"$D\"}" | jq -c '{success, errors}'
+            Z=$(api "https://api.cloudflare.com/client/v4/zones?name=${D#*.}" | jq -r '.result[0].id')
+            if [ -n "$Z" ] && [ "$Z" != null ]; then
+              echo "$D: zone $(api "https://api.cloudflare.com/client/v4/zones/$Z" | jq -r '.result.status')"
+              N=$(api "https://api.cloudflare.com/client/v4/zones/$Z/dns_records?name=$D" | jq '(.result // []) | length')
+              [ "$N" = 0 ] && api -X POST "https://api.cloudflare.com/client/v4/zones/$Z/dns_records" \
+                -d "{\"type\":\"CNAME\",\"name\":\"$D\",\"content\":\"$PROJECT.pages.dev\",\"proxied\":true}" | jq -c '{success, errors}'
+            else
+              echo "::warning::no access to the zone of $D — check the token's zone permissions"
+            fi
+          done
+          sleep 20
+          for D in $DOMAIN $EXTRA_DOMAINS; do curl -sS -o /dev/null -w "https://$D/latest.json → %{http_code}\n" "https://$D/latest.json" || true; done

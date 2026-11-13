@@ -1,0 +1,32 @@
+name: Publish release (download counter)
+on:
+  push:
+    branches: [main]
+    paths: [latest.json]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub release with the install files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          V=$(jq -r .version latest.json)
+          NOTES=$(jq -r '.notes | if type=="object" then (.fa // "") else (. // "") end' latest.json)
+          if gh release view "v$V" >/dev/null 2>&1; then echo "v$V already published"; exit 0; fi
+          # the tag points to an empty commit so the repo does not keep old binaries alive
+          git config user.name meisamodin; git config user.email meisamodin@users.noreply.github.com
+          EC=$(git commit-tree "$(git mktree </dev/null)" -m "V2Fall $V")
+          git push -f origin "$EC:refs/tags/v$V"
+          # files over GitHub's 100 MB git limit are only committed as parts: put them back together
+          for p0 in download/parts/*.p00; do
+            [ -e "$p0" ] || continue
+            n=$(basename "$p0" .p00); [ -f "download/$n" ] || cat "download/parts/$n".p* > "download/$n"
+          done
+          FILES=$(find download -maxdepth 1 -type f -name '*.*' | sort)
+          gh release create "v$V" --title "V2Fall $V" --notes "$NOTES" --latest $FILES

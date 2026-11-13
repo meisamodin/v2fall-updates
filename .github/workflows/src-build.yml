@@ -1,0 +1,633 @@
+# Builds the private source (meisamodin/v2fall) here because Actions are free for public repos.
+# Only finished binaries are attached to DRAFT releases (visible to the owner only); no source is uploaded.
+# Generated from the source repo's workflow — regenerate when that changes.
+name: Build stable (source)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch of meisamodin/v2fall to build"
+        default: "main"
+
+permissions:
+  contents: write
+
+env:
+  SING_BOX_VERSION: "1.14.4"
+  XRAY_VERSION: "26.9.9"
+  APP_VERSION: "18.9.30"
+  DNSTT_VERSION: "1.20260501.0" # pinned: @latest made builds non-reproducible
+  MIERU_VERSION: "3.39.0" # pinned for reproducible builds
+  MDV_SHA: "4052a6b95e758adf2dc26fa1fe527457e58d627c" # masterking32/MasterDnsVPN — fast DNS tunnel
+  WARP_VERSION: "1.2.6" # bepass-org/warp-plus — pinned for reproducible builds
+  USQUE_VERSION: "4.2.1" # Diniboy1123/usque — WARP over MASQUE
+
+jobs:
+  libbox:
+    name: libbox (sing-box core)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache libbox
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: libbox.aar
+          key: libbox-${{ env.SING_BOX_VERSION }}-arm-arm64-v2
+
+      - name: Checkout sing-box
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: SagerNet/sing-box
+          ref: v${{ env.SING_BOX_VERSION }}
+          path: sing-box
+
+      - uses: actions/setup-go@v5
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          go-version-file: sing-box/go.mod
+          cache-dependency-path: sing-box/go.sum
+
+      - uses: actions/setup-java@v4
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build libbox.aar
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: sing-box
+        run: |
+          go install -v github.com/sagernet/gomobile/cmd/gomobile@v0.1.13
+          go install -v github.com/sagernet/gomobile/cmd/gobind@v0.1.13
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          TAGS="with_gvisor,with_quic,with_wireguard,with_utls,with_clash_api,with_usbip,with_openvpn,with_openconnect,badlinkname,tfogo_checklinkname0,with_tailscale,ts_omit_logtail,ts_omit_ssh,ts_omit_drive,ts_omit_taildrop,ts_omit_webclient,ts_omit_doctor,ts_omit_capture,ts_omit_kube,ts_omit_aws,ts_omit_synology,ts_omit_bird"
+          LDFLAGS="-X github.com/sagernet/sing-box/constant.Version=${SING_BOX_VERSION} -X runtime.godebugDefault=multipathtcp=0,tlssha1=1 -checklinkname=0 -s -w -buildid="
+          gomobile bind -v -o ../libbox.aar -target android/arm64,android/arm -androidapi 24 \
+            -javapkg=io.nekohasekai -libname=box -trimpath -buildvcs=false \
+            -ldflags "$LDFLAGS" -tags "$TAGS" ./experimental/libbox
+
+      - uses: actions/cache/save@v4
+        with:
+          enableCrossOsArchive: true
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-libbox
+          path: libbox.aar
+
+  dnstt:
+    name: helper cores (dnstt, mieru, warp-plus, AmneziaWG)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: false
+      # same versions = byte-identical helper binaries in every release, so an app update only
+      # carries what really changed (small delta updates). Bump HELPERS_REV to force a rebuild.
+      - name: Reuse helper binaries built for the same versions
+        id: hc
+        uses: actions/cache@v4
+        with:
+          path: |
+            out
+            srvtools
+          key: helpers-r1-${{ env.DNSTT_VERSION }}-${{ env.MIERU_VERSION }}-${{ env.WARP_VERSION }}-${{ env.USQUE_VERSION }}-${{ env.MDV_SHA }}-${{ hashFiles('tools/awg/**') }}
+      - name: Build dnstt-client for every platform
+        if: steps.hc.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          mkdir -p dn && cd dn && go mod init dnsttbuild >/dev/null
+          go get www.bamsoftware.com/git/dnstt.git/dnstt-client@v${DNSTT_VERSION} www.bamsoftware.com/git/dnstt.git/dnstt-server@v${DNSTT_VERSION}
+          P=www.bamsoftware.com/git/dnstt.git/dnstt-client
+          b() { CGO_ENABLED=0 GOOS=$1 GOARCH=$2 GOARM=7 go build -trimpath -ldflags "-s -w -buildid=" -o "../out/$3" $P; }
+          b linux arm64 android-arm64/libdnstt.so
+          b linux arm android-arm/libdnstt.so
+          b windows amd64 windows/dnstt-client.exe
+          b darwin arm64 darwin-arm64/dnstt-client
+          b darwin amd64 darwin-amd64/dnstt-client
+          b linux amd64 linux-amd64/dnstt-client
+          # server side for the setup scripts (run on the user's own server)
+          mkdir -p ../srvtools
+          for a in amd64 arm64; do CGO_ENABLED=0 GOOS=linux GOARCH=$a go build -trimpath -ldflags "-s -w -buildid=" -o ../srvtools/dnstt-server-linux-$a www.bamsoftware.com/git/dnstt.git/dnstt-server; done
+          cp ../server/*.sh ../srvtools/ 2>/dev/null || true
+          cd "$GITHUB_WORKSPACE"
+          # static linux binaries run fine on Android; GOOS=android would need the NDK
+          hb() { (cd "$1" && CGO_ENABLED=0 GOOS=$2 GOARCH=$3 GOARM=7 go build -trimpath -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/out/$4" "$5"); }
+          helper() { # dir pkg name-android name-desktop
+            hb "$1" linux arm64 android-arm64/$3 "$2"; hb "$1" linux arm android-arm/$3 "$2"
+            hb "$1" windows amd64 windows/$4.exe "$2"; hb "$1" darwin arm64 darwin-arm64/$4 "$2"
+            hb "$1" darwin amd64 darwin-amd64/$4 "$2"; hb "$1" linux amd64 linux-amd64/$4 "$2"
+          }
+          curl -fsSL -o m.tgz "https://codeload.github.com/enfein/mieru/tar.gz/refs/tags/v${MIERU_VERSION}" && tar xzf m.tgz && mv "mieru-${MIERU_VERSION}" msrc
+          helper msrc ./cmd/mieru libmieru.so mieru
+          curl -fsSL -o w.tgz "https://codeload.github.com/bepass-org/warp-plus/tar.gz/refs/tags/v${WARP_VERSION}" && tar xzf w.tgz && mv "warp-plus-${WARP_VERSION}" wsrc
+          # warp-plus needs Go 1.22: its psiphon-tls panics at start-up ("tls.ConnectionState doesn't match")
+          # when built with Go 1.23 or newer, which took down WARP and Psiphon in every mode
+          export GOTOOLCHAIN=go1.22.10
+          helper wsrc ./cmd/warp-plus libwarp.so warp-plus
+          (cd wsrc && go version)
+          export GOTOOLCHAIN=local
+          curl -fsSL -o u.tgz "https://codeload.github.com/Diniboy1123/usque/tar.gz/refs/tags/v${USQUE_VERSION}" && tar xzf u.tgz && mv "usque-${USQUE_VERSION}" usrc
+          GOTOOLCHAIN=auto helper usrc . libusque.so usque
+          (cd tools/awg && go mod tidy)
+          helper tools/awg . libawg.so awg
+          # MasterDnsVPN: fast DNS tunnel client for every platform + its server for v2fall-mdv.sh
+          curl -fsSL -o mdv.tgz "https://codeload.github.com/masterking32/MasterDnsVPN/tar.gz/$MDV_SHA" && tar xzf mdv.tgz && mv "MasterDnsVPN-$MDV_SHA" mdvsrc
+          export GOTOOLCHAIN=auto
+          helper mdvsrc ./cmd/client libmdv.so mdv-client
+          for a in amd64 arm64; do (cd mdvsrc && CGO_ENABLED=0 GOOS=linux GOARCH=$a go build -trimpath -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/srvtools/mdv-server-linux-$a" ./cmd/server); done
+          export GOTOOLCHAIN=local
+          ls -laR out srvtools
+      # «اینترنت برای ایران»: v2f-relay for every platform + its real end-to-end and safety tests,
+      # against the broker's own code from this repo (always built: not part of the helper cache)
+      - uses: actions/checkout@v4
+        with:
+          path: upd
+          sparse-checkout: cloudflare
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build v2f-relay + end-to-end and safety-filter tests
+        env:
+          GOTOOLCHAIN: auto
+        run: bash tools/v2f-relay/ci.sh out upd/cloudflare
+      - name: Server setup scripts (always the current ones)
+        run: mkdir -p srvtools && cp server/*.sh srvtools/ && ls -la out srvtools
+      - name: Start-up check of every helper (a crash here stops the build)
+        run: |
+          # a helper that panics at start-up (like warp-plus built with a too-new Go) fails silently on users' phones
+          smoke() { local out; out=$(timeout 8 "$@" 2>&1 || true); if printf '%s' "$out" | grep -qE "panic:|fatal error:|SIGSEGV|SIGILL"; then echo "::error::$(basename "$1") crashes at start-up"; printf '%s\n' "$out" | head -20; return 1; fi; echo "ok: $(basename "$1")"; }
+          B=out/linux-amd64
+          smoke $B/warp-plus --help
+          smoke $B/usque --help
+          smoke $B/mieru help
+          smoke $B/awg -h
+          smoke $B/dnstt-client -h
+          smoke $B/mdv-client -version
+          # MasterDnsVPN end to end: our server script (test mode) + the client config the app writes,
+          # real traffic through a DNS tunnel on this machine
+          sudo mkdir -p /usr/local/v2fall-mdv && sudo chown "$(id -u)" /usr/local/v2fall-mdv
+          V2F_TEST=1 MDV_BIN="$PWD/srvtools/mdv-server-linux-amd64" MDV_HOST=127.0.0.1 MDV_PORT=15353 bash server/v2fall-mdv.sh t.lab.test
+          KEY=$(tr -d '[:space:]' < /usr/local/v2fall-mdv/encrypt_key.txt)
+          mkdir -p /tmp/mdvc
+          printf 'DOMAINS = ["t.lab.test"]\nDATA_ENCRYPTION_METHOD = 2\nENCRYPTION_KEY = "%s"\nPROTOCOL_TYPE = "SOCKS5"\nLISTEN_IP = "127.0.0.1"\nLISTEN_PORT = 18555\nSOCKS5_AUTH = false\nLOCAL_DNS_ENABLED = false\nLOCAL_DNS_CACHE_PERSIST_TO_FILE = false\nSAVE_MTU_SERVERS_TO_FILE = false\n' "$KEY" > /tmp/mdvc/client_config.toml
+          echo "127.0.0.1:15353" > /tmp/mdvc/client_resolvers.txt
+          (cd /tmp/mdvc && nohup "$GITHUB_WORKSPACE/$B/mdv-client" -config /tmp/mdvc/client_config.toml > /tmp/mdvc/client.log 2>&1 &)
+          ok=""; for i in $(seq 1 45); do code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 --socks5-hostname 127.0.0.1:18555 https://www.gstatic.com/generate_204 || true); [ "$code" = 204 ] && { ok=1; break; }; sleep 2; done
+          if [ -z "$ok" ]; then echo "::error::MasterDnsVPN end-to-end failed"; tail -40 /tmp/mdvc/client.log; tail -40 /usr/local/v2fall-mdv/server.log; exit 1; fi
+          echo "ok: MasterDnsVPN carries real traffic"
+          pkill -f mdv-client || true; pkill -f mdv-server || true
+      - uses: actions/cache/save@v4
+        with:
+          enableCrossOsArchive: true
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-dnstt-bin
+          path: out
+      - uses: actions/cache/save@v4
+        with:
+          enableCrossOsArchive: true
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-server-tools
+          path: srvtools
+      - name: Upload outputs to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5 6; do
+            gh release view "build-${{ github.run_number }}" --repo "${{ github.repository }}" >/dev/null 2>&1 && break
+            gh release create "build-${{ github.run_number }}" --repo "${{ github.repository }}" --draft --title "V2Fall ${{ env.APP_VERSION }}" --notes "auto" 2>/dev/null || sleep 5
+          done
+          gh release upload "build-${{ github.run_number }}" srvtools/* --repo "${{ github.repository }}" --clobber
+
+  web:
+    name: Protect web UI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Scramble JavaScript
+        run: |
+          set -e
+          mkdir -p /tmp/obf webp && cd /tmp/obf && npm init -y >/dev/null && npm install --silent javascript-obfuscator@4.1.1
+          # the version the app compares with latest.json comes from the build, never from a hand-edited line:
+          # a stale one made every installed copy offer the same update again and again
+          cd "$GITHUB_WORKSPACE" && sed -i "s/^const APP_VERSION = '[^']*';/const APP_VERSION = '${APP_VERSION}';/" web/index.html && grep -q "^const APP_VERSION = '${APP_VERSION}';" web/index.html || { echo "::error::APP_VERSION not set in web/index.html"; exit 1; }
+          cd "$GITHUB_WORKSPACE" && NODE_PATH=/tmp/obf/node_modules node tools/protect-web.cjs web/index.html webp/index.html
+          grep -q "function v2fBack(" webp/index.html
+      - uses: actions/cache/save@v4
+        with:
+          enableCrossOsArchive: true
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-web-protected
+          path: webp
+
+  lab:
+    name: Config lab (every link type through the real cores)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+          sparse-checkout: |
+            tools/lab
+            web
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run
+        run: |
+          cd tools/lab && npm init -y >/dev/null && npm i --no-audit --no-fund playwright@1.49.1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+          bash run-lab.sh
+
+  android:
+    name: Android APK
+    needs: [libbox, dnstt, web, lab]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-web-protected
+          path: webp
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-libbox
+          path: libbox.aar
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - run: mkdir -p android/app/libs && mv -f libbox.aar android/app/libs/
+        shell: bash
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-dnstt-bin
+          path: out
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - run: mkdir -p dnstt-bin && cp -rf out/* dnstt-bin/
+        shell: bash
+
+      - name: Bundle Xray core
+        run: |
+          set -e
+          for pair in "arm64-v8a:Xray-android-arm64-v8a.zip" "armeabi-v7a:Xray-linux-arm32-v7a.zip"; do
+            abi=${pair%%:*}; zipname=${pair#*:}
+            curl -fsSL -o x.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/${zipname}"
+            rm -rf xr && mkdir xr && unzip -q x.zip -d xr
+            mkdir -p android/app/src/main/jniLibs/$abi
+            cp xr/xray android/app/src/main/jniLibs/$abi/libxray.so
+            chmod +x android/app/src/main/jniLibs/$abi/libxray.so
+          done
+          cp dnstt-bin/android-arm64/libdnstt.so android/app/src/main/jniLibs/arm64-v8a/libdnstt.so
+          cp dnstt-bin/android-arm/libdnstt.so android/app/src/main/jniLibs/armeabi-v7a/libdnstt.so
+          for h in libmieru libwarp libawg libusque libmdv libv2frelay; do
+            cp dnstt-bin/android-arm64/$h.so android/app/src/main/jniLibs/arm64-v8a/$h.so
+            cp dnstt-bin/android-arm/$h.so android/app/src/main/jniLibs/armeabi-v7a/$h.so
+          done
+          chmod +x android/app/src/main/jniLibs/*/*.so
+          ls -la android/app/src/main/jniLibs/*/
+
+      - name: Bundle font
+        run: |
+          mkdir -p android/app/src/main/assets/fonts
+          npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
+          F=$(find package -iname "*.woff2" | grep -iE "wght|variable" | grep -viE "ui|fd|round|nl|misc" | head -1)
+          echo "font: $F"; [ -n "$F" ] && cp "$F" android/app/src/main/assets/fonts/Vazirmatn-Variable.woff2 || echo "::warning::font not bundled, using system font"
+
+      - name: Build APK
+        env:
+          V2F_VERSION_NAME: ${{ env.APP_VERSION }}
+          V2F_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp webp/index.html android/app/src/main/assets/index.html
+          # monotonic across workflows: minutes since epoch, same scale as test-build.yml,
+          # so the stable release is never a "downgrade" for people on the experimental channel
+          export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 2 ))
+          gradle -p android assembleRelease --no-daemon --stacktrace
+          mkdir -p dist
+          ls android/app/build/outputs/apk/release/
+          cp android/app/build/outputs/apk/release/app-universal-release-unsigned.apk dist/V2Fall-${APP_VERSION}-unsigned.apk
+          cp android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk dist/V2Fall-${APP_VERSION}-arm64-unsigned.apk
+          cp android/app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk dist/V2Fall-${APP_VERSION}-armv7-unsigned.apk
+
+      - name: Sign APK (only if the KEYSTORE_B64 secret is set)
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > release.p12
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          $BT/zipalign -f -p 4 dist/V2Fall-${APP_VERSION}-unsigned.apk dist/aligned.apk
+          $BT/apksigner sign --ks release.p12 --ks-type PKCS12 --ks-pass env:KEYSTORE_PASSWORD \
+            --out dist/V2Fall-${APP_VERSION}.apk dist/aligned.apk
+          rm -f release.p12 dist/aligned.apk
+
+      - name: Upload outputs to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5 6; do
+            gh release view "build-${{ github.run_number }}" --repo "${{ github.repository }}" >/dev/null 2>&1 && break
+            gh release create "build-${{ github.run_number }}" --repo "${{ github.repository }}" --draft --title "V2Fall ${{ env.APP_VERSION }}" --notes "auto" 2>/dev/null || sleep 5
+          done
+          gh release upload "build-${{ github.run_number }}" dist/* --repo "${{ github.repository }}" --clobber
+
+  windows:
+    name: Windows app + installer
+    needs: [dnstt, web, lab]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-web-protected
+          path: webp
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-dnstt-bin
+          path: out
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - run: mkdir -p dnstt-bin && cp -rf out/* dnstt-bin/
+        shell: bash
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: desktop-app/go.mod
+
+      - name: Prepare frontend and cores
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force desktop-app/frontend/fonts, build/win/core, dist | Out-Null
+          Copy-Item webp/index.html desktop-app/frontend/index.html
+          npm pack vazirmatn@33.0.3 --silent; tar xzf vazirmatn-33.0.3.tgz
+          $f = Get-ChildItem package -Recurse -Filter *.woff2 | Where-Object { $_.Name -match 'wght|ariable' -and $_.Name -notmatch 'UI|FD|Round|NL' } | Select-Object -First 1
+          if ($f) { Copy-Item $f.FullName desktop-app/frontend/fonts/Vazirmatn-Variable.woff2 }
+          # flag font: Windows has no colour flag emoji
+          try { npm pack country-flag-emoji-polyfill --silent; New-Item -ItemType Directory -Force cf | Out-Null; tar xzf (Get-ChildItem country-flag-emoji-polyfill-*.tgz).FullName -C cf
+                $ff = Get-ChildItem cf -Recurse -Filter *.woff2 | Select-Object -First 1; if ($ff) { Copy-Item $ff.FullName desktop-app/frontend/fonts/TwemojiCountryFlags.woff2 } else { Write-Host "::warning::flag font not found" } } catch { Write-Host "::warning::flag font not bundled" }
+          $sb = "sing-box-$env:SING_BOX_VERSION-windows-amd64"
+          Invoke-WebRequest "https://github.com/SagerNet/sing-box/releases/download/v$env:SING_BOX_VERSION/$sb.zip" -OutFile sb.zip
+          Expand-Archive sb.zip -DestinationPath sb
+          Copy-Item "sb/$sb/sing-box.exe" build/win/core/v2fall-core.exe
+          Invoke-WebRequest "https://github.com/XTLS/Xray-core/releases/download/v$env:XRAY_VERSION/Xray-windows-64.zip" -OutFile xr.zip
+          Expand-Archive xr.zip -DestinationPath xr
+          Copy-Item xr/xray.exe build/win/core/xray.exe
+          Copy-Item dnstt-bin/windows/dnstt-client.exe build/win/core/dnstt-client.exe
+          Copy-Item dnstt-bin/windows/mieru.exe build/win/core/mieru.exe
+          Copy-Item dnstt-bin/windows/warp-plus.exe build/win/core/warp-plus.exe
+          Copy-Item dnstt-bin/windows/usque.exe build/win/core/usque.exe
+          Copy-Item dnstt-bin/windows/mdv-client.exe build/win/core/mdv-client.exe
+          Copy-Item dnstt-bin/windows/v2f-relay.exe build/win/core/v2f-relay.exe
+          Copy-Item dnstt-bin/windows/awg.exe build/win/core/awg.exe
+
+      - name: Build V2Fall.exe (Wails v3)
+        shell: pwsh
+        working-directory: desktop-app
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go install github.com/tc-hib/go-winres@v0.3.3
+          $p = @("$env:APP_VERSION".Split('.')); while ($p.Count -lt 4) { $p += '0' }; $v = ($p[0..3]) -join '.'
+          & "$(go env GOPATH)/bin/go-winres" simply --icon ../assets/appIcon.png --manifest gui --admin --product-name V2Fall --file-description V2Fall --product-version $v --file-version $v --copyright "odin"
+          go mod tidy
+          go build -tags production -trimpath -ldflags "-s -w -H windowsgui -X main.AppVersion=$env:APP_VERSION" -o ../build/win/V2Fall.exe .
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc "/DAppVer=$env:APP_VERSION" "/DSrcDir=..\build\win" desktop/installer.iss
+          Compress-Archive -Path build/win/* -DestinationPath "dist/V2Fall-$env:APP_VERSION-Windows-x64-portable.zip"
+
+      - name: Upload outputs to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5 6; do
+            gh release view "build-${{ github.run_number }}" --repo "${{ github.repository }}" >/dev/null 2>&1 && break
+            gh release create "build-${{ github.run_number }}" --repo "${{ github.repository }}" --draft --title "V2Fall ${{ env.APP_VERSION }}" --notes "auto" 2>/dev/null || sleep 5
+          done
+          gh release upload "build-${{ github.run_number }}" dist/* --repo "${{ github.repository }}" --clobber
+
+  macos:
+    name: macOS app (both arches, one runner)
+    needs: [dnstt, web, lab]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-web-protected
+          path: webp
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-dnstt-bin
+          path: out
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - run: mkdir -p dnstt-bin && cp -rf out/* dnstt-bin/
+        shell: bash
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: desktop-app/go.mod
+      - name: Frontend, fonts, shared resources
+        run: |
+          set -e
+          mkdir -p desktop-app/frontend/fonts dist build
+          cp webp/index.html desktop-app/frontend/index.html
+          npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
+          f=$(find package -name '*.woff2' | grep -i -E 'wght|ariable' | grep -v -E 'UI|FD|Round|NL' | head -1); [ -n "$f" ] && cp "$f" desktop-app/frontend/fonts/Vazirmatn-Variable.woff2
+          (npm pack country-flag-emoji-polyfill --silent && mkdir -p cf && tar xzf country-flag-emoji-polyfill-*.tgz -C cf && ff=$(find cf -name '*.woff2' | head -1) && [ -n "$ff" ] && cp "$ff" desktop-app/frontend/fonts/TwemojiCountryFlags.woff2) || echo "::warning::flag font not bundled"
+          (cd desktop-app && go mod tidy)
+          mkdir icon.iconset
+          for s in 16 32 64 128 256 512; do sips -z $s $s assets/appIcon.png --out icon.iconset/icon_${s}x${s}.png >/dev/null; d=$((s*2)); sips -z $d $d assets/appIcon.png --out icon.iconset/icon_${s}x${s}@2x.png >/dev/null; done
+          iconutil -c icns icon.iconset -o build/icon.icns
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+            echo '<plist version="1.0"><dict>'
+            echo '<key>CFBundleName</key><string>V2Fall</string>'
+            echo '<key>CFBundleDisplayName</key><string>V2Fall</string>'
+            echo '<key>CFBundleIdentifier</key><string>app.v2fall.desktop</string>'
+            echo '<key>CFBundleExecutable</key><string>V2Fall</string>'
+            echo '<key>CFBundleIconFile</key><string>icon</string>'
+            echo '<key>CFBundlePackageType</key><string>APPL</string>'
+            echo "<key>CFBundleShortVersionString</key><string>${APP_VERSION}</string>"
+            echo "<key>CFBundleVersion</key><string>${APP_VERSION}</string>"
+            echo '<key>LSMinimumSystemVersion</key><string>11.0</string>'
+            echo '<key>NSHighResolutionCapable</key><true/>'
+            echo '</dict></plist>'
+          } > build/Info.plist
+      - name: Build both app bundles + DMGs
+        run: |
+          set -e
+          for spec in "arm64 darwin-arm64 macos-arm64-v8a Apple-Silicon" "amd64 darwin-amd64 macos-64 Intel"; do
+            set -- $spec; GOA=$1; SB=$2; XR=$3; LABEL=$4
+            APP=build-$GOA/V2Fall.app; mkdir -p $APP/Contents/MacOS/core $APP/Contents/Resources
+            curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-${SB}.tar.gz" | tar xz
+            cp sing-box-${SING_BOX_VERSION}-${SB}/sing-box $APP/Contents/MacOS/core/v2fall-core
+            curl -fsSL -o xr.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-${XR}.zip" && unzip -q -o xr.zip -d xr
+            cp xr/xray $APP/Contents/MacOS/core/xray
+            for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-relay; do cp dnstt-bin/darwin-$GOA/$h $APP/Contents/MacOS/core/$h; done
+            chmod +x $APP/Contents/MacOS/core/*
+            (cd desktop-app && CGO_ENABLED=1 GOARCH=$GOA MACOSX_DEPLOYMENT_TARGET=11.0 go build -tags production -trimpath -ldflags "-s -w -X main.AppVersion=${APP_VERSION}" -o ../$APP/Contents/MacOS/V2Fall .)
+            cp build/icon.icns $APP/Contents/Resources/icon.icns
+            cp build/Info.plist $APP/Contents/Info.plist
+            codesign --force --deep -s - $APP
+            mkdir -p dmg && rm -rf dmg/* && cp -R $APP dmg/ && ln -sf /Applications dmg/Applications
+            hdiutil create -volname V2Fall -srcfolder dmg -ov -format UDZO "dist/V2Fall-${APP_VERSION}-macOS-${LABEL}.dmg"
+            rm -rf xr.zip xr "sing-box-${SING_BOX_VERSION}-${SB}"
+          done
+          ls -la dist/
+      - name: Upload outputs to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5 6; do
+            gh release view "build-${{ github.run_number }}" --repo "${{ github.repository }}" >/dev/null 2>&1 && break
+            gh release create "build-${{ github.run_number }}" --repo "${{ github.repository }}" --draft --title "V2Fall ${{ env.APP_VERSION }}" --notes "auto" 2>/dev/null || sleep 5
+          done
+          gh release upload "build-${{ github.run_number }}" dist/*.dmg --repo "${{ github.repository }}" --clobber
+
+  linux:
+    name: Linux app (x64)
+    needs: [dnstt, web, lab]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-web-protected
+          path: webp
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-dnstt-bin
+          path: out
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - run: mkdir -p dnstt-bin && cp -rf out/* dnstt-bin/
+        shell: bash
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: desktop-app/go.mod
+      - name: Build .deb and .tar.gz
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config build-essential >/dev/null
+          mkdir -p desktop-app/frontend/fonts dist
+          cp webp/index.html desktop-app/frontend/index.html
+          npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
+          f=$(find package -name '*.woff2' | grep -i -E 'wght|ariable' | grep -v -E 'UI|FD|Round|NL' | head -1); [ -n "$f" ] && cp "$f" desktop-app/frontend/fonts/Vazirmatn-Variable.woff2
+          (npm pack country-flag-emoji-polyfill --silent && mkdir -p cf && tar xzf country-flag-emoji-polyfill-*.tgz -C cf && ff=$(find cf -name '*.woff2' | head -1) && [ -n "$ff" ] && cp "$ff" desktop-app/frontend/fonts/TwemojiCountryFlags.woff2) || echo "::warning::flag font not bundled"
+          R=pkg/opt/v2fall; mkdir -p $R/core pkg/DEBIAN pkg/usr/share/applications pkg/usr/share/icons/hicolor/512x512/apps pkg/usr/bin
+          curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz" | tar xz
+          cp sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box $R/core/v2fall-core
+          curl -fsSL -o xr.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-64.zip" && unzip -q -o xr.zip -d xr
+          cp xr/xray $R/core/xray
+          for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-relay; do cp dnstt-bin/linux-amd64/$h $R/core/$h; done
+          chmod 755 $R/core/*
+          cd desktop-app && go mod tidy
+          CGO_ENABLED=1 go build -tags production,gtk3 -trimpath -ldflags "-s -w -X main.AppVersion=${APP_VERSION}" -o ../$R/V2Fall .
+          cd ..
+          cp assets/appIcon.png pkg/usr/share/icons/hicolor/512x512/apps/v2fall.png
+          cp assets/appIcon.png $R/v2fall.png
+          ln -s /opt/v2fall/V2Fall pkg/usr/bin/v2fall
+          printf '[Desktop Entry]\nType=Application\nName=V2Fall\nComment=V2Fall VPN client\nExec=/opt/v2fall/V2Fall\nIcon=v2fall\nCategories=Network;\nTerminal=false\n' > pkg/usr/share/applications/v2fall.desktop
+          printf 'Package: v2fall\nVersion: %s\nArchitecture: amd64\nMaintainer: odin <meisamodin@users.noreply.github.com>\nDepends: libgtk-3-0, libwebkit2gtk-4.1-0\nSection: net\nPriority: optional\nDescription: V2Fall VPN client (sing-box + Xray)\n' "$APP_VERSION" > pkg/DEBIAN/control
+          printf '#!/bin/sh\nsetcap cap_net_admin,cap_net_bind_service,cap_net_raw+eip /opt/v2fall/core/v2fall-core 2>/dev/null || true\nexit 0\n' > pkg/DEBIAN/postinst && chmod 755 pkg/DEBIAN/postinst
+          dpkg-deb --build --root-owner-group pkg "dist/v2fall_${APP_VERSION}_amd64.deb"
+          tar -C pkg/opt -czf "dist/V2Fall-${APP_VERSION}-Linux-x64.tar.gz" v2fall
+      - name: Upload outputs to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5 6; do
+            gh release view "build-${{ github.run_number }}" --repo "${{ github.repository }}" >/dev/null 2>&1 && break
+            gh release create "build-${{ github.run_number }}" --repo "${{ github.repository }}" --draft --title "V2Fall ${{ env.APP_VERSION }}" --notes "auto" 2>/dev/null || sleep 5
+          done
+          gh release upload "build-${{ github.run_number }}" dist/* --repo "${{ github.repository }}" --clobber
+
+  release:
+    name: Publish release
+    needs: [android, windows, macos, linux]
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finalize release (un-draft only when every platform uploaded)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 20
+          n=$(gh release view "build-${{ github.run_number }}" --repo "${{ github.repository }}" --json assets --jq '.assets | length' 2>/dev/null || echo 0)
+          echo "assets: $n"
+          if [ "$n" -ge 14 ]; then
+            echo "complete — stays a draft until it is signed and published"
+            echo "published"
+          else
+            echo "::warning::incomplete build ($n assets) — release stays draft until macOS DMGs are added"
+          fi

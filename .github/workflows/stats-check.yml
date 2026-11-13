@@ -1,0 +1,17 @@
+name: Stats check
+# checks that the Cloudflare token can read the website analytics (prints only ok / the error, no numbers)
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      T: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - run: |
+          for name in v2fall.com multiapvps.org; do
+            Z=$(curl -sS -H "Authorization: Bearer $T" "https://api.cloudflare.com/client/v4/zones?name=$name" | jq -r '.result[0].id // empty')
+            [ -z "$Z" ] && { echo "$name: zone not visible to the token"; continue; }
+            Q="{\"query\":\"{viewer{zones(filter:{zoneTag:\\\"$Z\\\"}){httpRequests1dGroups(limit:1,filter:{date_geq:\\\"$(date -u -d '-2 day' +%F)\\\"}){dimensions{date}}}}}\"}"
+            R=$(curl -sS -X POST -H "Authorization: Bearer $T" -H 'Content-Type: application/json' https://api.cloudflare.com/client/v4/graphql -d "$Q")
+            echo "$R" | jq -e '.data.viewer.zones[0].httpRequests1dGroups' >/dev/null && echo "$name: analytics OK" || echo "$name: $(echo "$R" | jq -c '.errors[0].message')"
+          done

@@ -1,0 +1,7 @@
+# Public Telegram channels that post MTProto proxies (t.me/s/<name> must be public).
+# Only proxy links are read — post text, ads and V2Ray configs are ignored.
+ProxyMTProto
+MTProtoProxies
+proxy_mtm
+TelMTProto
+myporoxy

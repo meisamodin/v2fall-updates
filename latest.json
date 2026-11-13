@@ -1,0 +1,50 @@
+{
+  "app": "V2Fall",
+  "version": "18.9.30",
+  "date": "2026-11-13",
+  "notes": "📷 اسکن QR وایرگارد: در افزودن ← WireGuard با دوربین یا از عکس، QR فایل وایرگارد (و AmneziaWG) را بخوان؛ روی همهٔ دستگاه‌ها، حتی ویندوز و گوشی‌هایی که اسکنر داخلی ندارند.",
+  "notes_en": "📷 WireGuard QR scanning: in Add → WireGuard read a WireGuard (and AmneziaWG) QR with the camera or from an image — on every device, including Windows and phones without a built-in scanner.",
+  "android": {
+    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-18.9.30.apk",
+    "sha256": "b8d8bbe3bf384dac6d1dcfba10712d945e027678c7c33db3c3c2685235ecec91",
+    "size": 132298036
+  },
+  "windows": {
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-Setup-18.9.30.exe",
+    "sha256": "5f215f64ba96ec03f8466d78cb643ee64fa6e1c84ae0f6de86c34455c6567846",
+    "size": 44744643
+  },
+  "page": "https://github.com/meisamodin/v2fall-updates",
+  "macos": {
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.30-macOS-Apple-Silicon.dmg",
+    "sha256": "5f6dbbd82050b8156052df14ae206fbc1cccc1820d944fde41f56ecc97c6073d",
+    "size": 84093429
+  },
+  "macos_intel": {
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.30-macOS-Intel.dmg",
+    "sha256": "08f27491ad0d25e3c98c0d8e576d4c47204e59c723da050884f4d2010b51642a",
+    "size": 94345347
+  },
+  "linux": {
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/v2fall_18.9.30_amd64.deb",
+    "sha256": "35de0d85d45ee4c889531c3b2bfb5ea157ab0cf1a18b0320200210a4bdfd06b6",
+    "size": 60968138
+  },
+  "linux_tar": {
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.30-Linux-x64.tar.gz",
+    "sha256": "189f8ab5a06a9209a328ede575c4319dc85f8a318d823853e5f77700861196cd",
+    "size": 77917616
+  },
+  "android_arm64": {
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.30-arm64.apk",
+    "sha256": "ffdde7c837313363368a57fe9582bdf8101e6c97777689ee553ecdf9eefabe5a",
+    "size": 65804244
+  },
+  "android_armv7": {
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.30-armv7.apk",
+    "sha256": "d9e25c3e6e2d30071a6dc41b83aa4e139c62a3c10896b3608fed48366dcc1f12",
+    "size": 67285720
+  },
+  "vcode": 29909333,
+  "min": ""
+}

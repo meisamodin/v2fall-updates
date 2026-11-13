@@ -1,0 +1,72 @@
+name: Check website
+
+# Opens the live website in a real browser (phone and desktop), records console errors and
+# failed requests, and keeps full-page screenshots as an artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "address"
+        default: https://v2fall.multiapvps.org/
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Domain basics
+        run: |
+          for d in v2fall.com; do echo "MX $d: $(dig +short MX $d | tr '\n' ' ')"; echo "SPF $d: $(dig +short TXT $d | grep -i spf | tr '\n' ' ')"; done
+          for u in https://v2fall.com/ https://www.v2fall.com/ https://dl.v2fall.com/latest.json https://dl.multiapvps.org/latest.json https://v2fall.com/og.png https://v2fall.com/sw.js https://v2fall.com/api/likes https://v2fall.com/stats https://v2fall.com/privacy https://v2fall.com/guide/warp https://v2fall.com/sitemap.xml https://v2fall.com/robots.txt https://v2fall.com/media/tour.mp4 https://v2fall.com/media/short-warp.mp4 https://v2fall.com/en https://v2fall.com/en/guide/sms https://v2fall.com/en/privacy https://v2fall.com/guide/sms; do curl -sS -o /dev/null -w "%{http_code} $u\n" "$u" || true; done
+          for u in https://v2fall.com/sitemap.xml https://v2fall.com/en/guide/warp; do echo "== $u"; curl -sS -D - -A 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' "$u" | head -c 900; echo; done
+          curl -sS -o /dev/null -w "%{http_code} redirect→%{redirect_url} http://v2fall.com/\n" http://v2fall.com/ || true
+      - name: Browser
+        run: |
+          npm init -y >/dev/null && npm i --no-audit --no-fund playwright@1.49.1 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+      - name: Screenshots
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          mkdir -p shots
+          cat > c.js <<'JS'
+          const { chromium } = require('playwright');
+          (async () => {
+            const b = await chromium.launch();
+            for (const [n, w, h, m] of [['desk', 1440, 900, false], ['mob', 390, 844, true]]) {
+              const p = await b.newPage({ viewport: { width: w, height: h }, isMobile: m, hasTouch: m });
+              const errs = [];
+              p.on('pageerror', e => errs.push('pageerror: ' + e.message));
+              p.on('console', x => { if (x.type() === 'error') errs.push('console: ' + x.text().slice(0, 200)); });
+              p.on('requestfailed', r => errs.push('failed: ' + r.url().slice(0, 150) + ' ' + (r.failure() || {}).errorText));
+              p.on('response', r => { if (r.status() >= 400) errs.push('http ' + r.status() + ' ' + r.url().slice(0, 150)); });
+              await p.goto(process.env.URL, { waitUntil: 'networkidle' });
+              await p.waitForTimeout(1500);
+              await p.keyboard.press('Escape'); await p.mouse.click(5, 5).catch(() => {});
+              await p.waitForTimeout(2500);
+              const H = await p.evaluate(() => document.documentElement.scrollHeight);
+              for (let y = 0, i = 0; y < H; y += h, i++) {
+                await p.evaluate(y => window.scrollTo(0, y), y); await p.waitForTimeout(900);
+                await p.screenshot({ path: `shots/${n}_${String(i).padStart(2, '0')}.jpg`, type: 'jpeg', quality: 70 });
+              }
+              const info = await p.evaluate(() => ({ title: document.title, hscroll: document.documentElement.scrollWidth > innerWidth, dl: [...document.querySelectorAll('#download a[href]')].map(a => a.href).slice(0, 10) }));
+              console.log(n, JSON.stringify(info));
+              console.log(errs.join('\n') || 'no errors');
+              await p.close();
+            }
+            await b.close();
+          })();
+          JS
+          node c.js | tee shots/report.txt
+      - name: Keep the screenshots on the sitecheck branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd shots && git init -q && git checkout -q -b sitecheck && git add -A
+          git -c user.name=github-actions -c user.email=actions@github.com commit -qm "site check $(date -u +%FT%TZ)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" sitecheck

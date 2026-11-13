@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>V2Fall</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@font-face { font-family: Vazir; src: url(https://v2fall.com/fonts/Vazirmatn-wght.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+:root { --bg: #070908; --card: rgba(255,255,255,.05); --card2: rgba(255,255,255,.08); --line: rgba(255,255,255,.1); --tx: #f1f5f1; --mut: rgba(241,245,241,.58);
+  --g1: #a6f7ad; --g2: #4fd662; --b1: #8cc8ff; --b2: #3d8ef0; --r1: #ff9b8f; --r2: #e5534b; --a1: #ffcf7a; --a2: #f0922b; --p1: #c9a8ff; --p2: #8a5cf0; }
+* { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--tx); font: 15px/1.75 Vazir, system-ui, sans-serif; min-height: 100vh; padding-bottom: 100px; overflow-x: hidden; }
+.bgfx { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.bgfx i { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; animation: drift 18s ease-in-out infinite alternate; }
+.bgfx i:nth-child(1) { width: 60vw; height: 60vw; background: #1f7a33; top: -15vw; right: -15vw; }
+.bgfx i:nth-child(2) { width: 50vw; height: 50vw; background: #17457e; top: 30vh; left: -20vw; animation-delay: -6s; }
+.bgfx i:nth-child(3) { width: 40vw; height: 40vw; background: #5a2a8a; bottom: -10vw; right: 10vw; opacity: .35; animation-delay: -12s; }
+@keyframes drift { to { transform: translate(6vw, 4vh) scale(1.15); } }
+.bgfx::after { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size: 28px 28px; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+.glass { background: var(--card); border: 1px solid var(--line); border-radius: 24px; backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 12px 34px rgba(0,0,0,.3); }
+/* top bar */
+.top { position: sticky; top: 0; z-index: 6; padding: 10px 0; }
+.top .glass { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; border-radius: 20px; background: rgba(12,15,13,.6); }
+.top img { width: 34px; height: 34px; border-radius: 10px; }
+.top b { font-size: 17px; font-weight: 900; direction: ltr; }
+.pill { margin-inline-start: auto; display: inline-flex; gap: 6px; align-items: center; padding: 3px 11px; border-radius: 99px; font-size: 12px; font-weight: 800; background: rgba(79,214,98,.14); color: var(--g1); border: 1px solid rgba(79,214,98,.3); }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--g2); box-shadow: 0 0 10px var(--g2); animation: pulse 2s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+/* hero */
+.hero { text-align: center; padding: 26px 18px 22px; position: relative; overflow: hidden; }
+.orb { width: 150px; height: 150px; margin: 4px auto 16px; position: relative; display: grid; place-items: center; }
+.orb::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, var(--g2), var(--b2), var(--p2), var(--g2)); animation: spin 6s linear infinite; filter: blur(1px); }
+.orb::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #182019, #070908 70%); }
+.orb img { position: relative; z-index: 1; width: 78px; height: 78px; border-radius: 22px; box-shadow: 0 0 50px rgba(79,214,98,.45); animation: float 4s ease-in-out infinite; }
+.orb .glow { position: absolute; inset: -18px; border-radius: 50%; background: conic-gradient(from 0deg, var(--g2), var(--b2), var(--p2), var(--g2)); filter: blur(28px); opacity: .45; animation: spin 6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes float { 50% { transform: translateY(-6px); } }
+h1 { font-size: 26px; font-weight: 900; line-height: 1.45; }
+h1 em { font-style: normal; background: linear-gradient(90deg, var(--g1), var(--b1)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sub { color: var(--mut); font-size: 14px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; }
+.stat { padding: 10px 4px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+.stat b { display: block; font-size: 19px; font-weight: 900; background: linear-gradient(180deg, #fff, #b9c7bb); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.stat span { font-size: 11px; color: var(--mut); }
+h2 { font-size: 18px; font-weight: 900; margin: 26px 4px 12px; display: flex; align-items: center; gap: 8px; }
+h2 small { margin-inline-start: auto; font-size: 12px; font-weight: 600; color: var(--mut); }
+/* buttons */
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 54px; border-radius: 18px; border: 1px solid rgba(255,255,255,.16);
+  font: inherit; font-weight: 900; font-size: 15px; color: #fff; cursor: pointer; text-decoration: none; position: relative; overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.035)); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -8px 16px rgba(0,0,0,.12), 0 8px 22px rgba(0,0,0,.28); transition: transform .14s, filter .14s; }
+.btn::before { content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.28), transparent); transform: skewX(-20deg); animation: shine 4.5s ease-in-out infinite; }
+.btn::after { content: ''; position: absolute; inset: 1px 1px 55% 1px; border-radius: 17px 17px 40% 40%; background: linear-gradient(180deg, rgba(255,255,255,.22), transparent); pointer-events: none; }
+@keyframes shine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+.btn:active { transform: scale(.96); filter: brightness(1.1); }
+.btn.g { background: linear-gradient(180deg, var(--g1), var(--g2)); color: #052a0b; border-color: rgba(190,255,196,.55); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 10px 28px rgba(79,214,98,.35); }
+.btn.b { background: linear-gradient(180deg, var(--b1), var(--b2)); border-color: rgba(170,215,255,.5); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 10px 28px rgba(61,142,240,.32); }
+.btn.r { background: linear-gradient(180deg, var(--r1), var(--r2)); border-color: rgba(255,190,180,.5); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 10px 28px rgba(229,83,75,.3); }
+.btn.a { background: linear-gradient(180deg, var(--a1), var(--a2)); color: #2b1500; border-color: rgba(255,220,160,.55); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 10px 28px rgba(240,146,43,.32); }
+.btn.p { background: linear-gradient(180deg, var(--p1), var(--p2)); border-color: rgba(215,195,255,.5); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 10px 28px rgba(138,92,240,.32); }
+.btn.sm { min-height: 40px; font-size: 13px; border-radius: 14px; width: auto; padding: 0 14px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card { padding: 16px; margin-bottom: 10px; }
+.row { display: flex; gap: 12px; align-items: center; }
+.ic { flex: none; width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; font-size: 22px; border: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,.03)); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
+.ic.g { background: linear-gradient(160deg, rgba(79,214,98,.45), rgba(79,214,98,.1)); } .ic.b { background: linear-gradient(160deg, rgba(61,142,240,.5), rgba(61,142,240,.1)); }
+.ic.r { background: linear-gradient(160deg, rgba(229,83,75,.5), rgba(229,83,75,.1)); } .ic.a { background: linear-gradient(160deg, rgba(240,146,43,.5), rgba(240,146,43,.1)); }
+.ic.p { background: linear-gradient(160deg, rgba(138,92,240,.5), rgba(138,92,240,.1)); }
+.grow { flex: 1; min-width: 0; } .grow b { display: block; font-size: 15px; line-height: 1.5; } .grow span { color: var(--mut); font-size: 13px; }
+.feat { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.feat .card { margin: 0; } .feat .ic { margin-bottom: 10px; } .feat b { display: block; font-size: 14px; line-height: 1.5; } .feat .sub { display: block; font-size: 12px; margin-top: 3px; line-height: 1.6; }
+/* carousels */
+.rail { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 2px 10px; margin: 0 -16px; padding-inline: 16px; scrollbar-width: none; }
+.rail::-webkit-scrollbar { display: none; }
+.shot { flex: none; width: 150px; scroll-snap-align: center; border-radius: 22px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(0,0,0,.4); }
+.shot img { display: block; width: 100%; aspect-ratio: 9/19.5; object-fit: cover; }
+.reel { flex: none; width: 128px; scroll-snap-align: center; position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--line); cursor: pointer; }
+.reel img { display: block; width: 100%; aspect-ratio: 9/16; object-fit: cover; }
+.reel::after { content: '▶'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255,255,255,.22); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.35); font-size: 16px; padding-left: 3px; }
+.reel span { position: absolute; inset: auto 0 0 0; padding: 26px 8px 8px; font-size: 12px; font-weight: 800; background: linear-gradient(transparent, rgba(0,0,0,.85)); }
+/* forms */
+textarea { width: 100%; min-height: 104px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); background: rgba(0,0,0,.28); color: var(--tx);
+  font: 13px/1.6 ui-monospace, Menlo, monospace; direction: ltr; resize: vertical; outline: none; transition: border-color .2s, box-shadow .2s; }
+textarea.fa { font-family: Vazir, system-ui; font-size: 14px; direction: rtl; }
+textarea:focus { border-color: rgba(79,214,98,.6); box-shadow: 0 0 0 4px rgba(79,214,98,.12); }
+.res { margin-top: 12px; display: none; } .res.on { display: block; animation: in .3s ease; }
+.badge { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; border: 1px solid; }
+.badge.ok { background: rgba(79,214,98,.12); border-color: rgba(79,214,98,.4); } .badge.bad { background: rgba(229,83,75,.12); border-color: rgba(229,83,75,.4); } .badge.na { background: rgba(140,200,255,.1); border-color: rgba(140,200,255,.35); }
+.badge .big { font-size: 30px; } .badge b { font-size: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; direction: ltr; justify-content: flex-end; }
+.chip { padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.07); border: 1px solid var(--line); }
+.tip { margin-top: 10px; font-size: 13px; color: var(--mut); }
+/* dns */
+.dns { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 8px; }
+.dns .ad { direction: ltr; font: 12px ui-monospace, Menlo, monospace; color: var(--mut); }
+/* faq */
+details { margin-bottom: 8px; padding: 0 16px; } summary { list-style: none; cursor: pointer; padding: 14px 0; font-weight: 800; display: flex; gap: 8px; align-items: center; }
+summary::after { content: '⌄'; margin-inline-start: auto; transition: transform .2s; } details[open] summary::after { transform: rotate(180deg); }
+details p { color: var(--mut); font-size: 14px; padding-bottom: 14px; }
+/* tabs */
+.tabs { position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); display: flex; justify-content: center; z-index: 7; }
+.tabs .glass { display: flex; gap: 2px; padding: 6px; border-radius: 26px; width: 100%; max-width: 560px; background: rgba(14,17,15,.72); }
+.tab { flex: 1; border: 0; background: none; color: var(--mut); font: inherit; font-size: 11px; font-weight: 800; padding: 6px 2px; border-radius: 20px; cursor: pointer; display: grid; justify-items: center; gap: 0; transition: color .2s; }
+.tab em { font-style: normal; font-size: 21px; line-height: 1.25; transition: transform .2s; }
+.tab.on { color: #052a0b; background: linear-gradient(180deg, var(--g1), var(--g2)); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 6px 16px rgba(79,214,98,.35); }
+.tab.on em { transform: scale(1.12); }
+.page { display: none; } .page.on { display: block; animation: in .3s ease; }
+@keyframes in { from { opacity: 0; transform: translateY(10px); } }
+.rv { opacity: 0; transform: translateY(14px); transition: opacity .5s, transform .5s; } .rv.in { opacity: 1; transform: none; }
+.notes { color: var(--mut); font-size: 13px; white-space: pre-wrap; }
+.toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); padding: 10px 16px; border-radius: 16px; background: rgba(18,22,19,.92); border: 1px solid var(--line); font-size: 14px; z-index: 20; display: none; backdrop-filter: blur(12px); }
+.player { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.92); display: none; place-items: center; }
+.player.on { display: grid; } .player video { max-width: 100%; max-height: 92vh; border-radius: 18px; }
+.player button { position: absolute; top: 14px; left: 14px; }
+.ltr { direction: ltr; unicode-bidi: isolate; }
+</style>
+</head>
+<body>
+<div class="bgfx"><i></i><i></i><i></i></div>
+<div class="toast" id="toast"></div>
+<div class="player" id="player" onclick="if(event.target===this)closeVid()"><video id="vid" controls playsinline></video><button class="btn sm" onclick="closeVid()">✕ بستن</button></div>
+<div class="wrap">
+  <div class="top"><div class="glass"><img src="https://v2fall.com/icon-512.png" alt=""><b>V2Fall</b><span class="pill"><i></i><span id="ver">آخرین نسخه</span></span><button class="btn sm" style="width:auto;min-height:34px;padding:0 10px;font-size:12px" onclick="setLang()" id="lng">EN</button></div></div>
+
+  <!-- HOME -->
+  <section class="page on" id="p-home">
+    <div class="glass hero">
+      <div class="orb"><div class="glow"></div><img src="https://v2fall.com/icon-512.png" alt=""></div>
+      <h1>اینترنت آزاد، <em>با یک لمس</em></h1>
+      <div class="sub">فیلترشکن رایگان، سریع و بی‌دردسر برای همهٔ دستگاه‌ها</div>
+      <div class="stats">
+        <div class="stat"><b>۱۸+</b><span>پروتکل</span></div>
+        <div class="stat"><b>۵</b><span>پلتفرم</span></div>
+        <div class="stat"><b>۰ تومان</b><span>برای همیشه</span></div>
+      </div>
+      <div style="display:grid;gap:10px;margin-top:18px">
+        <button class="btn g" onclick="go('download')">📥 دریافت V2Fall</button>
+        <div class="grid"><button class="btn b" onclick="go('guide')">📚 آموزش‌ها</button><button class="btn a" onclick="go('support')">🐞 پشتیبانی</button></div>
+      </div>
+    </div>
+
+    <h2>📸 نگاهی به برنامه <small>بکش ←</small></h2>
+    <div class="rail" id="shots"></div>
+
+    <h2>✨ چرا V2Fall؟</h2>
+    <div class="feat" id="feat"></div>
+
+    <h2>🎬 ویدیوهای کوتاه <small>بزن تا پخش شود</small></h2>
+    <div class="rail" id="reels"></div>
+
+    <h2>🆕 تازه‌های نسخهٔ <span class="ltr" id="ver2"></span></h2>
+    <div class="glass card rv"><div class="notes" id="notes">…</div></div>
+
+    <div class="grid" style="margin-top:14px">
+      <button class="btn p" onclick="share()">💌 معرفی به دوستان</button>
+      <button class="btn" onclick="tgLink('https://t.me/v2fall')">📢 کانال V2Fall</button>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section class="page" id="p-download">
+    <h2>📥 دریافت V2Fall <small class="ltr" id="ver3"></small></h2>
+    <div class="glass card" id="mine"></div>
+    <h2>💻 همهٔ دستگاه‌ها</h2>
+    <div class="grid" id="plats"></div>
+    <div class="glass card" style="margin-top:10px">
+      <div class="row"><div class="ic a">💡</div><div class="grow"><b>سایت باز نمی‌شود؟</b><span>نسخهٔ اندروید را از همین‌جا در چت بگیر، یا از کانال @v2fall. برای ارسال به دیگران بدون اینترنت: ابزارها ← «ارسال V2Fall به دیگران».</span></div></div>
+    </div>
+  </section>
+
+  <!-- GUIDE -->
+  <section class="page" id="p-guide">
+    <h2>📚 آموزش‌ها</h2>
+    <div id="guides"></div>
+    <h2>🌐 DNS ضدتحریم <small>بزن تا کپی شود</small></h2>
+    <div id="dnsl"></div>
+    <div class="glass card"><div class="row"><div class="ic g">✨</div><div class="grow"><b>یک‌لمسی در برنامه</b><span>در V2Fall 18.9.17 به بعد: «حالت فقط DNS» همین‌ها را روی کل دستگاه می‌گذارد، بدون مصرف حجم.</span></div></div></div>
+    <button class="btn r" style="margin-top:6px" onclick="tgLink('https://youtube.com/@v2fall')">🎬 همهٔ ویدیوها در یوتیوب</button>
+  </section>
+
+  <!-- SUPPORT -->
+  <section class="page" id="p-support">
+    <h2>🐞 پشتیبانی</h2>
+    <div class="glass card">
+      <div class="row"><div class="ic r">⚡</div><div class="grow"><b>سریع‌ترین راه</b><span>در برنامه: ابزارها ← «گزارش مشکل». لاگ بدون آدرس سرورها مستقیم برای ما می‌آید و کد پیگیری می‌گیری.</span></div></div>
+    </div>
+    <div class="glass card">
+      <b>✍️ یا همین‌جا بنویس</b>
+      <textarea class="fa" id="msg" style="margin-top:10px" placeholder="مشکلت چیست؟ نسخهٔ برنامه، نوع گوشی و کانفیگ (بدون لینک) را هم بنویس…"></textarea>
+      <button class="btn r" style="margin-top:10px" onclick="support()">✉️ فرستادن برای پشتیبانی</button>
+      <div class="sub" style="margin-top:8px">جواب در چت ربات @v2fallbot می‌آید.</div>
+    </div>
+    <h2>❓ سؤال‌های رایج</h2>
+    <div id="faq"></div>
+  </section>
+</div>
+
+<nav class="tabs"><div class="glass">
+  <button class="tab on" data-p="home" onclick="go('home')"><em>🏠</em>خانه</button>
+  <button class="tab" data-p="download" onclick="go('download')"><em>📥</em>دانلود</button>
+  <button class="tab" data-p="guide" onclick="go('guide')"><em>📚</em>آموزش</button>
+  <button class="tab" data-p="support" onclick="go('support')"><em>🐞</em>پشتیبانی</button>
+</div></nav>
+
+<script>
+const STATIC_EN = {
+  'آخرین نسخه': 'Latest', 'اینترنت آزاد،': 'Free internet,', 'با یک لمس': 'one tap away', 'فیلترشکن رایگان، سریع و بی‌دردسر برای همهٔ دستگاه‌ها': 'A free, fast and easy VPN for every device',
+  'پروتکل': 'protocols', 'پلتفرم': 'platforms', '۰ تومان': 'Free', 'برای همیشه': 'forever', '۱۸+': '18+', '۵': '5',
+  '📥 دریافت V2Fall': '📥 Get V2Fall', '🩺 تست کانفیگ': '🩺 Test a config', '📚 آموزش‌ها': '📚 Guides', '📸 نگاهی به برنامه': '📸 A look at the app', 'بکش ←': 'swipe →',
+  '✨ چرا V2Fall؟': '✨ Why V2Fall?', '🎬 ویدیوهای کوتاه': '🎬 Short videos', 'بزن تا پخش شود': 'tap to play', '🆕 تازه‌های نسخهٔ': '🆕 What is new in',
+  '💌 معرفی به دوستان': '💌 Tell your friends', '📢 کانال V2Fall': '📢 V2Fall channel', '📥 دریافت V2Fall ': '📥 Get V2Fall ', '💻 همهٔ دستگاه‌ها': '💻 Every device',
+  'سایت باز نمی‌شود؟': 'Website blocked?', 'نسخهٔ اندروید را از همین‌جا در چت بگیر، یا از کانال @v2fall. برای ارسال به دیگران بدون اینترنت: ابزارها ← «ارسال V2Fall به دیگران».': 'Get the Android version right here in the chat, or from the @v2fall channel. To pass it on without internet: Tools → "Send V2Fall to others".',
+  'لینک کانفیگ را بچسبان؛ نوع، تنظیمات و روشن بودن سرور را از بیرون ایران می‌بینی.': 'Paste a config link: you see its type, settings and whether the server is up (checked from outside Iran).',
+  '📋 چسباندن': '📋 Paste', '🔎 تست کن': '🔎 Test', 'روی اینترنت خودت چطور؟': 'On your own internet?', 'در برنامهٔ V2Fall «تست پینگ» بزن؛ اگر وصل نشد، «ابزارها ← ترمیم خودکار کانفیگ» نسخهٔ سالمش را می‌سازد.': 'Use "Ping test" in V2Fall; if it does not connect, Tools → "Automatic config repair" builds a working version.',
+  '🌐 DNS ضدتحریم': '🌐 Anti-sanction DNS', 'بزن تا کپی شود': 'tap to copy', 'یک‌لمسی در برنامه': 'One tap in the app', 'در V2Fall 18.9.17 به بعد: «حالت فقط DNS» همین‌ها را روی کل دستگاه می‌گذارد، بدون مصرف حجم.': 'In V2Fall 18.9.17 and later, "DNS-only mode" sets these for the whole device, with no data use.',
+  '🎬 همهٔ ویدیوها در یوتیوب': '🎬 All videos on YouTube', '🐞 پشتیبانی': '🐞 Support', 'سریع‌ترین راه': 'Fastest', 'در برنامه: ابزارها ← «گزارش مشکل». لاگ بدون آدرس سرورها مستقیم برای ما می‌آید و کد پیگیری می‌گیری.': 'In the app: Tools → "Report a problem". The log, without server addresses, comes straight to us and you get a follow-up code.',
+  '✍️ یا همین‌جا بنویس': '✍️ Or write here', '✉️ فرستادن برای پشتیبانی': '✉️ Send to support', 'جواب در چت ربات @v2fallbot می‌آید.': 'The answer comes in the @v2fallbot chat.', '❓ سؤال‌های رایج': '❓ FAQ',
+  'خانه': 'Home', 'دانلود': 'Download', 'تست': 'Test', 'آموزش': 'Guides', 'پشتیبانی': 'Support', '✕ بستن': '✕ Close',
+  'مشکلت چیست؟ نسخهٔ برنامه، نوع گوشی و کانفیگ (بدون لینک) را هم بنویس…': 'What is the problem? Add the app version, your device and the config type (no link)…',
+};
+const W = window.Telegram && Telegram.WebApp, SITE = 'https://v2fall.com';
+const EN = (() => { try { const q = new URLSearchParams(location.search).get('lang'); if (q) return q === 'en'; return localStorage.getItem('v2f_lang') === 'en'; } catch (e) { return false; } })();
+function setLang() { try { localStorage.setItem('v2f_lang', EN ? 'fa' : 'en'); } catch (e) {} location.replace(location.pathname + '?lang=' + (EN ? 'fa' : 'en') + location.hash); }
+const L = (fa, en) => EN ? en : fa;
+const MSG_EN = {"تست زیاد شد": "Too many tests", "فایل هنوز آماده نیست؛ از کانال @v2fall بگیر": "The file is not ready yet; get it from the @v2fall channel", "چند بار پشت سر هم — کمی بعد": "Several times in a row — try a bit later", "چند پیام پشت سر هم — کمی بعد": "Several messages in a row — try a bit later", "یک ساعت دیگر دوباره امتحان کن": "Try again in an hour", "اول لینک را بچسبان": "Paste a link first", "اول مشکلت را بنویس": "Write your problem first", "این دکمه فقط داخل تلگرام کار می‌کند": "This button works only inside Telegram", "این فرم فقط داخل تلگرام کار می‌کند": "This form works only inside Telegram", "نگه دار و Paste بزن": "Long-press and Paste", "⏳ در حال فرستادن…": "⏳ Sending…", "✅ رسید! جواب در چت ربات می‌آید": "✅ Received! The answer comes in the bot chat", "✅ فایل در چت ربات فرستاده شد": "✅ The file was sent to the bot chat", "نشد؛ دوباره امتحان کن": "Did not work; try again", "لینک خوانده نشد": "Could not read the link", "لینک کامل کانفیگ را بچسبان": "Paste the whole config link", "در حال تست…": "Testing…", "از این‌جا قابل تست نیست": "Cannot be checked from here", "این نوع روی UDP کار می‌کند؛ در برنامه «تست پینگ» بزن.": "This type runs over UDP; use \"Ping test\" in the app.", "اگر در ایران وصل نمی‌شود، احتمالاً فیلتر شده؛ Fragment یا «ترمیم خودکار کانفیگ» را امتحان کن.": "If it does not connect in Iran it is probably filtered; try Fragment or \"Automatic config repair\".", "سرور جواب نمی‌دهد": "The server does not answer", "حتی از بیرون ایران؛ احتمالاً سرور خاموش است یا کانفیگ منقضی شده.": "Not even from outside Iran; the server is probably off or the config expired.", "💡 Reality معمولاً در ایران بهترین نتیجه را دارد.": "💡 Reality usually works best in Iran.", "کپی شد": "Copied"};
+const T_ = t => EN ? (MSG_EN[t] || t) : t;
+try { W.ready(); W.expand(); W.setHeaderColor('#070908'); W.setBackgroundColor('#070908'); W.disableVerticalSwipes && W.disableVerticalSwipes(); } catch (e) {}
+const $ = id => document.getElementById(id);
+const hap = t => { try { W.HapticFeedback.impactOccurred(t || 'light'); } catch (e) {} };
+const ok = () => { try { W.HapticFeedback.notificationOccurred('success'); } catch (e) {} };
+const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+function toast(t) { const el = $('toast'); el.textContent = T_(t); el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', 2600); }
+function go(p) {
+  hap(); document.querySelectorAll('.page').forEach(x => x.classList.toggle('on', x.id === 'p-' + p));
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.p === p)); scrollTo(0, 0); reveal();
+  try { p === 'home' ? W.BackButton.hide() : W.BackButton.show(); } catch (e) {}
+}
+try { W.BackButton.onClick(() => go('home')); } catch (e) {}
+function tgLink(u) { hap(); try { u.startsWith('https://t.me/') ? W.openTelegramLink(u) : W.openLink(u); } catch (e) { open(u, '_blank'); } }
+function site(h) { tgLink(SITE + '/' + (h || '')); }
+async function api(a, body) { try { const r = await fetch('/tgapi/' + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return await r.json(); } catch (e) { return {}; } }
+const initData = () => (W && W.initData) || '';
+async function copy(t, label) { try { await navigator.clipboard.writeText(t); } catch (e) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); } ok(); toast('✅ ' + (label || 'کپی شد')); }
+
+// content
+$('lng').textContent = EN ? 'فا' : 'EN';
+if (EN) {
+  document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n; const nodes = [];
+  while ((n = w.nextNode())) nodes.push(n);
+  nodes.forEach(n => { const t = n.nodeValue.trim(); if (t && STATIC_EN[t]) n.nodeValue = n.nodeValue.replace(t, STATIC_EN[t]); });
+  document.querySelectorAll('[placeholder]').forEach(el => { const t = el.getAttribute('placeholder'); if (STATIC_EN[t]) el.setAttribute('placeholder', STATIC_EN[t]); });
+  $('msg').classList.remove('fa'); $('msg').style.direction = 'ltr';
+}
+$('shots').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(i => `<div class="shot"><img loading="lazy" src="${SITE}/screens/app-shot-${i}.jpg" alt=""></div>`).join('');
+const FEAT = EN ? [['🌍', 'g', 'Ashflake', 'Help from abroad, connect from Iran — or share privately with a code'], ['⚡', 'g', 'Auto-picks the best', 'Finds and switches to the fastest server'], ['🛟', 'r', 'Shutdown mode', 'Bridge server, fast DNS tunnel and Psiphon'], ['☁️', 'b', 'Free WARP', 'No config or own server needed'], ['🌐', 'p', 'DNS only', 'Shecan, Electro, 403 with no data use'], ['🩺', 'a', 'Automatic config repair', 'Builds a working version of your config'], ['💬', 'g', 'Social apps only', 'Telegram and Instagram via VPN, the rest direct'], ['🔑', 'b', '6-letter backup code', 'Move everything to another phone or TV'], ['📺', 'p', 'Everywhere', 'Android, TV, Windows, macOS, Linux']] : [['🌍', 'g', 'Ashflake', 'از خارج کمک کن، از داخل وصل شو؛ یا خصوصی با کد'], ['⚡', 'g', 'خودکار به بهترین', 'سریع‌ترین سرور را خودش پیدا و عوض می‌کند'], ['🛟', 'r', 'حالت قطعی', 'سرور پل، تونل DNS سریع و سایفون'],
+  ['☁️', 'b', 'وارپ رایگان', 'بدون کانفیگ و سرور شخصی'], ['🌐', 'p', 'فقط DNS', 'شکن، الکترو، ۴۰۳ بدون مصرف حجم'],
+  ['🩺', 'a', 'ترمیم خودکار کانفیگ', 'نسخهٔ سالم کانفیگ را خودش می‌سازد'], ['💬', 'g', 'فقط شبکه‌های اجتماعی', 'تلگرام و اینستا از VPN، بقیه مستقیم'],
+  ['🔑', 'b', 'پشتیبان با کد ۶ حرفی', 'همه‌چیز را به گوشی یا تلویزیون دیگر ببر'], ['📺', 'p', 'همه‌جا', 'اندروید، تلویزیون، ویندوز، مک، لینوکس']];
+$('feat').innerHTML = FEAT.map(([e, c, t, d]) => `<div class="glass card rv"><div class="ic ${c}">${e}</div><b>${t}</b><span class="sub">${d}</span></div>`).join('');
+const REELS_EN = { ashflake: 'Ashflake', dns: 'DNS only', sup: 'One-tap support', mdv: 'Fast DNS tunnel', svc: 'Service access', warp: 'Free WARP', outage: 'Shutdown mode', social: 'Social apps only', backup: 'Backup code', repair: 'Config repair', cleanip: 'Clean IP', speed: 'Speed test', install: 'Install in 3 steps' };
+const REELS = [['ashflake', 'Ashflake'], ['dns', 'فقط DNS'], ['sup', 'پشتیبانی یک‌لمسی'], ['mdv', 'تونل DNS سریع'], ['svc', 'دسترسی سرویس‌ها'], ['warp', 'وارپ رایگان'], ['outage', 'حالت قطعی'],
+  ['social', 'فقط شبکه‌های اجتماعی'], ['backup', 'کد پشتیبان'], ['repair', 'ترمیم کانفیگ'], ['cleanip', 'IP تمیز'], ['speed', 'تست سرعت'], ['install', 'نصب در ۳ قدم']];
+$('reels').innerHTML = REELS.map(([k, t]) => [k, EN ? REELS_EN[k] : t]).map(([k, t]) => `<div class="reel" onclick="play('${k}')"><img loading="lazy" src="${SITE}/media/short-${k}.jpg" alt=""><span>${t}</span></div>`).join('');
+function play(k) { hap(); const v = $('vid'); v.src = SITE + '/media/short-' + k + '.mp4'; $('player').classList.add('on'); v.play().catch(() => {}); }
+function closeVid() { const v = $('vid'); v.pause(); v.removeAttribute('src'); v.load(); $('player').classList.remove('on'); }
+const GUIDES_EN = { ashflake: ['Ashflake', 'Volunteer, connect, or share privately'], start: ['Quick start', 'From install to connected in a minute'], warp: ['Free WARP', 'Connect without a config'], outage: ['Stay online in shutdowns', 'Bridge, DNS tunnel, Psiphon'], 'clean-ip': ['Clean IP', 'The fastest IP for CDN configs'], unblocker: ['Unblocker', 'Psiphon and WARP on top of a config'], sms: ['SMS code', 'Send a config by SMS'], backup: ['6-letter backup code', 'Move everything to another device'], quota: ['Data quota', 'Daily and monthly limits'], 'offline-share': ['Share the app offline', 'Hotspot and Bluetooth'], console: ['Game consoles', 'PS5, Xbox, Nintendo'] };
+const GUIDES = [['🌍', 'g', 'Ashflake', 'داوطلب شو، وصل شو یا خصوصی با کد', 'ashflake'], ['⚡', 'g', 'شروع سریع', 'از نصب تا اتصال در یک دقیقه', 'start'], ['☁️', 'b', 'وارپ رایگان', 'بدون کانفیگ وصل شو', 'warp'], ['🛟', 'r', 'وصل ماندن در قطعی', 'سرور پل، تونل DNS، سایفون', 'outage'],
+  ['🧹', 'a', 'IP تمیز', 'سریع‌ترین IP برای کانفیگ‌های CDN', 'clean-ip'], ['🔓', 'p', 'آنبلاکر', 'سایفون و وارپ روی کانفیگ', 'unblocker'], ['✉️', 'b', 'کد پیامکی', 'کانفیگ را با پیامک بفرست', 'sms'],
+  ['🔑', 'g', 'پشتیبان با کد ۶ حرفی', 'انتقال همه‌چیز به دستگاه دیگر', 'backup'], ['📊', 'a', 'سهمیهٔ مصرف', 'سقف روزانه و ماهانه', 'quota'], ['📶', 'p', 'ارسال برنامه بدون اینترنت', 'هات‌اسپات و بلوتوث', 'offline-share'], ['🎮', 'r', 'کنسول بازی', 'PS5، ایکس‌باکس، نینتندو', 'console']];
+$('guides').innerHTML = GUIDES.map(([e, c, t, d, s]) => EN ? [e, c, GUIDES_EN[s][0], GUIDES_EN[s][1], 'en/guide/' + s] : [e, c, t, d, 'guide/' + s]).map(([e, c, t, d, s]) => `<div class="glass card row rv" style="cursor:pointer" onclick="site('${s}')"><div class="ic ${c}">${e}</div><div class="grow"><b>${t}</b><span>${d}</span></div><span style="color:var(--mut);font-size:20px">${L('‹', '›')}</span></div>`).join('');
+const DNS_EN = { 'شکن': 'Shecan', 'الکترو': 'Electro', '۴۰۳': '403', 'بگذر': 'Begzar', 'رادار گیم': 'Radar Game' };
+const DNS = [['شکن', '178.22.122.100', '185.51.200.2', 'g'], ['الکترو', '78.157.42.100', '78.157.42.101', 'b'], ['۴۰۳', '10.202.10.202', '10.202.10.102', 'a'],
+  ['بگذر', '185.55.226.26', '185.55.225.25', 'p'], ['رادار گیم', '10.202.10.10', '10.202.10.11', 'r']];
+$('dnsl').innerHTML = DNS.map(([n, a, b, c]) => [EN ? DNS_EN[n] : n, a, b, c]).map(([n, a, b, c]) => `<div class="glass dns rv"><div class="ic ${c}" style="width:40px;height:40px;font-size:18px">🌐</div><div class="grow"><b>${n}</b><div class="ad">${a} · ${b}</div></div><button class="btn sm" onclick="copy('${a}\\n${b}','${n} ' + L('کپی شد', 'copied'))">📋 ${L('کپی', 'Copy')}</button></div>`).join('');
+const FAQ_EN = [['What is Ashflake?', 'People outside Iran turn it on in Tools → Ashflake and relay a capped, encrypted part of their internet to users inside; users in Iran add the Ashflake server (Add → Ashflake) and connect with no config. With a private code you can help only your family. Mail, torrents and the volunteer\'s home network are always blocked.'], ['Is V2Fall free?', 'Yes, completely free with no ads. Add a config from your provider or your own server, or use the free WARP inside the app.'], ['I have no config', 'In the app: + → WARP. "Gool" mode works best in Iran. Telegram proxies and public proxies are under Tools too.'], ['It connects but sites do not open', 'Turn on Fragment in the connection settings or use Tools → Automatic config repair. The connection doctor tells you exactly what is wrong.'], ['International internet is cut', 'Shutdown mode: a bridge server inside Iran, DNS tunnels (MasterDNS and DNSTT) and Psiphon. The app detects the shutdown and tries the routes itself.'], ['Does it run on a TV?', 'Yes, the Android version works on Android TV with the remote. Bring your servers from the phone with the 6-letter backup code.'], ['Is my data safe?', 'The app is open source and runs on the sing-box and Xray cores. Reports are sent without server addresses or links.']];
+const FAQ = [['Ashflake چیست؟', 'ایرانی‌های خارج از کشور در ابزارها ← Ashflake روشنش می‌کنند و بخشی از اینترنتشان را رمزگذاری‌شده و با سقف مشخص به کاربران داخل ایران می‌دهند؛ کاربر داخل ایران سرور Ashflake را از افزودن ← Ashflake اضافه می‌کند و بدون کانفیگ وصل می‌شود. با کد خصوصی هم می‌شود فقط به خانواده کمک کرد. ایمیل، تورنت و شبکهٔ خانگی داوطلب همیشه بسته است.'], ['V2Fall رایگان است؟', 'بله، برنامه کاملاً رایگان و بدون تبلیغ است. کانفیگ را از فروشنده یا سرور خودت اضافه می‌کنی، یا از وارپ رایگان داخل برنامه استفاده می‌کنی.'],
+  ['کانفیگ ندارم، چه کنم؟', 'در برنامه: + ← WARP. حالت «گول» برای ایران بهترین است. پروکسی‌های تلگرام و پروکسی‌های عمومی هم در بخش ابزارها هست.'],
+  ['وصل می‌شود ولی سایت‌ها باز نمی‌شوند', 'در تنظیمات اتصال Fragment را روشن کن یا «ابزارها ← ترمیم خودکار کانفیگ» را بزن. «عیب‌یاب اتصال» هم دقیق می‌گوید مشکل کجاست.'],
+  ['اینترنت بین‌الملل قطع شد', 'حالت قطعی: سرور پل داخل ایران، تونل DNS (MasterDNS و DNSTT) و سایفون. برنامه خودش قطعی را تشخیص می‌دهد و مسیرها را امتحان می‌کند.'],
+  ['روی تلویزیون نصب می‌شود؟', 'بله، نسخهٔ اندروید روی تلویزیون اندرویدی با کنترل کار می‌کند. سرورها را با کد ۶ حرفی پشتیبان از گوشی بیاور.'],
+  ['اطلاعاتم امن است؟', 'برنامه متن‌باز است و روی هسته‌های sing-box و Xray کار می‌کند. گزارش‌ها بدون آدرس سرورها و لینک‌ها فرستاده می‌شوند.']];
+$('faq').innerHTML = (EN ? FAQ_EN : FAQ).map(([q, a]) => `<details class="glass rv"><summary>${q}</summary><p>${a}</p></details>`).join('');
+
+// download: the user's platform first
+const PL = EN ? { android: ['📱', 'g', 'Android and TV', 'The installer comes right here in your Telegram chat'], windows: ['🪟', 'b', 'Windows', 'Windows 10 and 11 — installer'], mac: ['🍎', 'p', 'macOS', 'Apple Silicon (M) and Intel'], linux: ['🐧', 'a', 'Linux', 'deb and tar.gz'] } : { android: ['📱', 'g', 'اندروید و تلویزیون', 'فایل نصبی همین‌جا در چت تلگرامت می‌آید'], windows: ['🪟', 'b', 'ویندوز', 'ویندوز ۱۰ و ۱۱ — نصبی'],
+  mac: ['🍎', 'p', 'مک', 'اپل سیلیکون (M) و اینتل'], linux: ['🐧', 'a', 'لینوکس', 'deb و tar.gz'] };
+const plat = (W && W.platform) || '', mine = /android|ios/.test(plat) || !plat ? 'android' : /mac/.test(plat) ? 'mac' : /tdesktop|web|weba/.test(plat) && /Win/.test(navigator.platform) ? 'windows' : /Linux/.test(navigator.platform) ? 'linux' : 'windows';
+// every build comes straight into the Telegram chat (copied from the bot's file store channel)
+const FILES = { android: [['apk', L('همهٔ گوشی‌ها', 'Every phone')], ['arm64', 'arm64'], ['armv7', 'armv7']], windows: [['win', L('نصبی ویندوز', 'Windows installer')]],
+  mac: [['macarm', L('مک M', 'Apple Silicon')], ['macintel', L('مک اینتل', 'Intel')]], linux: [['deb', '.deb'], ['tar', '.tar.gz']] };
+function platCard(k, big) {
+  const [e, c, t, d] = PL[k], fs = FILES[k];
+  const btns = fs.map(([f, n], i) => `<button class="btn ${big && !i ? 'g' : 'sm'}" style="${big ? 'margin-top:8px' : 'width:100%;margin-top:6px'}" onclick="sendFile('${f}')">📨 ${n}</button>`).join('');
+  return big ? `<div class="row"><div class="ic ${c}">${e}</div><div class="grow"><b>${t} <span class="sub">${L('(دستگاه تو)', '(your device)')}</span></b><span>${L('فایل همین‌جا در چت تلگرامت می‌آید', 'The file comes right here in your Telegram chat')}</span></div></div>${btns}`
+    : `<div class="glass card rv" style="margin:0;text-align:center"><div class="ic ${c}" style="margin:0 auto 8px">${e}</div><b style="display:block">${t}</b>${btns}</div>`;
+}
+$('mine').innerHTML = platCard(mine, true);
+$('plats').innerHTML = Object.keys(PL).filter(k => k !== mine).map(k => platCard(k)).join('') + `<div class="glass card rv" style="margin:0;text-align:center;cursor:pointer" onclick="site('#download')"><div class="ic r" style="margin:0 auto 8px">🌍</div><b style="display:block">${L('سایت V2Fall', 'V2Fall website')}</b><span class="sub" style="font-size:12px">${L('همهٔ نسخه‌ها', 'Every version')}</span></div>`;
+
+fetch('/latest.json', { cache: 'no-store' }).then(r => r.json()).then(m => {
+  $('ver').textContent = m.version; $('ver2').textContent = m.version; $('ver3').textContent = m.version;
+  $('notes').textContent = String((EN && m.notes_en) || m.notes || '').split('\n').slice(0, 6).join('\n');
+}).catch(() => {});
+
+// reveal on scroll
+const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 }) : null;
+function reveal() { document.querySelectorAll('.rv:not(.in)').forEach(el => io ? io.observe(el) : el.classList.add('in')); }
+reveal();
+
+async function sendApk() { return sendFile('apk'); }
+async function sendFile(kind) {
+  hap('medium'); if (!initData()) { site('#download'); return; }
+  toast('⏳ در حال فرستادن…'); const r = await api('send', { initData: initData(), kind });
+  if (r.ok) { ok(); toast('✅ فایل در چت ربات فرستاده شد'); setTimeout(() => { try { W.close(); } catch (e) {} }, 1300); }
+  else toast(r.error === 'too many' ? 'چند بار پشت سر هم — کمی بعد' : r.error === 'none' ? 'فایل هنوز آماده نیست؛ از کانال @v2fall بگیر' : 'نشد؛ دوباره امتحان کن');
+}
+async function support() {
+  const msg = $('msg').value.trim(); if (msg.length < 3) { toast('اول مشکلت را بنویس'); return; }
+  if (!initData()) { toast('این فرم فقط داخل تلگرام کار می‌کند'); return; }
+  hap('medium'); const r = await api('support', { initData: initData(), msg });
+  if (r.ok) { $('msg').value = ''; ok(); toast('✅ رسید! جواب در چت ربات می‌آید'); } else toast(r.error === 'too many' ? 'چند پیام پشت سر هم — کمی بعد' : 'نشد؛ دوباره امتحان کن');
+}
+function share() {
+  const t = 'V2Fall — فیلترشکن رایگان و سریع 🚀 دانلود، تست کانفیگ و آموزش در ربات:';
+  tgLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/v2fallbot') + '&text=' + encodeURIComponent(t));
+}
+const h = (location.hash.slice(1) || (W && W.initDataUnsafe && W.initDataUnsafe.start_param) || '');
+if (['download', 'guide', 'support'].includes(h)) go(h);
+</script>
+</body>
+</html>

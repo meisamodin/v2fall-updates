@@ -1,0 +1,33 @@
+name: Telegram proxies
+# Collects public MTProto proxies every 2 hours into the "tgproxy" branch (tg/mtproto.json).
+# A separate branch keeps main's history small and does not trigger the CDN purge of latest.json.
+on:
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: tg-proxies
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect and check proxies
+        run: python3 .github/scripts/tgproxy.py . out
+      - name: Collect and check public SOCKS / HTTP proxies
+        continue-on-error: true
+        run: python3 .github/scripts/pxproxy.py out
+      - name: Publish to the tgproxy branch
+        run: |
+          cd out
+          git init -q -b tgproxy
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -q -m "Telegram proxies $(date -u +%FT%TZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" tgproxy
+          curl -fsS -m 20 "https://purge.jsdelivr.net/gh/${{ github.repository }}@tgproxy/tg/mtproto.json" || true
+          curl -fsS -m 20 "https://purge.jsdelivr.net/gh/${{ github.repository }}@tgproxy/px/proxies.json" || true
