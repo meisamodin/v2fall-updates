@@ -73,7 +73,7 @@ async function turnUsedGB(env) {
   let gb = null;
   try {
     const d = new Date(), from = d.toISOString().slice(0, 8) + '01', to = d.toISOString().slice(0, 10);
-    const q = `query { viewer { accounts(filter: {accountTag: "${env.CF_ACCOUNT_ID}"}) { callsTurnUsageAdaptiveGroups(limit: 1, filter: {date_geq: "${from}", date_leq: "${to}", keyId: "${String(env.CF_TURN_KEY_ID).trim()}"}) { sum { egressBytes ingressBytes } } } } }`;
+    const q = `query { viewer { accounts(filter: {accountTag: "${env.CF_ACCOUNT_ID}"}) { callsTurnUsageAdaptiveGroups(limit: 1, filter: {date_geq: "${from}", date_leq: "${to}", keyId: "${turnKey(env).id}"}) { sum { egressBytes ingressBytes } } } } }`;
     const r = await fetch('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { Authorization: 'Bearer ' + env.CF_API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q }) });
     const j = await r.json();
     const acc = j && j.data && j.data.viewer && j.data.viewer.accounts && j.data.viewer.accounts[0];
@@ -92,17 +92,23 @@ async function turnStatus(env) {
   if (used == null) return { on: false, why: 'usage unknown' };
   return { on: used < cap, used: Math.round(used * 10) / 10, cap };
 }
+// the key id is 32 hex characters and the API token is longer: if the two secrets were swapped, swap back
+function turnKey(env) {
+  let id = String(env.CF_TURN_KEY_ID || '').trim(), tok = String(env.CF_TURN_KEY_TOKEN || '').trim();
+  if (id.length > tok.length) [id, tok] = [tok, id];
+  return { id, tok };
+}
 async function turnServers(env) {
   if (!env.CF_TURN_KEY_ID || !env.CF_TURN_KEY_TOKEN) return [];
   if (!(await turnStatus(env)).on) return [];
   if (Date.now() - turnCache.at < 3600e3 && turnCache.ice.length) return turnCache.ice;
   try {
-    const r = await fetch('https://rtc.live.cloudflare.com/v1/turn/keys/' + String(env.CF_TURN_KEY_ID).trim() + '/credentials/generate-ice-servers', {
-      method: 'POST', headers: { Authorization: 'Bearer ' + String(env.CF_TURN_KEY_TOKEN).trim(), 'Content-Type': 'application/json' }, body: JSON.stringify({ ttl: 43200 })
+    const r = await fetch('https://rtc.live.cloudflare.com/v1/turn/keys/' + turnKey(env).id + '/credentials/generate-ice-servers', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + turnKey(env).tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ ttl: 43200 })
     });
     const txt = await r.text(); let j = {};
     try { j = JSON.parse(txt); } catch (e) {}
-    turnErr = r.ok ? '' : 'id length ' + String(env.CF_TURN_KEY_ID).trim().length + ', HTTP ' + r.status + ' ' + txt.slice(0, 120).replace(/[A-Za-z0-9_-]{20,}/g, '…');
+    turnErr = r.ok ? '' : 'id length ' + turnKey(env).id.length + ', HTTP ' + r.status + ' ' + txt.slice(0, 120).replace(/[A-Za-z0-9_-]{20,}/g, '…');
     const list = [].concat(j.iceServers || []).filter(x => x && x.urls && x.username)
       .map(x => ({ urls: [].concat(x.urls).filter(u => /^turns?:/.test(u) && !/:53(\?|$)/.test(u)), username: x.username, credential: x.credential })).filter(x => x.urls.length);
     // Cloudflare also answers on the alternate ports 80 (TCP) and 443 (TLS): in Iran 3478/5349 are often
