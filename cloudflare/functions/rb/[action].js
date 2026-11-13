@@ -4,6 +4,7 @@
 //   volunteer: POST /rb/poll {}            → {id, sdp} | {next}             (held up to ~20 s)
 //              POST /rb/ans {id, sdp}      → {ok}
 //   anyone:    GET  /rb/ping               → {ok}
+//              POST /rb/ice                → {ice: [{urls, username, credential}]}  TURN relays (may be empty)
 //              GET  /rb/stats              → {vol}   volunteers online
 // Rows live in D1 (env.STATS) for two minutes at most — KV's free tier allows only 1000 writes a day.
 // No IPs are stored. Rate limits are in memory per isolate (no storage writes), like /tgapi.
@@ -62,10 +63,33 @@ async function init(db) {
 const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join('');
 const okSdp = s => typeof s === 'string' && s.length > 20 && s.length < 16000 && /^v=0/.test(s);
 
+let turnCache = { ice: [], at: 0 };
+async function turnServers(env) {
+  if (!env.CF_TURN_KEY_ID || !env.CF_TURN_KEY_TOKEN) return [];
+  if (Date.now() - turnCache.at < 3600e3 && turnCache.ice.length) return turnCache.ice;
+  try {
+    const r = await fetch('https://rtc.live.cloudflare.com/v1/turn/keys/' + env.CF_TURN_KEY_ID + '/credentials/generate-ice-servers', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + env.CF_TURN_KEY_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ ttl: 43200 })
+    });
+    const j = await r.json();
+    const list = [].concat(j.iceServers || []).filter(x => x && x.urls && x.username)
+      .map(x => ({ urls: [].concat(x.urls).filter(u => /^turns?:/.test(u) && !/:53(\?|$)/.test(u)), username: x.username, credential: x.credential })).filter(x => x.urls.length);
+    if (list.length) turnCache = { ice: list, at: Date.now() };
+    return list;
+  } catch (e) { return turnCache.ice; }
+}
+
 async function handle({ request, env, params }) {
   const db = env.STATS; if (!db) return J({ error: 'off' }, 503);
   const a = params.action, ip = request.headers.get('CF-Connecting-IP') || 'x';
   if (a === 'ping') return J({ ok: 1, v: 3 });
+  // TURN relay servers (Cloudflare Realtime TURN, free 1000 GB/month) for when the two sides cannot reach
+  // each other directly — the usual case behind Iranian mobile networks. Short-lived credentials,
+  // shared by every request of this isolate for an hour (they live 12 hours).
+  if (a === 'ice') {
+    if (limited('i:' + ip, 30, 60)) return J({ error: 'too many' }, 429);
+    return J({ ice: await turnServers(env) });
+  }
   if (a === 'stats') {
     if (limited('s:' + ip, 20, 60)) return J({ error: 'too many' }, 429);
     await init(db);
