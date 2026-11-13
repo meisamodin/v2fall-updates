@@ -75,6 +75,57 @@ jobs:
           key: run-${{ github.run_id }}-${{ github.run_attempt }}-libbox
           path: libbox.aar
 
+  libbox6:
+    name: libbox for Android 6 (API 23)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache libbox
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: libbox.aar
+          key: libbox-${{ env.SING_BOX_VERSION }}-arm-arm64-api23-v1
+
+      - name: Checkout sing-box
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: SagerNet/sing-box
+          ref: v${{ env.SING_BOX_VERSION }}
+          path: sing-box
+
+      - uses: actions/setup-go@v5
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          go-version-file: sing-box/go.mod
+          cache-dependency-path: sing-box/go.sum
+
+      - uses: actions/setup-java@v4
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build libbox.aar
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: sing-box
+        run: |
+          go install -v github.com/sagernet/gomobile/cmd/gomobile@v0.1.13
+          go install -v github.com/sagernet/gomobile/cmd/gobind@v0.1.13
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          TAGS="with_gvisor,with_quic,with_wireguard,with_utls,with_clash_api,with_usbip,with_openvpn,with_openconnect,badlinkname,tfogo_checklinkname0,with_tailscale,ts_omit_logtail,ts_omit_ssh,ts_omit_drive,ts_omit_taildrop,ts_omit_webclient,ts_omit_doctor,ts_omit_capture,ts_omit_kube,ts_omit_aws,ts_omit_synology,ts_omit_bird"
+          LDFLAGS="-X github.com/sagernet/sing-box/constant.Version=${SING_BOX_VERSION} -X runtime.godebugDefault=multipathtcp=0,tlssha1=1 -checklinkname=0 -s -w -buildid="
+          gomobile bind -v -o ../libbox.aar -target android/arm64,android/arm -androidapi 23 \
+            -javapkg=io.nekohasekai -libname=box -trimpath -buildvcs=false \
+            -ldflags "$LDFLAGS" -tags "$TAGS" ./experimental/libbox
+
+      - uses: actions/cache/save@v4
+        with:
+          enableCrossOsArchive: true
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-libbox6
+          path: libbox.aar
+
   dnstt:
     name: helper cores (dnstt, mieru, warp-plus, AmneziaWG)
     runs-on: ubuntu-latest
@@ -368,6 +419,124 @@ jobs:
           done
           gh release upload "build-${{ github.run_number }}" dist/* --repo "${{ github.repository }}" --clobber
 
+  android6:
+    name: Android 6 APK (minSdk 23)
+    needs: [libbox6, dnstt, web, lab]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-web-protected
+          path: webp
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-libbox6
+          path: libbox.aar
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - run: mkdir -p android/app/libs && mv -f libbox.aar android/app/libs/
+        shell: bash
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - uses: actions/cache/restore@v4
+        with:
+          key: run-${{ github.run_id }}-${{ github.run_attempt }}-dnstt-bin
+          path: out
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - run: mkdir -p dnstt-bin && cp -rf out/* dnstt-bin/
+        shell: bash
+
+      - name: Bundle Xray core
+        run: |
+          set -e
+          for pair in "arm64-v8a:Xray-android-arm64-v8a.zip" "armeabi-v7a:Xray-linux-arm32-v7a.zip"; do
+            abi=${pair%%:*}; zipname=${pair#*:}
+            curl -fsSL -o x.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/${zipname}"
+            rm -rf xr && mkdir xr && unzip -q x.zip -d xr
+            mkdir -p android/app/src/main/jniLibs/$abi
+            cp xr/xray android/app/src/main/jniLibs/$abi/libxray.so
+            chmod +x android/app/src/main/jniLibs/$abi/libxray.so
+          done
+          cp dnstt-bin/android-arm64/libdnstt.so android/app/src/main/jniLibs/arm64-v8a/libdnstt.so
+          cp dnstt-bin/android-arm/libdnstt.so android/app/src/main/jniLibs/armeabi-v7a/libdnstt.so
+          for h in libmieru libwarp libawg libusque libmdv libv2frelay; do
+            cp dnstt-bin/android-arm64/$h.so android/app/src/main/jniLibs/arm64-v8a/$h.so
+            cp dnstt-bin/android-arm/$h.so android/app/src/main/jniLibs/armeabi-v7a/$h.so
+          done
+          chmod +x android/app/src/main/jniLibs/*/*.so
+          ls -la android/app/src/main/jniLibs/*/
+
+      - name: Bundle font
+        run: |
+          mkdir -p android/app/src/main/assets/fonts
+          npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
+          F=$(find package -iname "*.woff2" | grep -iE "wght|variable" | grep -viE "ui|fd|round|nl|misc" | head -1)
+          echo "font: $F"; [ -n "$F" ] && cp "$F" android/app/src/main/assets/fonts/Vazirmatn-Variable.woff2 || echo "::warning::font not bundled, using system font"
+
+      - name: Build APK
+        env:
+          V2F_VERSION_NAME: ${{ env.APP_VERSION }}
+          V2F_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp webp/index.html android/app/src/main/assets/index.html
+          # monotonic across workflows: minutes since epoch, same scale as test-build.yml,
+          # so the stable release is never a "downgrade" for people on the experimental channel
+          export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 2 ))
+          export V2F_MIN_SDK=23
+          gradle -p android assembleRelease lintRelease --no-daemon --stacktrace
+          # calls to Android 7+ APIs without a version check: listed so they can be checked (only connecting has to work on 6)
+          R=$(ls android/app/build/reports/lint-results-release.xml 2>/dev/null || true)
+          if [ -n "$R" ] && grep -q 'id="NewApi"' "$R"; then
+            grep -A3 'id="NewApi"' "$R" | grep -E 'message=|file=' | head -40
+            echo "::warning::NewApi lint findings for minSdk 23 (listed above)"
+          fi
+          mkdir -p dist
+          ls android/app/build/outputs/apk/release/
+          cp android/app/build/outputs/apk/release/app-universal-release-unsigned.apk dist/V2Fall-${APP_VERSION}-android6-unsigned.apk
+
+      - name: Sign APK (only if the KEYSTORE_B64 secret is set)
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > release.p12
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          $BT/zipalign -f -p 4 dist/V2Fall-${APP_VERSION}-android6-unsigned.apk dist/aligned.apk
+          $BT/apksigner sign --ks release.p12 --ks-type PKCS12 --ks-pass env:KEYSTORE_PASSWORD \
+            --out dist/V2Fall-${APP_VERSION}-android6.apk dist/aligned.apk
+          rm -f release.p12 dist/aligned.apk
+
+      - name: Upload outputs to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5 6; do
+            gh release view "build-${{ github.run_number }}" --repo "${{ github.repository }}" >/dev/null 2>&1 && break
+            gh release create "build-${{ github.run_number }}" --repo "${{ github.repository }}" --draft --title "V2Fall ${{ env.APP_VERSION }}" --notes "auto" 2>/dev/null || sleep 5
+          done
+          gh release upload "build-${{ github.run_number }}" dist/* --repo "${{ github.repository }}" --clobber
+
   windows:
     name: Windows app + installer
     needs: [dnstt, web, lab]
@@ -614,7 +783,7 @@ jobs:
 
   release:
     name: Publish release
-    needs: [android, windows, macos, linux]
+    needs: [android, android6, windows, macos, linux]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:

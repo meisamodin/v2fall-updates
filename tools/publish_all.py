@@ -53,6 +53,7 @@ K = {
     'android': find(lambda f: f == f'V2Fall-{V}.apk'),
     'android_arm64': find(lambda f: f.endswith('-arm64.apk')),
     'android_armv7': find(lambda f: f.endswith('-armv7.apk')),
+    'android6': find(lambda f: f.endswith('-android6.apk')),  # Android 6 build (minSdk 23), optional
     'windows': find(lambda f: f.endswith('.exe')),
     'macos': find(lambda f: 'Apple-Silicon' in f),
     'macos_intel': find(lambda f: 'Intel' in f),
@@ -74,7 +75,7 @@ for f in glob.glob(f'{U}/download/*'):
 for f in glob.glob(f'{U}/download/parts/*'): os.remove(f)
 for k, f in K.items():
     if not f: continue
-    if k != 'android': shutil.copy(os.path.join(out, f), f'{U}/download/{f}')
+    if k not in ('android', 'android6'): shutil.copy(os.path.join(out, f), f'{U}/download/{f}')
     sh('split', '-b', '19922944', '-d', '-a', '2', os.path.join(out, f), f'{U}/download/parts/{f}.p')
 # small updates: V2D1 patch from the previous release's APK of the same variant (unchanged files copied
 # from the installed APK on the phone). Only kept when it really is small.
@@ -85,7 +86,7 @@ DELTA = {}
 oldrel = None
 try: oldrel = json.loads(sh('gh', 'api', f'repos/{REPO}/releases/tags/v{old["version"]}', out=True))
 except Exception as e: print('no previous release', e)
-for k in ('android', 'android_arm64', 'android_armv7'):
+for k in ('android', 'android_arm64', 'android_armv7', 'android6'):
     if not (oldrel and K[k] and k in old): continue
     on = os.path.basename(old[k]['url'])
     a = next((x for x in oldrel['assets'] if x['name'] == on), None)
@@ -153,7 +154,7 @@ sha = sh('git', 'rev-parse', 'HEAD', cwd=U, out=True).strip()
 def ent(k, f):
     p = os.path.join(out, f)
     parts = sorted(os.path.basename(x) for x in glob.glob(f'{U}/download/parts/{f}.p*'))
-    url = (f'https://github.com/{REPO}/releases/download/v{V}/{f}' if k == 'android'
+    url = (f'https://github.com/{REPO}/releases/download/v{V}/{f}' if k in ('android', 'android6')
            else f'https://github.com/{REPO}/raw/main/download/{f}')
     return {'url': url, 'sha256': hashlib.sha256(open(p, 'rb').read()).hexdigest(), 'size': os.path.getsize(p),
             'parts': [f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/download/parts/{x}' for x in parts]}
@@ -164,10 +165,11 @@ def addd(k):
     if k in DELTA and k in m:
         d = DELTA[k]; m[k]['delta'] = [{'from': d['from'], 'fromv': d['fromv'], 'url': f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/download/delta/{d["file"]}', 'sha256': d['sha256'], 'size': d['size']}]
 m['page'] = f'https://github.com/{REPO}'
+if K['android6']: m['android6'] = ent('android6', K['android6'])  # never carried over from an older version
 for k in ('macos', 'macos_intel', 'linux', 'linux_tar', 'android_arm64', 'android_armv7'):
     if K[k]: m[k] = ent(k, K[k])
     elif k in old: m[k] = old[k]; print('kept old', k)
-for k in ('android', 'android_arm64', 'android_armv7', 'windows', 'linux_tar'): addd(k)
+for k in ('android', 'android_arm64', 'android_armv7', 'android6', 'windows', 'linux_tar'): addd(k)
 m['vcode'] = vcode; m['min'] = os.environ.get('V2F_MIN', '')
 json.dump(m, open(f'{U}/latest.json', 'w'), ensure_ascii=False, indent=2)
 e = dict(m); e['stable'] = True
