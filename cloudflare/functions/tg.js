@@ -11,11 +11,11 @@ const SITE = 'https://v2fall.com', APP = 'https://dl.v2fall.com/app/';
 function kindOf(fn) {
   fn = String(fn || '');
   if (!/^v2fall[-_]/i.test(fn)) return '';
-  if (/-arm64\.apk$/i.test(fn)) return 'arm64'; if (/-armv7\.apk$/i.test(fn)) return 'armv7'; if (/^V2Fall-[\d.]+\.apk$/i.test(fn)) return 'apk';
+  if (/-android6\.apk$/i.test(fn)) return 'a6'; if (/-arm64\.apk$/i.test(fn)) return 'arm64'; if (/-armv7\.apk$/i.test(fn)) return 'armv7'; if (/^V2Fall-[\d.]+\.apk$/i.test(fn)) return 'apk';
   if (/\.exe$/i.test(fn)) return 'win'; if (/Apple-Silicon\.dmg$/i.test(fn)) return 'macarm'; if (/Intel\.dmg$/i.test(fn)) return 'macintel';
   if (/\.deb$/i.test(fn)) return 'deb'; if (/\.tar\.gz$/i.test(fn)) return 'tar'; return '';
 }
-const KIND_FA = { apk: 'اندروید (همه)', arm64: 'اندروید arm64', armv7: 'اندروید armv7', win: 'ویندوز', macarm: 'مک M', macintel: 'مک اینتل', deb: 'لینوکس deb', tar: 'لینوکس tar.gz' };
+const KIND_FA = { a6: 'اندروید ۶ به بالا', apk: 'اندروید (همه)', arm64: 'اندروید arm64', armv7: 'اندروید armv7', win: 'ویندوز', macarm: 'مک M', macintel: 'مک اینتل', deb: 'لینوکس deb', tar: 'لینوکس tar.gz' };
 async function storeFile(kv, kind, ref) { await kv.put('tg:f:' + kind, JSON.stringify(ref)); if (kind === 'apk') await kv.put('tg:apk', JSON.stringify(ref)); }
 const enc = new TextEncoder();
 async function secretOf(token) {
@@ -28,6 +28,7 @@ const MENU = [
   [['🚀', 'باز کردن V2Fall در تلگرام', 'app:', 'success']],
   [['📥', 'دریافت آخرین نسخه', 'download', 'primary']],
   [['🌍', 'Ashflake', 'ashflake', 'success']],
+  [['🧰', 'ابزارهای تازه', 'tools', 'primary'], ['🎨', 'ظاهر برنامه', 'look', 'primary']],
   [['📚', 'آموزش‌ها', 'guide', 'primary'], ['🌐', 'حالت فقط DNS', 'dns', 'primary']],
   [['🐞', 'پشتیبانی', 'support', 'danger']],
   [['🌍', 'سایت V2Fall', 'url:' + SITE], ['📢', 'کانال', 'url:https://t.me/v2fall']],
@@ -48,6 +49,8 @@ const T = {
   guide: '📚 آموزش‌های V2Fall\n\nیکی را انتخاب کن 👇',
   dns: '🌐 حالت «فقط DNS» (نسخهٔ 18.9.17 به بعد)\n\n✅ بدون سرور و بدون مصرف حجم، DNS کل دستگاه عوض می‌شود: شکن، الکترو، ۴۰۳، بگذر، رادار گیم یا DNS دلخواه خودت.\n\n🔒 DoH و DoT هم پشتیبانی می‌شود، پس آدرس اختصاصی DNS پولی را هم می‌توانی بدهی.\n\n💡 برای سایت‌ها و بازی‌هایی خوب است که ایران را تحریم کرده‌اند؛ برای فیلترینگ، کانفیگ لازم است.',
   ashflake: '🌍 Ashflake (نسخهٔ 18.9.28 به بعد)\n\nایرانی‌های خارج از کشور با V2Fall پل می‌شوند برای کاربران داخل ایران؛ مثل دانه‌های خاکستر که با باد همه‌جا پخش می‌شوند و بستن همه‌شان ناممکن است.\n\n✈️ خارج از ایرانی؟\nابزارها ← Ashflake ← روشن\n🔒 محتوا رمزگذاری‌شده است (WebRTC)؛ فقط IP دو طرف، مثل تماس تصویری، برای اتصال دیده می‌شود\n🛡 ایمیل و اسپم، تورنت و شبکهٔ خانگی‌ات همیشه بسته است\n⚙️ سقف ۲، ۵ یا ۱۰ کاربر و سرعت ۱، ۲ یا ۵ مگابیت؛ روی گوشی فقط وای‌فای و موقع شارژ\n🔒 فقط برای خانواده؟ «فقط با کد خصوصی» را بزن و لینک یا کد را برایشان بفرست\n\n🇮🇷 داخل ایرانی؟\nافزودن ← Ashflake ← افزودن سرور، بعد وصل شو. بدون کانفیگ، از طریق داوطلب‌ها؛ اگر یکی قطع شد خودکار سراغ نفر بعدی می‌رود. کد خصوصی داری؟ همان را در «+» بچسبان.\n\n🙏 این را برای دوستان و خانوادهٔ خارج از ایرانت بفرست.',
+  tools: '🧰 ابزارهای تازه (نسخهٔ 18.9.49 به بعد)\n\n🛡 نشت‌سنج: وقتی وصلی، چک می‌کند آی‌پی، DNS و IPv6 از تونل بیرون نمی‌زنند؛ اگر نشت داشت می‌گوید کدام تنظیم را روشن کنی.\n\n🎮 حالت بازی: پینگ هر سرور را تا منطقهٔ سرورهای بازی (بحرین، امارات، فرانکفورت، سنگاپور) می‌سنجد و کم‌پینگ‌ترین را برای PUBG، Free Fire، Call of Duty و بقیه پیشنهاد می‌دهد.\n\n✈️ پروکسی تلگرام: پروکسی‌های سالم را از فهرست عمومی و کانال‌های خودت پیدا می‌کند و روی اینترنت خودت واقعاً تست می‌کند؛ یک لمس تا تلگرام.\n\n🔎 در ابزارها جستجو هست و ابزارهای مهم، بسته به وضعیت اتصالت، بالا می‌آیند.\n\n📱 نسخهٔ «اندروید ۶ به بالا» برای گوشی‌های قدیمی هم اضافه شد.',
+  look: '🎨 ظاهر برنامه\n\n🪞 تم شیشه‌ای: مشکی و براق، با پریست تک‌رنگ\n🔘 ۷ شکل برای دکمهٔ اتصال، و دکمهٔ اتصال پایین صفحه برای دست راحت\n🧘 حالت ساده: فقط چیزهای لازم (تنظیمات ← ظاهر)\n⌚ حالت ساعت: روی صفحه‌های خیلی کوچک فقط دکمه، وضعیت و سرور\n🔔 اعلان‌ها پایین صفحه و هم‌رنگ تم\n🗺 نقشهٔ طبیعی‌تر و زنده\n🌐 فارسی، انگلیسی، روسی و چینی',
   support: '🐞 پشتیبانی\n\n⚡ سریع‌ترین راه: در برنامه برو به ابزارها ← «گزارش مشکل». لاگ بدون آدرس سرور و لینک‌هایت مستقیم برای ما می‌آید.\n\n✍️ یا همین‌جا مشکلت را بنویس؛ پیامت به پشتیبانی می‌رسد و جوابت همین‌جا می‌آید.',
 };
 
@@ -56,12 +59,14 @@ const T = {
 const EN = {
   'باز کردن V2Fall در تلگرام': 'Open V2Fall in Telegram', 'دریافت آخرین نسخه': 'Get the latest version', 'تست کانفیگ': 'Test a config', 'آموزش‌ها': 'Guides',
   'حالت فقط DNS': 'DNS-only mode',  'پشتیبانی': 'Support', 'سایت V2Fall': 'V2Fall website', 'کانال': 'Channel', 'منوی اصلی': 'Main menu', 'English': 'فارسی',
-  'شروع سریع': 'Quick start', 'وارپ رایگان': 'Free WARP', 'وصل ماندن در قطعی': 'Stay online in shutdowns', 'IP تمیز': 'Clean IP', 'پشتیبان با کد': 'Backup code',
+  'ابزارهای تازه': 'New tools', 'ظاهر برنامه': 'Look', 'اندروید ۶ به بالا': 'Android 6+', 'شروع سریع': 'Quick start', 'وارپ رایگان': 'Free WARP', 'وصل ماندن در قطعی': 'Stay online in shutdowns', 'IP تمیز': 'Clean IP', 'پشتیبان با کد': 'Backup code',
   'سهمیهٔ مصرف': 'Data quota', 'کنسول بازی': 'Game consoles', 'ویدیوها': 'Videos', 'فرم پشتیبانی': 'Support form', 'دانلود از سایت': 'Download from the website', 'تست یکی دیگر': 'Test another one', 'ویندوز': 'Windows', 'مک M': 'Mac (M chip)', 'مک اینتل': 'Mac (Intel)', 'لینوکس deb': 'Linux deb', 'لینوکس tar.gz': 'Linux tar.gz',
   start: '👋 Hi! I am the V2Fall bot.\n\n🛡 V2Fall is a free, fast VPN app for Android, Windows, macOS and Linux.\n\n🚀 "Open V2Fall in Telegram" has everything in one place: downloads, guides and support.\n🔒 The bot never asks for or keeps your links or configs.',
   guide: '📚 V2Fall guides\n\nPick one 👇',
   dns: '🌐 DNS-only mode (version 18.9.17 and later)\n\n✅ No server and no data use: switches the DNS of the whole device — Shecan, Electro, 403, Begzar, Radar Game or your own.\n\n🔒 DoH and DoT are supported too, so paid DNS addresses work.\n\n💡 Good for sites and games that block Iran; for censorship you need a config.',
   ashflake: '🌍 Ashflake (version 18.9.28 and later)\n\nIranians abroad become bridges for users inside Iran with V2Fall — like flakes of ash carried everywhere by the wind, far too many to block.\n\n✈️ Outside Iran?\nTools → Ashflake → On\n🔒 Encrypted (WebRTC): nobody sees the content; as in any video call, only the two IP addresses are seen\n🛡 Mail and spam, torrents and your home network are always blocked\n⚙️ 2, 5 or 10 users and 1, 2 or 5 Mbit; on phones Wi-Fi only and only while charging\n🔒 Only for family? Choose "Only with my private code" and send them the link or code\n\n🇮🇷 In Iran?\nAdd → Ashflake → Add the server, then connect. No config needed; if a volunteer leaves, the next one takes over. Got a private code? Paste it with +.\n\n🙏 Share this with your friends and family outside Iran.',
+  tools: '🧰 New tools (version 18.9.49 and later)\n\n🛡 Leak test: while connected, checks that your IP, DNS and IPv6 stay inside the tunnel, and says which setting to turn on if not.\n\n🎮 Game mode: measures each server\'s delay to the game regions (Bahrain, UAE, Frankfurt, Singapore) and suggests the fastest for PUBG, Free Fire, Call of Duty and more.\n\n✈️ Telegram proxies: finds working proxies from the public list and your own channels, really tested on your internet; one tap into Telegram.\n\n🔎 Tools has a search box, and the important ones come up first depending on your connection.\n\n📱 An "Android 6 and up" build for older phones.',
+  look: '🎨 Look\n\n🪞 Glass theme: black and glossy, with a monochrome preset\n🔘 7 connect-button shapes, and a connect button at the bottom of the screen\n🧘 Simple mode: only what you need (Settings → Appearance)\n⌚ Watch mode: on very small screens only the button, status and server\n🔔 Notifications at the bottom, in the theme colour\n🗺 A more natural live map\n🌐 Persian, English, Russian and Chinese',
   support: '🐞 Support\n\n⚡ Fastest: in the app open Tools → "Report a problem". The log, without your server addresses or links, comes straight to us.\n\n✍️ Or write your problem here; it reaches support and the answer comes back here.',
   '✉️ پیامت به پشتیبانی رسید؛ جواب همین‌جا می‌آید.': '✉️ Your message reached support; the answer will come here.',
 };
@@ -116,12 +121,12 @@ async function download(env, chat, lang) {
   const v = m && m.version ? m.version : '';
   const f = await kv.get('tg:apk');
   if (f) { const j = JSON.parse(f); await tg(env, 'copyMessage', { chat_id: chat, from_chat_id: j.chat, message_id: j.id }); }
-  const have = {}; for (const k of ['arm64', 'armv7', 'win', 'macarm', 'macintel', 'deb', 'tar']) have[k] = !!(await kv.get('tg:f:' + k));
+  const have = {}; for (const k of ['arm64', 'armv7', 'a6', 'win', 'macarm', 'macintel', 'deb', 'tar']) have[k] = !!(await kv.get('tg:f:' + k));
   const en = isEn(lang), nt = m && (en ? m.notes_en || m.notes : m.notes);
   const notes = nt ? (en ? '\n\n✨ What is new:\n' : '\n\n✨ تازه‌ها:\n') + String(nt).split('\n').slice(0, 5).join('\n') : '';
   await say(env, chat, `📥 V2Fall ${v}` + (en ? (f ? '\n📱 Install the Android file above.' : '') + '\n\n💻 Every version (Android, Windows, macOS, Linux) on the website and in the mini app.\n📢 If the website does not open: the @v2fall channel'
     : (f ? '\n📱 فایل اندروید بالا را نصب کن.' : '') + '\n\n💻 همهٔ نسخه‌ها (اندروید، ویندوز، مک، لینوکس) در سایت و مینی‌اپ.\n📢 اگر سایت باز نشد: کانال @v2fall') + notes,
-    [...[[['📱', 'arm64', 'f:arm64'], ['📱', 'armv7', 'f:armv7']], [['🪟', 'ویندوز', 'f:win', 'primary']], [['🍎', 'مک M', 'f:macarm'], ['🍎', 'مک اینتل', 'f:macintel']], [['🐧', 'لینوکس deb', 'f:deb'], ['🐧', 'لینوکس tar.gz', 'f:tar']]]
+    [...[[['📱', 'arm64', 'f:arm64'], ['📱', 'armv7', 'f:armv7']], [['📱', 'اندروید ۶ به بالا', 'f:a6']], [['🪟', 'ویندوز', 'f:win', 'primary']], [['🍎', 'مک M', 'f:macarm'], ['🍎', 'مک اینتل', 'f:macintel']], [['🐧', 'لینوکس deb', 'f:deb'], ['🐧', 'لینوکس tar.gz', 'f:tar']]]
       .map(r => r.filter(b => have[b[2].slice(2)])).filter(r => r.length),
      [['🚀', 'باز کردن V2Fall در تلگرام', 'app:#download', 'success']], ...BACK], lang);
 }

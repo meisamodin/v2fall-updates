@@ -33,7 +33,7 @@ export async function onRequestPost({ request, env, params }) {
   if (!user || !user.id) return J({ error: 'auth' }, 403);
   if (params.action === 'send') {
     if (await limited(kv, 'rl:ts:' + user.id, 10, 3600)) return J({ error: 'too many' }, 429);
-    const kind = /^(apk|arm64|armv7|win|macarm|macintel|deb|tar)$/.test(j.kind || '') ? j.kind : 'apk';
+    const kind = /^(apk|arm64|armv7|a6|win|macarm|macintel|deb|tar)$/.test(j.kind || '') ? j.kind : 'apk';
     const f = await kv.get('tg:f:' + kind) || (kind === 'apk' ? await kv.get('tg:apk') : null); if (!f) return J({ error: 'none' }, 404);
     const a = JSON.parse(f); const r = await tg(env, 'copyMessage', { chat_id: user.id, from_chat_id: a.chat, message_id: a.id });
     return J({ ok: !!r.ok });

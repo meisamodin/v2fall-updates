@@ -160,7 +160,7 @@ jobs:
           curl -sS "$B/getWebhookInfo" | jq -c '.result | {url, pending_update_count, last_error_message}'
           # menu button opens the mini app; commands in the "/" list
           curl -sS -X POST "$B/setChatMenuButton" -H 'Content-Type: application/json' -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"V2Fall\",\"web_app\":{\"url\":\"https://$EXTRA_DOMAINS/app/\"}}}" | jq -c '{ok, description}'
-          curl -sS -X POST "$B/setMyCommands" -H 'Content-Type: application/json' -d '{"commands":[{"command":"start","description":"شروع"},{"command":"download","description":"دریافت آخرین نسخه"},{"command":"test","description":"تست کانفیگ"},{"command":"guide","description":"آموزش‌ها"},{"command":"ashflake","description":"Ashflake: کمک به کاربران داخل ایران"},{"command":"dns","description":"حالت فقط DNS"},{"command":"support","description":"پشتیبانی"}]}' | jq -c '{ok}'
+          curl -sS -X POST "$B/setMyCommands" -H 'Content-Type: application/json' -d '{"commands":[{"command":"start","description":"شروع"},{"command":"download","description":"دریافت آخرین نسخه"},{"command":"tools","description":"ابزارهای تازه"},{"command":"test","description":"تست کانفیگ"},{"command":"guide","description":"آموزش‌ها"},{"command":"ashflake","description":"Ashflake: کمک به کاربران داخل ایران"},{"command":"dns","description":"حالت فقط DNS"},{"command":"support","description":"پشتیبانی"}]}' | jq -c '{ok}'
 
       - name: Connect the own domains (first run only)
         run: |
