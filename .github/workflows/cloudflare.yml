@@ -154,6 +154,10 @@ jobs:
           for u in https://dl.v2fall.com/px/tg/mtproto.json https://dl.v2fall.com/px/px/proxies.json https://dl.v2fall.com/px/ch/proxyir01 https://dl.v2fall.com/px/ch/ProxyMTProto; do
             echo "== $u: $(curl -s -m 25 -o /tmp/b -w '%{http_code}' "$u") $(head -c 300 /tmp/b)"; done
           echo "== t.me/s direct: $(curl -s -m 20 -o /tmp/t -w '%{http_code}' https://t.me/s/proxyir01) links=$(grep -oE 'proxy\?server=' /tmp/t | wc -l) size=$(wc -c </tmp/t)"
+          UA='Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36'
+          curl -s -m 20 -A "$UA" -o /tmp/t2 https://t.me/s/proxyir01; echo "== t.me/s mobile UA: links=$(grep -oE 'proxy\?server=' /tmp/t2 | wc -l) size=$(wc -c </tmp/t2)"
+          echo "== link samples:"; grep -oE '.{60}proxy\?server=.{120}' /tmp/t | head -3
+          echo "== px ch raw: $(curl -s -m 25 'https://dl.v2fall.com/px/ch/proxyir01?debug=1' | head -c 400)"
           ID=$(curl -s -m 15 https://bash.ws/id); echo "== bash.ws id: '${ID:0:40}'"
           for i in 1 2; do curl -s -m 8 -o /dev/null "https://$i.$ID.bash.ws" || true; done
           echo "== bash.ws result: $(curl -s -m 15 "https://bash.ws/dnsleak/test/$ID?json" | head -c 300)"
