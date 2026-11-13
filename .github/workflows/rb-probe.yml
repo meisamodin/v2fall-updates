@@ -20,4 +20,5 @@ jobs:
           done
           for ip in $(dig +short A dl.v2fall.com | head -2); do t "cfip $ip" --resolve dl.v2fall.com:443:$ip https://dl.v2fall.com/rb/ping; done
           for i in 1 2 3; do t "stats room" "https://dl.v2fall.com/rb/stats?room=${{ inputs.room }}"; t "stats public" https://dl.v2fall.com/rb/stats; sleep 20; done
+          echo "== ice"; curl -s -m 30 -X POST -H "Content-Type: application/json" -d "{}" https://dl.v2fall.com/rb/ice | jq -c "{relays: (.ice|length), turn}"
           echo "== DNS"; dig +short A dl.v2fall.com; dig +short A dl.multiapvps.org
