@@ -1,5 +1,8 @@
 name: Ashflake broker probe
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      room: { description: 'room hash', default: '' }
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -16,4 +19,5 @@ jobs:
             t "front $f h2" --http2 -H "Host: dl.v2fall.com" https://$f/rb/ping
           done
           for ip in $(dig +short A dl.v2fall.com | head -2); do t "cfip $ip" --resolve dl.v2fall.com:443:$ip https://dl.v2fall.com/rb/ping; done
+          for i in 1 2 3; do t "stats room" "https://dl.v2fall.com/rb/stats?room=${{ inputs.room }}"; t "stats public" https://dl.v2fall.com/rb/stats; sleep 20; done
           echo "== DNS"; dig +short A dl.v2fall.com; dig +short A dl.multiapvps.org
