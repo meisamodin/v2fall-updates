@@ -8,7 +8,7 @@ const LINK = /(?:tg:\/\/|https?:\/\/(?:t|telegram)\.me\/)proxy\?[^\s"'<>]+/gi;
 function proxiesOf(html) {
   const out = [], seen = new Set();
   for (const m of html.match(LINK) || []) {
-    const q = new URLSearchParams(m.split('?')[1].replace(/&amp;/g, '&'));
+    const q = new URLSearchParams(m.split('?')[1].replace(/&(?:amp;)+/g, '&'));
     const s = (q.get('server') || '').trim(), p = +q.get('port'), k = (q.get('secret') || '').trim();
     if (!/^[A-Za-z0-9.:[\]-]{1,253}$/.test(s) || !(p > 0 && p < 65536) || !k || seen.has(s + ':' + p)) continue;
     seen.add(s + ':' + p); out.push({ s, p, k });
