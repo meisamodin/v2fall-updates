@@ -36,6 +36,22 @@ for a in rel['assets']:
 
 out = os.path.join(W, 'out'); os.makedirs(out, exist_ok=True)
 names = {}
+# the previous release's APKs: unchanged entries are copied from them compressed as they are (apksign ref),
+# so small updates stay small whichever machine (and zlib) signs this release
+old = json.load(open(f'{U}/latest.json'))
+try: oldrel = json.loads(sh('gh', 'api', f'repos/{REPO}/releases/tags/v{old["version"]}', out=True))
+except Exception as e: oldrel = None; print('no previous release', e)
+def old_apk(clean):
+    if not oldrel or not clean.startswith(f'V2Fall-{V}'): return None
+    on = f'V2Fall-{old["version"]}' + clean[len(f'V2Fall-{V}'):]
+    want = next((v.get('sha256') for v in old.values() if isinstance(v, dict) and os.path.basename(v.get('url', '')) == on), None)
+    a = next((x for x in oldrel['assets'] if x['name'] == on), None)
+    if not a or not want: print('no previous', on); return None
+    op = os.path.join(W, 'old-' + on)
+    if not os.path.exists(op):
+        with open(op, 'wb') as fh: subprocess.run(['gh', 'api', '-H', 'Accept: application/octet-stream', f'repos/{REPO}/releases/assets/{a["id"]}'], stdout=fh, check=True)
+    if hashlib.sha256(open(op, 'rb').read()).hexdigest() != want: print('previous sha mismatch', on); return None
+    return op
 for p in sorted(glob.glob(os.path.join(W, '*'))):
     n = os.path.basename(p)
     if os.path.isdir(p): continue
@@ -44,7 +60,8 @@ for p in sorted(glob.glob(os.path.join(W, '*'))):
         al = os.path.join(W, 'al-' + clean)
         apksign.zipalign(p, al)
         dst = os.path.join(out, clean)
-        sh('python3', f'{TOOLS}/apksign.py', 'sign', al, dst, f'{KEY}/key.pem', f'{KEY}/cert.pem')
+        ref = old_apk(clean)
+        sh('python3', f'{TOOLS}/apksign.py', 'sign', al, dst, f'{KEY}/key.pem', f'{KEY}/cert.pem', *([ref] if ref else []))
         os.remove(al)
     elif n.endswith(('.exe', '.dmg', '.deb', '.tar.gz')):
         shutil.copy(p, os.path.join(out, n))
@@ -66,7 +83,6 @@ K = {
 }
 assert K['android'] and K['android_arm64'] and K['windows'] and K['linux'], K
 vcode = int(sh('python3', f'{TOOLS}/apksign.py', 'vcode', os.path.join(out, K['android']), out=True).strip().split()[-1])
-old = json.load(open(f'{U}/latest.json'))
 assert vcode > old['vcode'], (vcode, old['vcode'])
 for k in ('experimental/latest.json',):
     try:
@@ -87,9 +103,6 @@ sys.path.insert(0, f'{U}/tools'); import v2delta
 os.makedirs(f'{U}/download/delta', exist_ok=True)
 for f in glob.glob(f'{U}/download/delta/*'): os.remove(f)
 DELTA = {}
-oldrel = None
-try: oldrel = json.loads(sh('gh', 'api', f'repos/{REPO}/releases/tags/v{old["version"]}', out=True))
-except Exception as e: print('no previous release', e)
 for k in ('android', 'android_arm64', 'android_armv7', 'android6'):
     if not (oldrel and K[k] and k in old): continue
     on = os.path.basename(old[k]['url'])

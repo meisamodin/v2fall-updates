@@ -74,7 +74,10 @@ def mf_wrap(line):
     while b: out.append(b' ' + b[:71]); b = b[71:]
     return b'\r\n'.join(out) + b'\r\n'
 
-def build(orig, html, keyf, certf, out):
+def build(orig, html, keyf, certf, out, ref=None):
+    """ref: the previous release's signed APK of the same variant. Entries whose content did not change are
+    copied from it compressed byte for byte, so the result does not depend on this machine's zlib (zlib vs
+    zlib-ng give different deflate bytes: 18.9.64, the first release signed on GitHub, had no small update)."""
     zin = zipfile.ZipFile(orig)
     entries = []
     for info in zin.infolist():
@@ -99,15 +102,32 @@ def build(orig, html, keyf, certf, out):
         rsa = open(t + '/C.RSA', 'rb').read()
     entries += [('META-INF/MANIFEST.MF', mf, zipfile.ZIP_DEFLATED), ('META-INF/V2FALL.SF', sf, zipfile.ZIP_DEFLATED), ('META-INF/V2FALL.RSA', rsa, zipfile.ZIP_DEFLATED)]
     # ---- zip with 4-byte alignment of stored entries (zipalign-equivalent) ----
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w') as z:
-        for name, data, ct in entries:
-            zi = zipfile.ZipInfo(name, date_time=(1981, 1, 1, 1, 1, 2)); zi.compress_type = ct; zi.create_system = 0
-            if ct == zipfile.ZIP_STORED:
-                off = buf.tell() + 30 + len(name.encode())
-                pad = (4 - (off + 6) % 4) % 4   # 0xD935 extra: id, size, alignment(u16) + zero padding
-                zi.extra = struct.pack('<HHH', 0xD935, 2 + pad, 4) + b'\0' * pad
-            z.writestr(zi, data)
+    rz = zipfile.ZipFile(ref) if ref and os.path.exists(ref) else None; rf = open(ref, 'rb') if rz else None
+    rmap = {i.filename: i for i in rz.infolist()} if rz else {}
+    buf = io.BytesIO(); cdir = []; reused = 0
+    def put(name, method, crc, csize, usize, raw):
+        nb = name.encode(); off = buf.tell(); extra = b''
+        if method == 0:
+            pad = (4 - (off + 30 + len(nb) + 6) % 4) % 4
+            extra = struct.pack('<HHH', 0xD935, 2 + pad, 4) + b'\0' * pad
+        flag = 0x0800 if not nb.isascii() else 0
+        buf.write(struct.pack('<IHHHHHIIIHH', 0x04034b50, 20, flag, method, 0x0821, 0x0221, crc, csize, usize, len(nb), len(extra)) + nb + extra + raw)
+        cdir.append(struct.pack('<IHHHHHHIIIHHHHHII', 0x02014b50, 20, 20, flag, method, 0x0821, 0x0221, crc, csize, usize, len(nb), 0, 0, 0, 0, 0, off) + nb)
+    for name, data, ct in entries:
+        crc = zlib.crc32(data)
+        ri = rmap.get(name)
+        if ri is not None and ri.compress_type == ct == zipfile.ZIP_DEFLATED and ri.CRC == crc and ri.file_size == len(data) and rz.read(name) == data:
+            rf.seek(ri.header_offset); h = rf.read(30); n, e = struct.unpack('<HH', h[26:30])
+            rf.seek(ri.header_offset + 30 + n + e); put(name, 8, crc, ri.compress_size, len(data), rf.read(ri.compress_size)); reused += 1
+        elif ct == zipfile.ZIP_DEFLATED:
+            c = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION, zlib.DEFLATED, -15); raw = c.compress(data) + c.flush()
+            put(name, 8, crc, len(raw), len(data), raw)
+        else:
+            put(name, 0, crc, len(data), len(data), data)
+    if rf: rf.close()
+    if rz: print('reused from', os.path.basename(ref), reused, 'of', len(entries), 'entries')
+    cd_off0 = buf.tell(); cdb = b''.join(cdir)
+    buf.write(cdb + struct.pack('<IHHHHIIH', 0x06054b50, 0, 0, len(cdir), len(cdir), len(cdb), cd_off0, 0))
     d = buf.getvalue()
     # ---- v2 block ----
     e = eocd_pos(d); cd_off = struct.unpack('<I', d[e + 16:e + 20])[0]

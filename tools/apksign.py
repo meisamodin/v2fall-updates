@@ -6,13 +6,14 @@ import apksign_core as core
 def zipalign(src, dst):  # build() writes an aligned zip itself
     shutil.copy(src, dst)
 
-def sign(src, dst, keyf, certf):
+def sign(src, dst, keyf, certf, ref=None):
     # the same re-compression as 18.9.48 (deterministic): unchanged files come out byte-identical to the
-    # installed APK, so small updates stay small. Do not switch signers between releases.
+    # installed APK, so small updates stay small. With ref (the previous release's APK) unchanged entries are
+    # copied from it as they are, so a different zlib on the signing machine cannot make every byte change.
     with tempfile.TemporaryDirectory() as t:
         h = os.path.join(t, 'index.html')
         open(h, 'wb').write(zipfile.ZipFile(src).read('assets/index.html'))
-        core.build(src, h, keyf, certf, dst)
+        core.build(src, h, keyf, certf, dst, ref)
     assert core.verify_v2(dst), 'v2 verify failed'
 
 def vcode(apk):
@@ -30,6 +31,6 @@ def vcode(apk):
 
 if __name__ == '__main__':
     c = sys.argv[1]
-    if c == 'sign': sign(*sys.argv[2:6])
+    if c == 'sign': sign(*sys.argv[2:7])
     elif c == 'vcode': print('vcode', vcode(sys.argv[2]))
     elif c == 'verify': sys.exit(0 if core.verify_v2(sys.argv[2]) else 1)
