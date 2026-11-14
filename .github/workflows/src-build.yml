@@ -16,7 +16,7 @@ permissions:
 env:
   SING_BOX_VERSION: "1.14.4"
   XRAY_VERSION: "26.9.9"
-  APP_VERSION: "18.9.54"
+  APP_VERSION: "18.9.55"
   DNSTT_VERSION: "1.20260501.0" # pinned: @latest made builds non-reproducible
   MIERU_VERSION: "3.39.0" # pinned for reproducible builds
   MDV_SHA: "4052a6b95e758adf2dc26fa1fe527457e58d627c" # masterking32/MasterDnsVPN — fast DNS tunnel
