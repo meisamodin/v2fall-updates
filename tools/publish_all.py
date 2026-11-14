@@ -12,8 +12,8 @@ import apksign
 
 V, FA, EN = sys.argv[1], sys.argv[2], sys.argv[3]
 REPO = 'meisamodin/v2fall-updates'
-U = '/home/claude/v2fall-updates'
-W = f'/tmp/claude-0/pub-{V}'
+U = os.environ.get('V2F_REPO_DIR', '/home/claude/v2fall-updates')
+W = os.environ.get('V2F_WORK', f'/tmp/claude-0/pub-{V}')
 KEY = os.environ.get('V2F_KEY_DIR', '/tmp/claude-0/key/V2Fall-signing-key')  # key.pem + cert.pem, never in the repo
 os.makedirs(W, exist_ok=True)
 

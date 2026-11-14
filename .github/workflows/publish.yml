@@ -1,0 +1,85 @@
+name: Publish stable (signed in CI)
+# Signs the newest "build-N" draft of the given version with the release key kept in repository secrets,
+# replaces download/, writes latest.json + experimental/latest.json and starts the release page, CDN and site.
+# Any session can run it; nobody ever needs the key itself. Secrets (Settings → Secrets and variables → Actions):
+#   V2F_SIGN_KEY + V2F_SIGN_CERT  — key.pem and cert.pem as text
+#   or V2F_SIGN_P12 (base64 of the .p12) + V2F_SIGN_P12_PASS
+on:
+  workflow_dispatch:
+    inputs:
+      version: { description: 'Version, e.g. 18.9.64 (must equal APP_VERSION in src-build.yml)', required: true }
+      notes_fa: { description: 'Persian release notes', required: true }
+      notes_en: { description: 'English release notes', required: true }
+      min: { description: 'Minimum version (empty = none)', default: '' }
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency: { group: publish-stable, cancel-in-progress: false }
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+      V: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+
+      - name: Build and lab must be green for this version
+        run: |
+          echo "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::bad version '$V'"; exit 1; }
+          grep -q "APP_VERSION: \"$V\"" .github/workflows/src-build.yml || { echo "::error::src-build.yml is not at $V"; exit 1; }
+          b=$(gh run list -R "$GITHUB_REPOSITORY" -w src-build.yml -L 1 --json status,conclusion --jq '.[0].status+" "+.[0].conclusion')
+          l=$(gh run list -R "$GITHUB_REPOSITORY" -w lab.yml -L 1 --json status,conclusion --jq '.[0].status+" "+.[0].conclusion')
+          echo "build: $b / lab: $l"
+          [ "$b" = "completed success" ] && [ "$l" = "completed success" ] || { echo "::error::build or lab is not green"; exit 1; }
+          cur=$(python3 -c "import json;print(json.load(open('latest.json'))['version'])")
+          [ "$cur" != "$V" ] || { echo "::error::$V is already published"; exit 1; }
+
+      - name: Tools
+        run: python3 -c "import cryptography" 2>/dev/null || pip install --quiet cryptography
+
+      - name: Sign and publish
+        env:
+          SIGN_KEY: ${{ secrets.V2F_SIGN_KEY }}
+          SIGN_CERT: ${{ secrets.V2F_SIGN_CERT }}
+          SIGN_P12: ${{ secrets.V2F_SIGN_P12 }}
+          SIGN_P12_PASS: ${{ secrets.V2F_SIGN_P12_PASS }}
+          V2F_REPO_DIR: ${{ github.workspace }}
+          V2F_WORK: ${{ runner.temp }}/pub
+          V2F_KEY_DIR: ${{ runner.temp }}/k
+          V2F_MIN: ${{ inputs.min }}
+          NOTES_FA: ${{ inputs.notes_fa }}
+          NOTES_EN: ${{ inputs.notes_en }}
+        run: |
+          set -e
+          umask 077; mkdir -p "$V2F_KEY_DIR"
+          trap 'rm -rf "$V2F_KEY_DIR"' EXIT
+          if [ -n "$SIGN_KEY" ] && [ -n "$SIGN_CERT" ]; then
+            printf '%s\n' "$SIGN_KEY" > "$V2F_KEY_DIR/key.pem"; printf '%s\n' "$SIGN_CERT" > "$V2F_KEY_DIR/cert.pem"
+          elif [ -n "$SIGN_P12" ]; then
+            printf '%s' "$SIGN_P12" | base64 -d > "$V2F_KEY_DIR/r.p12"
+            openssl pkcs12 -in "$V2F_KEY_DIR/r.p12" -passin env:SIGN_P12_PASS -nocerts -nodes -out "$V2F_KEY_DIR/key.pem" 2>/dev/null \
+              || openssl pkcs12 -legacy -in "$V2F_KEY_DIR/r.p12" -passin env:SIGN_P12_PASS -nocerts -nodes -out "$V2F_KEY_DIR/key.pem"
+            openssl pkcs12 -in "$V2F_KEY_DIR/r.p12" -passin env:SIGN_P12_PASS -clcerts -nokeys -out "$V2F_KEY_DIR/cert.pem" 2>/dev/null \
+              || openssl pkcs12 -legacy -in "$V2F_KEY_DIR/r.p12" -passin env:SIGN_P12_PASS -clcerts -nokeys -out "$V2F_KEY_DIR/cert.pem"
+          else
+            echo "::error::signing secrets are missing (V2F_SIGN_KEY + V2F_SIGN_CERT, or V2F_SIGN_P12 + V2F_SIGN_P12_PASS)"; exit 1
+          fi
+          # the key must match the certificate every earlier release was signed with, or Android refuses the update
+          [ "$(openssl x509 -in "$V2F_KEY_DIR/cert.pem" -noout -pubkey | sha256sum)" = "$(openssl pkey -in "$V2F_KEY_DIR/key.pem" -pubout | sha256sum)" ] || { echo "::error::key and certificate do not match"; exit 1; }
+          fp=$(openssl x509 -in "$V2F_KEY_DIR/cert.pem" -noout -fingerprint -sha256 | cut -d= -f2)
+          [ "$fp" = "C8:55:8E:95:4B:48:24:29:BB:F7:0F:87:3B:5C:BB:B8:F6:B0:EA:71:6D:59:FD:7B:08:FE:53:56:EE:ED:13:A7" ] || { echo "::error::not the V2Fall release certificate ($fp)"; exit 1; }
+          python3 tools/publish_all.py "$V" "$NOTES_FA" "$NOTES_EN"
+
+      - name: Release page, CDN, website
+        # pushes made with GITHUB_TOKEN start no workflows: start them here (Cloudflare and the site follow
+        # "Publish release" through workflow_run)
+        run: |
+          gh workflow run release.yml -R "$GITHUB_REPOSITORY" --ref main
+          gh workflow run purge-cdn.yml -R "$GITHUB_REPOSITORY" --ref main || true
+          echo "### V2Fall $V published" >> "$GITHUB_STEP_SUMMARY"
