@@ -12,7 +12,8 @@ export async function onRequestGet({ params, request, env }) {
   if (m && m.one) {
     const d = String(new URL(request.url).searchParams.get('d') || '');
     if (!/^[0-9a-f]{16,64}$/.test(d)) return new Response('device needed', { status: 410, headers: CORS });
-    if (!m.dev) await env.CODES.put(id, v, { expiration: m.exp, metadata: { ...m, dev: d } });
+    if (m.creator && d === m.creator) { /* the seller testing their own code: not bound */ }
+    else if (!m.dev) await env.CODES.put(id, v, { expiration: m.exp, metadata: { ...m, dev: d } });
     else if (m.dev !== d) return new Response('used on another device', { status: 410, headers: CORS });
   }
   return new Response(v, { headers: { ...CORS, 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' } });

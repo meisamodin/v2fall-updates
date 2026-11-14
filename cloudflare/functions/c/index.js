@@ -12,7 +12,8 @@ export async function onRequestPost({ request, env }) {
   const q = new URL(request.url).searchParams;
   const days = Math.min(30, Math.max(1, parseInt(q.get('ttl') || '30', 10) || 30));
   const exp = Math.floor(Date.now() / 1000) + days * 24 * 3600;
-  const metadata = q.get('one') === '1' ? { one: 1, exp } : { exp };
+  const c = String(q.get('c') || ''); // the seller's own device: may open the code to test it without using it up
+  const metadata = q.get('one') === '1' ? { one: 1, exp, ...(/^[0-9a-f]{16,64}$/.test(c) ? { creator: c } : {}) } : { exp };
   for (let i = 0; i < 5; i++) {
     const id = Array.from(crypto.getRandomValues(new Uint8Array(6)), x => ALPHABET[x & 31]).join('');
     if (await env.CODES.get(id) === null) {
