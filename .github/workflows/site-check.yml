@@ -34,7 +34,8 @@ jobs:
           for h in dl.v2fall.com dl.multiapvps.org; do
             for k in android_arm64 windows; do
               want=$(echo "$M" | jq -r ".$k.sha256"); size=$(echo "$M" | jq -r ".$k.size")
-              curl -fsS -D h.txt -o f.bin -w "%{http_code} %{size_download} B in %{time_total}s ($h/get/$k)\n" "https://$h/get/$k"
+              c=$(curl -sS -D h.txt -o f.bin -w "%{http_code}" "https://$h/get/$k"); echo "$c $(stat -c %s f.bin) B ($h/get/$k)"
+              [ "$c" = 200 ] || { echo "::error::$h/get/$k answered $c: $(head -c 700 f.bin)"; exit 1; }
               grep -iE '^(content-type|content-disposition|accept-ranges)' h.txt | tr -d '\r'
               got=$(sha256sum f.bin | cut -d' ' -f1); [ "$got" = "$want" ] && echo "sha256 ok ($size bytes)" || { echo "::error::$h $k sha256 $got != $want"; exit 1; }
             done

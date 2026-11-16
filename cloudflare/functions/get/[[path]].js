@@ -18,7 +18,7 @@ export function findFile(man, name) {
   for (const [k, v] of Object.entries(man || {})) {
     if (!v || typeof v !== 'object' || !Array.isArray(v.parts) || !v.parts.length) continue;
     const partBase = base(v.parts[0]).replace(/\.p\d+$/, '');
-    if (k === name || base(v.url || '') === name || partBase === name) return { key: k, name: partBase || base(v.url || '') || name, parts: v.parts, sha256: v.sha256 };
+    if (k === name || base(v.url || '') === name || partBase === name) return { key: k, name: partBase || base(v.url || '') || name, parts: v.parts, sha256: v.sha256, size: +v.size || 0 };
   }
   return null;
 }
@@ -49,13 +49,18 @@ export async function onRequest(ctx) {
   if (!f) return plain(404, 'not in the current release: ' + name);
   // a part that is on this site is read from it; one that is not (a mirror URL) is fetched from there
   const open = (u, init) => { let p = ''; try { const x = new URL(u); if (x.origin === origin || /\/download\/parts\/|\/experimental\/parts\//.test(x.pathname) && /(^|\.)(v2fall\.com|multiapvps\.org)$/.test(x.hostname)) p = x.pathname; } catch (e) {} return p ? asset(p, init) : fetch(u, init); };
-  // sizes first (HEAD on every part), so the response can carry the real total size
-  const sizes = await Promise.all(f.parts.map(async u => {
-    try { const r = await open(u, { method: 'HEAD' }); const n = +r.headers.get('content-length'); if (r.ok && n > 0) return n; } catch (e) {}
-    // no length on HEAD: the total of a one-byte range says it
-    try { const r = await open(u, { headers: { range: 'bytes=0-0' } }); const t = +((r.headers.get('content-range') || '').split('/')[1] || 0); try { await r.body?.cancel(); } catch (e) {} return t > 0 ? t : 0; } catch (e) { return 0; }
+  // sizes first, so the response can carry the real total size: HEAD, else the length of a GET, else the total of
+  // a one-byte range; what each part answered is kept for the error text
+  const seen = [];
+  const sizes = await Promise.all(f.parts.map(async (u, i) => {
+    const note = x => { seen[i] = (seen[i] || '') + x + ' '; };
+    try { const r = await open(u, { method: 'HEAD' }); note('head ' + r.status + ':' + (r.headers.get('content-length') || '-')); const n = +r.headers.get('content-length'); if (r.ok && n > 0) return n; } catch (e) { note('head ' + e.message); }
+    try { const r = await open(u); const n = +r.headers.get('content-length'); note('get ' + r.status + ':' + (r.headers.get('content-length') || '-')); try { await r.body?.cancel(); } catch (e) {} if (r.ok && n > 0) return n; } catch (e) { note('get ' + e.message); }
+    try { const r = await open(u, { headers: { range: 'bytes=0-0' } }); const t = +((r.headers.get('content-range') || '').split('/')[1] || 0); note('range ' + r.status + ':' + (r.headers.get('content-range') || '-')); try { await r.body?.cancel(); } catch (e) {} return t > 0 ? t : 0; } catch (e) { note('range ' + e.message); return 0; }
   }));
-  if (sizes.some(n => !n)) return plain(503, 'a part of this file is missing right now — try the second link');
+  // no part sizes, but the manifest knows the whole size: a full download still works (no resume for it)
+  if (sizes.some(n => !n) && !(f.size > 0 && !request.headers.get('range'))) return plain(503, 'a part of this file cannot be read right now — try the second link. ' + seen.map((x, i) => 'p' + i + ': ' + x).join('| ').slice(0, 600));
+  if (sizes.some(n => !n)) { const per = Math.floor(f.size / f.parts.length); sizes.forEach((n, i) => { sizes[i] = n || per; }); sizes[sizes.length - 1] += f.size - sizes.reduce((a, b) => a + b, 0); }
   const size = sizes.reduce((a, b) => a + b, 0);
   const rg = parseRange(request.headers.get('range'), size);
   if (rg === false) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}`, 'accept-ranges': 'bytes' } });
