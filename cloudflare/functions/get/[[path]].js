@@ -9,6 +9,7 @@ import { bump, fileInfo } from '../../lib/stats.js';
 const TYPES = [[/\.apk$/i, 'application/vnd.android.package-archive'], [/\.exe$/i, 'application/vnd.microsoft.portable-executable'],
   [/\.dmg$/i, 'application/x-apple-diskimage'], [/\.deb$/i, 'application/vnd.debian.binary-package'], [/\.(tar\.gz|tgz)$/i, 'application/gzip'],
   [/\.zip$/i, 'application/zip'], [/\.xpi$/i, 'application/x-xpinstall']];
+const PART = 19922944; // the size release files are split at (tools/publish_all.py)
 const typeOf = n => (TYPES.find(([re]) => re.test(n)) || [0, 'application/octet-stream'])[1];
 const base = u => { try { return decodeURIComponent(new URL(u).pathname.split('/').pop() || ''); } catch (e) { return ''; } };
 const plain = (status, text) => new Response(text + '\n', { status, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'access-control-allow-origin': '*' } });
@@ -58,9 +59,13 @@ export async function onRequest(ctx) {
     try { const r = await open(u); const n = +r.headers.get('content-length'); note('get ' + r.status + ':' + (r.headers.get('content-length') || '-')); try { await r.body?.cancel(); } catch (e) {} if (r.ok && n > 0) return n; } catch (e) { note('get ' + e.message); }
     try { const r = await open(u, { headers: { range: 'bytes=0-0' } }); const t = +((r.headers.get('content-range') || '').split('/')[1] || 0); note('range ' + r.status + ':' + (r.headers.get('content-range') || '-')); try { await r.body?.cancel(); } catch (e) {} return t > 0 ? t : 0; } catch (e) { note('range ' + e.message); return 0; }
   }));
-  // no part sizes, but the manifest knows the whole size: a full download still works (no resume for it)
-  if (sizes.some(n => !n) && !(f.size > 0 && !request.headers.get('range'))) return plain(503, 'a part of this file cannot be read right now — try the second link. ' + seen.map((x, i) => 'p' + i + ': ' + x).join('| ').slice(0, 600));
-  if (sizes.some(n => !n)) { const per = Math.floor(f.size / f.parts.length); sizes.forEach((n, i) => { sizes[i] = n || per; }); sizes[sizes.length - 1] += f.size - sizes.reduce((a, b) => a + b, 0); }
+  // the store did not say (Pages assets give no length here): parts are cut at a fixed size (tools/publish_all.py,
+  // split -b 19922944), so the manifest's total size gives every part's size
+  if (sizes.some(n => !n) && f.size > 0) {
+    const last = f.size - PART * (f.parts.length - 1);
+    if (last > 0 && last <= PART) f.parts.forEach((u, i) => { if (!sizes[i]) sizes[i] = i < f.parts.length - 1 ? PART : last; });
+  }
+  if (sizes.some(n => !n)) return plain(503, 'a part of this file cannot be read right now — try the second link. ' + seen.map((x, i) => 'p' + i + ': ' + x).join('| ').slice(0, 600));
   const size = sizes.reduce((a, b) => a + b, 0);
   const rg = parseRange(request.headers.get('range'), size);
   if (rg === false) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}`, 'accept-ranges': 'bytes' } });
