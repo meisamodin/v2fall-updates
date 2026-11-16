@@ -25,6 +25,25 @@ jobs:
           for u in https://v2fall.com/ https://www.v2fall.com/ https://dl.v2fall.com/latest.json https://dl.multiapvps.org/latest.json https://v2fall.com/og.png https://v2fall.com/sw.js https://v2fall.com/api/likes https://v2fall.com/stats https://v2fall.com/privacy https://v2fall.com/guide/warp https://v2fall.com/sitemap.xml https://v2fall.com/robots.txt https://v2fall.com/media/tour.mp4 https://v2fall.com/media/short-warp.mp4 https://v2fall.com/en https://v2fall.com/en/guide/sms https://v2fall.com/en/privacy https://v2fall.com/guide/sms; do curl -sS -o /dev/null -w "%{http_code} $u\n" "$u" || true; done
           for u in https://v2fall.com/sitemap.xml https://v2fall.com/en/guide/warp; do echo "== $u"; curl -sS -D - -A 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' "$u" | head -c 900; echo; done
           curl -sS -o /dev/null -w "%{http_code} redirect→%{redirect_url} http://v2fall.com/\n" http://v2fall.com/ || true
+      # one direct download per file from the own domains (cloudflare/functions/get): whole file = manifest sha256,
+      # and a download cut halfway and resumed gives the same file
+      - name: Direct downloads
+        run: |
+          set -e
+          M=$(curl -fsS https://dl.v2fall.com/latest.json)
+          for h in dl.v2fall.com dl.multiapvps.org; do
+            for k in android_arm64 windows; do
+              want=$(echo "$M" | jq -r ".$k.sha256"); size=$(echo "$M" | jq -r ".$k.size")
+              curl -fsS -D h.txt -o f.bin -w "%{http_code} %{size_download} B in %{time_total}s ($h/get/$k)\n" "https://$h/get/$k"
+              grep -iE '^(content-type|content-disposition|accept-ranges)' h.txt | tr -d '\r'
+              got=$(sha256sum f.bin | cut -d' ' -f1); [ "$got" = "$want" ] && echo "sha256 ok ($size bytes)" || { echo "::error::$h $k sha256 $got != $want"; exit 1; }
+            done
+          done
+          k=android_arm64; want=$(echo "$M" | jq -r ".$k.sha256")
+          curl -fsS -r 0-29999999 -o a.bin "https://dl.v2fall.com/get/$k"; curl -fsS -r 30000000- -o b.bin "https://dl.v2fall.com/get/$k"
+          [ "$(cat a.bin b.bin | sha256sum | cut -d' ' -f1)" = "$want" ] && echo "resume ok" || { echo "::error::resume gives another file"; exit 1; }
+          curl -sS -o /dev/null -w "missing file: %{http_code}\n" https://dl.v2fall.com/get/nothing.apk
+          rm -f f.bin a.bin b.bin h.txt
       - name: Browser
         run: |
           npm init -y >/dev/null && npm i --no-audit --no-fund playwright@1.49.1 >/dev/null
