@@ -293,6 +293,7 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets
           cp webp/index.html android/app/src/main/assets/index.html
+          mkdir -p android/app/src/main/assets/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt android/app/src/main/assets/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
           # monotonic across workflows: minutes since epoch (+1) — always beats every earlier build,
           # including same-hour rebuilds (hours-based codes tied when two rcs shipped within one hour)
           export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 1 ))
@@ -352,6 +353,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force desktop-app/frontend/fonts, build/win/core, dist | Out-Null
           Copy-Item webp/index.html desktop-app/frontend/index.html
+          New-Item -ItemType Directory -Force desktop-app/frontend/fonts | Out-Null; Copy-Item web/fonts/*.woff2, web/fonts/OFL-*.txt desktop-app/frontend/fonts/ -ErrorAction SilentlyContinue  # extra UI fonts (OFL)
           npm pack vazirmatn@33.0.3 --silent; tar xzf vazirmatn-33.0.3.tgz
           $f = Get-ChildItem package -Recurse -Filter *.woff2 | Where-Object { $_.Name -match 'wght|ariable' -and $_.Name -notmatch 'UI|FD|Round|NL' } | Select-Object -First 1
           if ($f) { Copy-Item $f.FullName desktop-app/frontend/fonts/Vazirmatn-Variable.woff2 }

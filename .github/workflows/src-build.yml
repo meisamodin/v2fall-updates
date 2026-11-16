@@ -16,7 +16,7 @@ permissions:
 env:
   SING_BOX_VERSION: "1.14.4"
   XRAY_VERSION: "26.9.9"
-  APP_VERSION: "18.9.77"
+  APP_VERSION: "18.9.78"
   DNSTT_VERSION: "1.20260501.0" # pinned: @latest made builds non-reproducible
   MIERU_VERSION: "3.39.0" # pinned for reproducible builds
   MDV_SHA: "4052a6b95e758adf2dc26fa1fe527457e58d627c" # masterking32/MasterDnsVPN — fast DNS tunnel
@@ -386,6 +386,7 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets
           cp webp/index.html android/app/src/main/assets/index.html
+          mkdir -p android/app/src/main/assets/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt android/app/src/main/assets/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
           # monotonic across workflows: minutes since epoch, same scale as test-build.yml,
           # so the stable release is never a "downgrade" for people on the experimental channel
           export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 2 ))
@@ -499,6 +500,7 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets
           cp webp/index.html android/app/src/main/assets/index.html
+          mkdir -p android/app/src/main/assets/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt android/app/src/main/assets/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
           # monotonic across workflows: minutes since epoch, same scale as test-build.yml,
           # so the stable release is never a "downgrade" for people on the experimental channel
           export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 2 ))
@@ -575,6 +577,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force desktop-app/frontend/fonts, build/win/core, dist | Out-Null
           Copy-Item webp/index.html desktop-app/frontend/index.html
+          New-Item -ItemType Directory -Force desktop-app/frontend/fonts | Out-Null; Copy-Item web/fonts/*.woff2, web/fonts/OFL-*.txt desktop-app/frontend/fonts/ -ErrorAction SilentlyContinue  # extra UI fonts (OFL)
           npm pack vazirmatn@33.0.3 --silent; tar xzf vazirmatn-33.0.3.tgz
           $f = Get-ChildItem package -Recurse -Filter *.woff2 | Where-Object { $_.Name -match 'wght|ariable' -and $_.Name -notmatch 'UI|FD|Round|NL' } | Select-Object -First 1
           if ($f) { Copy-Item $f.FullName desktop-app/frontend/fonts/Vazirmatn-Variable.woff2 }
@@ -660,6 +663,7 @@ jobs:
           set -e
           mkdir -p desktop-app/frontend/fonts dist build
           cp webp/index.html desktop-app/frontend/index.html
+          mkdir -p desktop-app/frontend/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt desktop-app/frontend/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
           npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
           f=$(find package -name '*.woff2' | grep -i -E 'wght|ariable' | grep -v -E 'UI|FD|Round|NL' | head -1); [ -n "$f" ] && cp "$f" desktop-app/frontend/fonts/Vazirmatn-Variable.woff2
           (npm pack country-flag-emoji-polyfill --silent && mkdir -p cf && tar xzf country-flag-emoji-polyfill-*.tgz -C cf && ff=$(find cf -name '*.woff2' | head -1) && [ -n "$ff" ] && cp "$ff" desktop-app/frontend/fonts/TwemojiCountryFlags.woff2) || echo "::warning::flag font not bundled"
@@ -750,6 +754,7 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config build-essential >/dev/null
           mkdir -p desktop-app/frontend/fonts dist
           cp webp/index.html desktop-app/frontend/index.html
+          mkdir -p desktop-app/frontend/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt desktop-app/frontend/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
           npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
           f=$(find package -name '*.woff2' | grep -i -E 'wght|ariable' | grep -v -E 'UI|FD|Round|NL' | head -1); [ -n "$f" ] && cp "$f" desktop-app/frontend/fonts/Vazirmatn-Variable.woff2
           (npm pack country-flag-emoji-polyfill --silent && mkdir -p cf && tar xzf country-flag-emoji-polyfill-*.tgz -C cf && ff=$(find cf -name '*.woff2' | head -1) && [ -n "$ff" ] && cp "$ff" desktop-app/frontend/fonts/TwemojiCountryFlags.woff2) || echo "::warning::flag font not bundled"
