@@ -1,6 +1,8 @@
 // POST /c — store a short code. The app encrypts the config on the phone first, so only
 // ciphertext (base64url) ever reaches this server. A code lives for 30 days, or ?ttl=<days> (1–30).
 // ?one=1 (sales links, "one device only"): the first device that opens the code owns it (see [id].js).
+// ?st=1 (sales links with buyer status): the answer also carries an admin key for /c/<id>/stats (lib/sales.js).
+import { saleCreate } from '../../lib/sales.js';
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // no 0/O/1/I: easy to type from an SMS
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
 
@@ -18,7 +20,9 @@ export async function onRequestPost({ request, env }) {
     const id = Array.from(crypto.getRandomValues(new Uint8Array(6)), x => ALPHABET[x & 31]).join('');
     if (await env.CODES.get(id) === null) {
       await env.CODES.put(id, body, { expiration: exp, metadata });
-      return Response.json({ id }, { headers: CORS });
+      let adm = '';
+      if (q.get('st') === '1') { try { adm = await saleCreate(env, id, exp, /^[0-9a-f]{16,64}$/.test(c) ? c : ''); } catch (e) {} }
+      return Response.json(adm ? { id, adm } : { id }, { headers: CORS });
     }
   }
   return new Response('busy', { status: 503, headers: CORS });
