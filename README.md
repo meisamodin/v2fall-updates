@@ -1,44 +1,61 @@
-# V2Fall 18.9.30
+<div align="center">
 
-[![downloads](https://img.shields.io/github/downloads/meisamodin/v2fall-updates/total?label=downloads&color=34D399)](https://github.com/meisamodin/v2fall-updates/releases) [![jsDelivr](https://data.jsdelivr.com/v1/package/gh/meisamodin/v2fall-updates/badge?style=rounded)](https://www.jsdelivr.com/package/gh/meisamodin/v2fall-updates?tab=stats) [![stars](https://img.shields.io/github/stars/meisamodin/v2fall-updates?style=flat&color=FBBF24)](https://github.com/meisamodin/v2fall-updates/stargazers)
+<img src="https://v2fall.com/icon-512.png" width="96" alt="V2Fall">
 
-کلاینت VPN برای اندروید، ویندوز، مک و لینوکس (هسته‌های sing-box و Xray).
+# V2Fall — Free VPN client for Android, Windows, macOS and Linux
 
-| سیستم | دانلود | حجم |
-|---|---|---|
-| اندروید — گوشی‌های جدید (arm64، پیشنهادی) | [V2Fall-18.9.30-arm64.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-18.9.30-arm64.apk) | 63 MB |
-| اندروید — گوشی‌های قدیمی (armv7) | [V2Fall-18.9.30-armv7.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-18.9.30-armv7.apk) | 64 MB |
-| اندروید — همه‌کاره (اگر نمی‌دانید کدام) | [V2Fall-18.9.30.apk](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-18.9.30.apk) | 126 MB |
-| ویندوز | [V2Fall-Setup-18.9.30.exe](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-Setup-18.9.30.exe) | 43 MB |
-| مک (Apple Silicon: M1/M2/M3/M4) | [V2Fall-18.9.30-macOS-Apple-Silicon.dmg](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-18.9.30-macOS-Apple-Silicon.dmg) | 80 MB |
-| مک (Intel) | [V2Fall-18.9.30-macOS-Intel.dmg](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-18.9.30-macOS-Intel.dmg) | 90 MB |
-| لینوکس (.deb اوبونتو/دبیان) | [v2fall_18.9.30_amd64.deb](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/v2fall_18.9.30_amd64.deb) | 58 MB |
-| لینوکس (tar.gz) | [V2Fall-18.9.30-Linux-x64.tar.gz](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-18.9.30-Linux-x64.tar.gz) | 74 MB |
-| افزونهٔ کروم / اج | [V2Fall-Chrome-1.0.0.zip](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-Chrome-1.0.0.zip) | 0 MB |
-| افزونهٔ فایرفاکس | [V2Fall-Firefox-1.0.0.zip](https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.30/V2Fall-Firefox-1.0.0.zip) | 0 MB |
+**کلاینت VPN و فیلترشکن رایگان برای اندروید، ویندوز، مک و لینوکس**
 
-## سرور شخصی برای قطعی اینترنت (اختیاری)
-روی سرور خودتان (اوبونتو/دبیان) با کاربر root اجرا کنید:
+[![downloads](https://img.shields.io/github/downloads/meisamodin/v2fall-updates/total?label=downloads&color=34D399)](https://github.com/meisamodin/v2fall-updates/releases/latest) [![release](https://img.shields.io/github/v/release/meisamodin/v2fall-updates?label=version&color=60A5FA)](https://github.com/meisamodin/v2fall-updates/releases/latest) [![jsDelivr](https://data.jsdelivr.com/v1/package/gh/meisamodin/v2fall-updates/badge?style=rounded)](https://www.jsdelivr.com/package/gh/meisamodin/v2fall-updates?tab=stats) [![stars](https://img.shields.io/github/stars/meisamodin/v2fall-updates?style=flat&color=FBBF24)](https://github.com/meisamodin/v2fall-updates/stargazers)
 
-- **سرور پل** (روی سروری داخل ایران که به خارج راه دارد):
-```
-bash <(curl -fsSL https://github.com/meisamodin/v2fall-updates/raw/main/tools/v2fall-bridge.sh)
-```
-- **DNSTT** (روی سرور خارج از ایران؛ اول برای `t.example.com` یک رکورد NS به سرورتان بسازید):
-```
-bash <(curl -fsSL https://github.com/meisamodin/v2fall-updates/raw/main/tools/v2fall-dnstt.sh) t.example.com
-```
-هر اسکریپت در پایان یک لینک می‌دهد که در V2Fall اضافه می‌کنید.
+### [⬇️ Download / دانلود — v2fall.com](https://v2fall.com) · [Latest release](https://github.com/meisamodin/v2fall-updates/releases/latest) · [Guides](https://v2fall.com/en#guides) · [Telegram](https://t.me/v2fallbot)
 
-## نصب
-- **اندروید:** فایل APK را باز کنید. اگر Play Protect پیغام داد، «Install without scanning» یا «Scan app» را بزنید (برای هر برنامهٔ خارج از گوگل‌پلی پیش می‌آید).
-- **ویندوز:** Setup را اجرا کنید. اگر SmartScreen آمد: More info → Run anyway.
-- **مک:** فایل dmg را باز کنید و V2Fall را داخل Applications بکشید. بار اول روی برنامه کلیک راست → Open (چون امضای اپل ندارد). اگر گفت «آسیب دیده»: در Terminal بزنید `xattr -cr /Applications/V2Fall.app`
-- **لینوکس:** `sudo apt install ./v2fall_18.9.30_amd64.deb` یا tar.gz را باز کنید و `./V2Fall` را اجرا کنید (نیاز به libwebkit2gtk-4.1).
-
-## تغییرات این نسخه
-📷 اسکن QR وایرگارد: در افزودن ← WireGuard با دوربین یا از عکس، QR فایل وایرگارد (و AmneziaWG) را بخوان؛ روی همهٔ دستگاه‌ها، حتی ویندوز و گوشی‌هایی که اسکنر داخلی ندارند.
+</div>
 
 ---
 
-📷 WireGuard QR scanning: in Add → WireGuard read a WireGuard (and AmneziaWG) QR with the camera or from an image — on every device, including Windows and phones without a built-in scanner.
+## English
+
+V2Fall is a free VPN / proxy client built on the **sing-box** and **Xray** cores, made for heavily filtered networks and internet shutdowns.
+
+- **Every common protocol:** VLESS (REALITY, XHTTP, VLESS Encryption / ML-KEM), VMess, Trojan, Shadowsocks, Hysteria2, TUIC, AnyTLS, WireGuard / AmneziaWG, OpenVPN, SSH, SOCKS / HTTP, sing-box and Xray JSON configs, and subscription links from Marzban, Hiddify, 3x-ui and other panels.
+- **Works without a config:** built-in Cloudflare WARP and Psiphon.
+- **Internet shutdowns:** bridge server, fast DNS tunnel (DNSTT / MasterDnsVPN), Ashflake volunteer network, and a shutdown mode.
+- **Anti-filtering:** TLS Fragment with adjustable strength, UDP noise, mixed-case SNI, ECH, clean Cloudflare IP finder and your own free CDN server.
+- **Smart connection:** automatic server testing, failover to the healthiest server, per-network memory of which servers work, config repair, leak test, real speed test.
+- **Everywhere:** one app on Android (with a separate build for Android 6), Windows, macOS (Apple Silicon & Intel) and Linux, in 6 languages.
+
+**Install**
+- **Android:** open the APK. If Play Protect warns, choose “Install anyway”.
+- **Windows:** run the Setup. If SmartScreen appears: More info → Run anyway.
+- **macOS:** drag V2Fall to Applications; the first time, right-click → Open. If it says “damaged”: `xattr -cr /Applications/V2Fall.app`
+- **Linux:** `sudo apt install ./v2fall_*_amd64.deb`, or unpack the tar.gz and run `./V2Fall` (needs libwebkit2gtk-4.1).
+
+## فارسی
+
+V2Fall (وی‌تو‌فال) یک کلاینت VPN و فیلترشکن رایگان با هسته‌های **sing-box** و **Xray** است، ساخته‌شده برای اینترنت فیلترشدهٔ ایران و زمان قطعی اینترنت.
+
+- **همهٔ پروتکل‌ها:** VLESS (ریلیتی، XHTTP، رمزنگاری VLESS / ML-KEM)، VMess، تروجان، شدوساکس، Hysteria2، TUIC، AnyTLS، وایرگارد و AmneziaWG، OpenVPN، SSH، SOCKS / HTTP، کانفیگ‌های JSON و لینک اشتراک پنل‌های مرزبان، هیدیفای، 3x-ui و بقیه.
+- **بدون کانفیگ هم وصل می‌شود:** WARP کلادفلر و سایفون داخلی.
+- **قطعی اینترنت:** سرور پل، تونل DNS سریع، شبکهٔ داوطلبانهٔ Ashflake و حالت قطعی.
+- **ضد فیلتر:** TLS Fragment با شدت قابل تنظیم، نویز UDP، SNI درهم، ECH، یابندهٔ IP تمیز و سرور CDN شخصی رایگان.
+- **اتصال هوشمند:** تست خودکار سرورها، جابه‌جایی خودکار به سالم‌ترین سرور، حافظهٔ هر شبکه، ترمیم کانفیگ، نشت‌سنج و تست سرعت واقعی.
+- **روی همهٔ دستگاه‌ها:** اندروید (با نسخهٔ جداگانه برای اندروید ۶)، ویندوز، مک و لینوکس.
+
+**دانلود:** آخرین نسخه را از [v2fall.com](https://v2fall.com) یا [صفحهٔ ریلیز](https://github.com/meisamodin/v2fall-updates/releases/latest) بگیرید. ربات تلگرام [@v2fallbot](https://t.me/v2fallbot) هم فایل‌ها را مستقیم می‌فرستد.
+
+**آموزش‌ها:** [همهٔ تنظیمات به زبان ساده](https://v2fall.com/guide/settings-explained) · [همهٔ ابزارها](https://v2fall.com/guide/tools-explained) · [وقتی اینترنت قطع است](https://v2fall.com/guide/outage) · [IP تمیز](https://v2fall.com/guide/clean-ip) · [سرور CDN شخصی](https://v2fall.com/guide/cdn-server)
+
+## سرور شخصی برای قطعی اینترنت (اختیاری) / Own server for shutdowns (optional)
+
+روی سرور خودتان (اوبونتو/دبیان) با کاربر root اجرا کنید / Run as root on your own Ubuntu/Debian server:
+
+- **سرور پل / Bridge** (روی سروری داخل ایران که به خارج راه دارد / a server inside Iran that still reaches abroad):
+```
+bash <(curl -fsSL https://github.com/meisamodin/v2fall-updates/raw/main/tools/v2fall-bridge.sh)
+```
+- **DNSTT** (روی سرور خارج؛ اول یک رکورد NS برای `t.example.com` به سرورتان بسازید / on a server abroad; first point an NS record for `t.example.com` at it):
+```
+bash <(curl -fsSL https://github.com/meisamodin/v2fall-updates/raw/main/tools/v2fall-dnstt.sh) t.example.com
+```
+هر اسکریپت در پایان یک لینک می‌دهد که در V2Fall اضافه می‌کنید / each script ends with a link you add in V2Fall.
