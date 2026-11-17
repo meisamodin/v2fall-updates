@@ -9,6 +9,10 @@ name: Telegram files
 # Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_ID (already used by cloudflare.yml), TG_API_ID and
 # TG_API_HASH (my.telegram.org → API development tools; an app id, no access to any chat).
 on:
+  # after every successful stable release, by itself
+  workflow_run:
+    workflows: ["Publish stable (signed in CI)"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       version:
@@ -23,6 +27,7 @@ concurrency: { group: tg-files, cancel-in-progress: false }
 
 jobs:
   files:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -33,7 +38,7 @@ jobs:
       CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       GH_TOKEN: ${{ github.token }}
-      TEST: ${{ inputs.test }}
+      TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.test || 'false' }}
       DOMAIN: dl.v2fall.com
       KV_TITLE: v2fall-codes
     steps:
