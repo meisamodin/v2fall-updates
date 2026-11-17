@@ -49,6 +49,13 @@ jobs:
           curl -fsS http://127.0.0.1:8787/ | grep -q "<title>Notes</title>" || { cat wrangler.log; echo "::error::worker did not start"; exit 1; }
           code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/other); test "$code" = 404
           echo "worker up; decoy page and 404 ok"
+      - name: Relay for blocked subscription links
+        run: |
+          curl -fsS -m 20 -A 'v2rayNG/1.10.5' "http://127.0.0.1:8787$WPATH/r?u=https%3A%2F%2Fexample.com%2F" | grep -qi "example domain" || { cat wrangler.log; echo "::error::the relay did not fetch the page"; exit 1; }
+          echo "ok: the relay fetches a page for the app"
+          code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8787/wrong/r?u=https%3A%2F%2Fexample.com%2F"); test "$code" = 404 || { echo "::error::the relay answered without the secret path ($code)"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8787$WPATH/r?u=file%3A%2F%2F%2Fetc%2Fpasswd"); test "$code" = 400 || { echo "::error::the relay took a non-http address ($code)"; exit 1; }
+          echo "ok: no relay without the secret path, and only http(s) addresses"
       - name: Xray client through the worker
         run: |
           curl -fsSL -o x.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-64.zip" && unzip -q x.zip -d xr
