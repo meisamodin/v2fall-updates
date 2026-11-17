@@ -51,6 +51,8 @@ jobs:
       - name: Which files, and where they go
         run: |
           V="${{ inputs.version }}"; [ -n "$V" ] || V=$(jq -r .version latest.json); echo "V=$V" >> $GITHUB_ENV; echo "version $V"
+          # the GitHub release is made by a workflow that runs right after the publish: wait for it (up to 20 min)
+          for i in $(seq 1 40); do gh release view "v$V" -R ${{ github.repository }} >/dev/null 2>&1 && break; echo "release v$V not there yet ($i)"; sleep 30; done
           mkdir f && gh release download "v$V" -R ${{ github.repository }} -D f -p "V2Fall-*.apk" -p "V2Fall-Setup-*.exe" -p "*.dmg" -p "*.deb" -p "*.tar.gz"
           ls -la f
           api() { curl -sS -H "Authorization: Bearer $CF_TOKEN" "$@"; }
