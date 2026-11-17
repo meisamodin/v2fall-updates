@@ -1,0 +1,71 @@
+name: Upload to YouTube
+
+# Uploads a video from this repo (media/...) to the V2Fall YouTube channel with the YouTube Data API.
+# Any session or person with access to this repo can run it — no Metricool needed.
+# One-time setup (by the channel owner, in GitHub → Settings → Secrets and variables → Actions):
+#   YT_CLIENT_ID, YT_CLIENT_SECRET  — an OAuth client of type "Desktop app" in Google Cloud
+#                                     (APIs & Services → enable "YouTube Data API v3" → Credentials)
+#   YT_REFRESH_TOKEN                — a refresh token for that client with the scope
+#                                     https://www.googleapis.com/auth/youtube.upload, made once while
+#                                     signed in as the channel owner (see DEVELOPMENT.md)
+# The secrets never appear in the log.
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "video path in this repo, e.g. media/V2Fall-feat-speed.mp4"
+        required: true
+      title:
+        description: "title (max 100 characters)"
+        required: true
+      description:
+        description: "description"
+        default: ""
+      tags:
+        description: "comma-separated tags"
+        default: "V2Fall,VPN,v2ray"
+      privacy:
+        description: "public, unlisted or private"
+        default: "public"
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: media
+      - name: Upload
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          FILE: ${{ inputs.file }}
+          TITLE: ${{ inputs.title }}
+          DESC: ${{ inputs.description }}
+          TAGS: ${{ inputs.tags }}
+          PRIVACY: ${{ inputs.privacy }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, urllib.parse, urllib.request
+          for k in ('YT_CLIENT_ID', 'YT_CLIENT_SECRET', 'YT_REFRESH_TOKEN'):
+              if not os.environ.get(k): print(f'::error::secret {k} is not set — see the comment at the top of this workflow'); sys.exit(1)
+          f = os.environ['FILE']
+          if not f.startswith('media/') or '..' in f or not os.path.isfile(f): print('::error::file must be an existing path under media/'); sys.exit(1)
+          tok = json.load(urllib.request.urlopen(urllib.request.Request('https://oauth2.googleapis.com/token', data=urllib.parse.urlencode({
+              'client_id': os.environ['YT_CLIENT_ID'], 'client_secret': os.environ['YT_CLIENT_SECRET'],
+              'refresh_token': os.environ['YT_REFRESH_TOKEN'], 'grant_type': 'refresh_token'}).encode())))['access_token']
+          meta = {'snippet': {'title': os.environ['TITLE'][:100], 'description': os.environ['DESC'][:4900],
+                              'tags': [t.strip() for t in os.environ['TAGS'].split(',') if t.strip()], 'categoryId': '28'},
+                  'status': {'privacyStatus': os.environ['PRIVACY'] if os.environ['PRIVACY'] in ('public', 'unlisted', 'private') else 'public',
+                             'selfDeclaredMadeForKids': False}}
+          size = os.path.getsize(f)
+          r = urllib.request.urlopen(urllib.request.Request('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
+              data=json.dumps(meta).encode(), method='POST', headers={'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json; charset=UTF-8',
+              'X-Upload-Content-Type': 'video/mp4', 'X-Upload-Content-Length': str(size)}))
+          loc = r.headers['Location']
+          with open(f, 'rb') as fh:
+              v = json.load(urllib.request.urlopen(urllib.request.Request(loc, data=fh.read(), method='PUT', headers={'Authorization': 'Bearer ' + tok, 'Content-Type': 'video/mp4'})))
+          print('uploaded: https://youtu.be/' + v['id'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as s: s.write(f"Uploaded **{meta['snippet']['title']}** → https://youtu.be/{v['id']}\n")
+          PY
