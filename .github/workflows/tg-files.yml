@@ -100,5 +100,6 @@ jobs:
             echo "$R" | jq -c '{ok, description}'; echo "$R" | jq -e .ok >/dev/null && break; sleep 60
           done
           curl -sS "$B/getWebhookInfo" | jq -c '.result | {url, pending_update_count, last_error_message}'
-          msg="📦 V2Fall $V — $([ "$TEST" = true ] && echo 'تست' || echo 'فایل‌ها ثبت شد'):$SENT$([ -n "$FAILED" ] && echo " — ناموفق:$FAILED")"
+          if [ "$TEST" = true ]; then what='تست'; else what='فایل‌ها ثبت شد'; fi
+          msg="📦 V2Fall $V — $what:$SENT${FAILED:+ — ناموفق:$FAILED}"
           curl -sS -X POST "$B/sendMessage" -d chat_id="$ADMIN" --data-urlencode text="$msg" | jq -c '{ok}'
