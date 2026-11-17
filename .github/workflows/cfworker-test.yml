@@ -1,0 +1,94 @@
+name: CDN server (Worker) test
+
+# Runs the personal CDN server script (tools/cf-worker/worker.js, the one the app uploads to the user's
+# Cloudflare account) in the real Workers runtime (wrangler dev, local), then connects to it with Xray as a
+# VLESS + WebSocket client and opens sites through it: plain TCP, TLS, early data and DNS over UDP.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "source branch"
+        default: "main"
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    env:
+      XRAY_VERSION: "26.9.9"
+      UUID: "1f8c3e0a-5b7d-4c2e-9a61-3d0e7b4f2a95"
+      WPATH: "/k3y9q"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref || 'main' }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+          sparse-checkout: |
+            tools/cf-worker
+            web
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: The worker inside the app is the same file
+        run: |
+          node -e '
+            const fs = require("fs");
+            const html = fs.readFileSync("web/index.html", "utf8");
+            const m = html.match(/<script type="text\/plain" id="cfw-src">([\s\S]*?)<\/script>/);
+            if (!m) { console.error("::error::cfw-src block missing in web/index.html"); process.exit(1); }
+            const file = fs.readFileSync("tools/cf-worker/worker.js", "utf8");
+            if (m[1].trim() !== file.trim()) { console.error("::error::web/index.html cfw-src differs from tools/cf-worker/worker.js"); process.exit(1); }
+            console.log("same script, " + file.length + " bytes");'
+      - name: Start the worker (workerd, local)
+        run: |
+          mkdir w && sed -e "s/__V2F_UUID__/$UUID/" -e "s#__V2F_PATH__#$WPATH#" tools/cf-worker/worker.js > w/worker.js
+          printf 'name = "v2f-test"\nmain = "worker.js"\ncompatibility_date = "2024-09-23"\n' > w/wrangler.toml
+          (cd w && nohup npx --yes wrangler@4 dev --local --port 8787 --ip 127.0.0.1 > ../wrangler.log 2>&1 &)
+          for i in $(seq 1 90); do curl -fsS http://127.0.0.1:8787/ >/dev/null 2>&1 && break; sleep 2; done
+          curl -fsS http://127.0.0.1:8787/ | grep -q "<title>Notes</title>" || { cat wrangler.log; echo "::error::worker did not start"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/other); test "$code" = 404
+          echo "worker up; decoy page and 404 ok"
+      - name: Xray client through the worker
+        run: |
+          curl -fsSL -o x.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-64.zip" && unzip -q x.zip -d xr
+          for ed in 0 2048; do
+            path="$WPATH"; [ "$ed" = 0 ] || path="$WPATH?ed=$ed"
+            cat > c.json <<EOF
+          {"log":{"loglevel":"warning"},
+           "inbounds":[{"listen":"127.0.0.1","port":10808,"protocol":"socks","settings":{"udp":true}}],
+           "outbounds":[{"protocol":"vless","settings":{"vnext":[{"address":"127.0.0.1","port":8787,"users":[{"id":"$UUID","encryption":"none"}]}]},
+             "streamSettings":{"network":"ws","wsSettings":{"path":"$path","host":"v2f-test.example.workers.dev"}}}]}
+          EOF
+            ./xr/xray run -c c.json > xray.log 2>&1 & XP=$!; sleep 2
+            curl -fsS -m 20 --socks5-hostname 127.0.0.1:10808 http://example.com/ | grep -qi "example domain" || { cat xray.log wrangler.log; echo "::error::HTTP through the worker failed (ed=$ed)"; exit 1; }
+            curl -fsS -m 20 --socks5-hostname 127.0.0.1:10808 https://www.google.com/generate_204 -o /dev/null -w '%{http_code}\n' | grep -q 204 || { cat xray.log wrangler.log; echo "::error::HTTPS through the worker failed (ed=$ed)"; exit 1; }
+            echo "ok: TCP and TLS through the worker (ed=$ed)"
+            kill $XP; sleep 1
+          done
+      - name: Wrong id is refused
+        run: |
+          cat > bad.json <<EOF
+          {"inbounds":[{"listen":"127.0.0.1","port":10809,"protocol":"socks"}],
+           "outbounds":[{"protocol":"vless","settings":{"vnext":[{"address":"127.0.0.1","port":8787,"users":[{"id":"00000000-0000-4000-8000-000000000000","encryption":"none"}]}]},
+             "streamSettings":{"network":"ws","wsSettings":{"path":"$WPATH"}}}]}
+          EOF
+          ./xr/xray run -c bad.json > bad.log 2>&1 & XP=$!; sleep 2
+          if curl -fsS -m 10 --socks5-hostname 127.0.0.1:10809 http://example.com/ >/dev/null 2>&1; then echo "::error::a wrong id got through"; exit 1; fi
+          kill $XP; echo "ok: a wrong id gets nothing"
+      - name: DNS over UDP through the worker
+        run: |
+          cat > d.json <<EOF
+          {"inbounds":[{"listen":"127.0.0.1","port":5353,"protocol":"dokodemo-door","settings":{"address":"8.8.8.8","port":53,"network":"udp"}}],
+           "outbounds":[{"protocol":"vless","settings":{"vnext":[{"address":"127.0.0.1","port":8787,"users":[{"id":"$UUID","encryption":"none"}]}]},
+             "streamSettings":{"network":"ws","wsSettings":{"path":"$WPATH"}}}]}
+          EOF
+          ./xr/xray run -c d.json > d.log 2>&1 & XP=$!; sleep 2
+          python3 - <<'PY'
+          import socket, struct, random
+          q = struct.pack('>HHHHHH', random.randint(0, 65535), 0x0100, 1, 0, 0, 0) + b''.join(bytes([len(p)]) + p.encode() for p in 'example.com'.split('.')) + b'\0' + struct.pack('>HH', 1, 1)
+          s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(15); s.sendto(q, ('127.0.0.1', 5353))
+          a, _ = s.recvfrom(2048); n = struct.unpack('>H', a[6:8])[0]
+          assert n >= 1, 'no answers'; print('ok: DNS over UDP answered with', n, 'record(s)')
+          PY
+          kill $XP
