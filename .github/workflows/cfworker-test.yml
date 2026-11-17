@@ -92,3 +92,17 @@ jobs:
           assert n >= 1, 'no answers'; print('ok: DNS over UDP answered with', n, 'record(s)')
           PY
           kill $XP
+      - name: ECH settings the app writes are accepted by Xray (and who publishes ECH keys)
+        run: |
+          for q in "https://1.1.1.1/dns-query" "udp://8.8.8.8:53"; do
+            cat > e.json <<EOF2
+          {"inbounds":[{"listen":"127.0.0.1","port":10810,"protocol":"socks"}],
+           "outbounds":[{"protocol":"vless","settings":{"vnext":[{"address":"104.16.1.1","port":443,"users":[{"id":"$UUID","encryption":"none"}]}]},
+             "streamSettings":{"network":"ws","security":"tls","tlsSettings":{"serverName":"crypto.cloudflare.com","echConfigList":"$q"},"wsSettings":{"path":"/"}}}]}
+          EOF2
+            ./xr/xray run -test -c e.json > et.log 2>&1 && echo "ok: Xray accepts echConfigList $q" || { cat et.log; echo "::error::Xray refuses echConfigList $q"; exit 1; }
+          done
+          for h in crypto.cloudflare.com cloudflare-ech.com workers.dev v2f-test.example.workers.dev; do
+            a=$(curl -s -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$h&type=HTTPS" | grep -o 'ech=[^ "]*' | head -c 40)
+            echo "$h: ${a:-no ECH key published}"
+          done
