@@ -3,11 +3,12 @@ name: Upload to YouTube
 # Uploads a video from this repo (media/...) to the V2Fall YouTube channel with the YouTube Data API.
 # Any session or person with access to this repo can run it — no Metricool needed.
 # One-time setup (by the channel owner, in GitHub → Settings → Secrets and variables → Actions):
-#   YT_CLIENT_ID, YT_CLIENT_SECRET  — an OAuth client of type "Desktop app" in Google Cloud
-#                                     (APIs & Services → enable "YouTube Data API v3" → Credentials)
-#   YT_REFRESH_TOKEN                — a refresh token for that client with the scope
-#                                     https://www.googleapis.com/auth/youtube.upload, made once while
-#                                     signed in as the channel owner (see DEVELOPMENT.md)
+#   YT_CLIENT_ID, YT_CLIENT_SECRET  — an OAuth client of type "Web application" in Google Cloud with the
+#                                     redirect URI https://developers.google.com/oauthplayground
+#                                     (and "YouTube Data API v3" enabled; the app "In production")
+#   YT_REFRESH_TOKEN                — made once in the OAuth Playground with that client, scope
+#                                     https://www.googleapis.com/auth/youtube.upload, signed in as the channel
+# Until Google audits the project, YouTube keeps videos uploaded through the API private.
 # The secrets never appear in the log.
 on:
   workflow_dispatch:
