@@ -28,6 +28,9 @@ on:
       privacy:
         description: "public, unlisted or private"
         default: "public"
+      publish_at:
+        description: "schedule: UTC time like 2026-11-18T16:30:00Z (the video stays private until then); empty = now"
+        default: ""
 
 jobs:
   upload:
@@ -46,6 +49,7 @@ jobs:
           DESC: ${{ inputs.description }}
           TAGS: ${{ inputs.tags }}
           PRIVACY: ${{ inputs.privacy }}
+          PUBLISH_AT: ${{ inputs.publish_at }}
         run: |
           python3 - <<'PY'
           import json, os, sys, urllib.parse, urllib.request
@@ -60,6 +64,12 @@ jobs:
                               'tags': [t.strip() for t in os.environ['TAGS'].split(',') if t.strip()], 'categoryId': '28'},
                   'status': {'privacyStatus': os.environ['PRIVACY'] if os.environ['PRIVACY'] in ('public', 'unlisted', 'private') else 'public',
                              'selfDeclaredMadeForKids': False}}
+          import re
+          pa = os.environ.get('PUBLISH_AT', '').strip()
+          if pa:
+              if not re.match(r'^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$', pa): print('::error::publish_at must look like 2026-11-18T16:30:00Z'); sys.exit(1)
+              meta['status']['privacyStatus'] = 'private'; meta['status']['publishAt'] = pa
+              print('scheduled for', pa)
           size = os.path.getsize(f)
           r = urllib.request.urlopen(urllib.request.Request('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
               data=json.dumps(meta).encode(), method='POST', headers={'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json; charset=UTF-8',
