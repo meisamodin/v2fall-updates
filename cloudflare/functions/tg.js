@@ -30,7 +30,7 @@ const MENU = [
   [['🌍', 'Ashflake', 'ashflake', 'success']],
   [['🧰', 'ابزارهای تازه', 'tools', 'primary'], ['🎨', 'ظاهر برنامه', 'look', 'primary']],
   [['📚', 'آموزش‌ها', 'guide', 'primary'], ['🌐', 'حالت فقط DNS', 'dns', 'primary']],
-  [['🐞', 'پشتیبانی', 'support', 'danger']],
+  [['⭐', 'حمایت از V2Fall', 'donate', 'primary'], ['🐞', 'پشتیبانی', 'support', 'danger']],
   [['🌍', 'سایت V2Fall', 'url:' + SITE], ['📢', 'کانال', 'url:https://t.me/v2fall']],
   [['🌐', 'English', 'lang']],
 ];
@@ -45,6 +45,8 @@ const GUIDE_KB = [
 ];
 
 const T = {
+  donate: '⭐ حمایت از V2Fall\n\nV2Fall رایگان است و رایگان می‌ماند. اگر دوست داری کمک کنی سرورها و توسعه ادامه پیدا کند، با «ستارهٔ تلگرام» حمایت کن — بدون کارت بانکی، مستقیم از خود تلگرام.\n\nمقدار را انتخاب کن 👇',
+  thanks: '💙 ممنون از حمایتت! این کمک مستقیم صرف سرورها و توسعهٔ V2Fall می‌شود.',
   start: '👋 سلام! من ربات V2Fall هستم.\n\n🛡 V2Fall فیلترشکن رایگان و سریع برای اندروید، ویندوز، مک و لینوکس است.\n\n🚀 «باز کردن V2Fall در تلگرام» همه‌چیز را یک‌جا دارد: دانلود، آموزش‌ها و پشتیبانی.\n🔒 ربات هیچ لینک یا کانفیگی از شما نمی‌گیرد.',
   guide: '📚 آموزش‌های V2Fall\n\nیکی را انتخاب کن 👇',
   dns: '🌐 حالت «فقط DNS» (نسخهٔ 18.9.17 به بعد)\n\n✅ بدون سرور و بدون مصرف حجم، DNS کل دستگاه عوض می‌شود: شکن، الکترو، ۴۰۳، بگذر، رادار گیم یا DNS دلخواه خودت.\n\n🔒 DoH و DoT هم پشتیبانی می‌شود، پس آدرس اختصاصی DNS پولی را هم می‌توانی بدهی.\n\n💡 برای سایت‌ها و بازی‌هایی خوب است که ایران را تحریم کرده‌اند؛ برای فیلترینگ، کانفیگ لازم است.',
@@ -58,9 +60,11 @@ const T = {
 // Persian get English, and "🌐 English / فارسی" switches it
 const EN = {
   'باز کردن V2Fall در تلگرام': 'Open V2Fall in Telegram', 'دریافت آخرین نسخه': 'Get the latest version', 'تست کانفیگ': 'Test a config', 'آموزش‌ها': 'Guides',
-  'حالت فقط DNS': 'DNS-only mode',  'پشتیبانی': 'Support', 'سایت V2Fall': 'V2Fall website', 'کانال': 'Channel', 'منوی اصلی': 'Main menu', 'English': 'فارسی',
+  'حالت فقط DNS': 'DNS-only mode', 'حمایت از V2Fall': 'Support V2Fall',  'پشتیبانی': 'Support', 'سایت V2Fall': 'V2Fall website', 'کانال': 'Channel', 'منوی اصلی': 'Main menu', 'English': 'فارسی',
   'ابزارهای تازه': 'New tools', 'ظاهر برنامه': 'Look', 'اندروید ۶ به بالا': 'Android 6+', 'شروع سریع': 'Quick start', 'وارپ رایگان': 'Free WARP', 'وصل ماندن در قطعی': 'Stay online in shutdowns', 'IP تمیز': 'Clean IP', 'پشتیبان با کد': 'Backup code',
   'سهمیهٔ مصرف': 'Data quota', 'کنسول بازی': 'Game consoles', 'ویدیوها': 'Videos', 'فرم پشتیبانی': 'Support form', 'دانلود از سایت': 'Download from the website', 'تست یکی دیگر': 'Test another one', 'ویندوز': 'Windows', 'مک M': 'Mac (M chip)', 'مک اینتل': 'Mac (Intel)', 'لینوکس deb': 'Linux deb', 'لینوکس tar.gz': 'Linux tar.gz',
+  donate: '⭐ Support V2Fall\n\nV2Fall is free and stays free. If you would like to help keep the servers and development going, support it with Telegram Stars — no bank card, straight from Telegram.\n\nPick an amount 👇',
+  thanks: '💙 Thank you for your support! It goes straight into V2Fall\'s servers and development.',
   start: '👋 Hi! I am the V2Fall bot.\n\n🛡 V2Fall is a free, fast VPN app for Android, Windows, macOS and Linux.\n\n🚀 "Open V2Fall in Telegram" has everything in one place: downloads, guides and support.\n🔒 The bot never asks for or keeps your links or configs.',
   guide: '📚 V2Fall guides\n\nPick one 👇',
   dns: '🌐 DNS-only mode (version 18.9.17 and later)\n\n✅ No server and no data use: switches the DNS of the whole device — Shecan, Electro, 403, Begzar, Radar Game or your own.\n\n🔒 DoH and DoT are supported too, so paid DNS addresses work.\n\n💡 Good for sites and games that block Iran; for censorship you need a config.',
@@ -101,6 +105,11 @@ function kb(rows, map) {
 async function tg(env, method, body) {
   const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   try { return await r.json(); } catch (e) { return {}; }
+}
+async function invoice(env, chat, n, lang) {
+  const en = isEn(lang);
+  return tg(env, 'sendInvoice', { chat_id: chat, title: en ? 'Support V2Fall' : 'حمایت از V2Fall', description: en ? 'Thank you for helping keep V2Fall free.' : 'ممنون که کمک می‌کنی V2Fall رایگان بماند.',
+    payload: 'donate-' + n, currency: 'XTR', prices: [{ label: en ? 'Support' : 'حمایت', amount: n }] });
 }
 async function say(env, chat, text, rows, lang) {
   const map = await emo(env.CODES);
@@ -166,7 +175,17 @@ export async function onRequestPost(ctx) {
       else if (c.data === 'start') await menu(chat);
       else if (c.data === 'lang') { const nl = isEn(lang) ? 'fa' : 'en'; await kv.put('tgl:' + from.id, nl); { const o = await kv.getWithMetadata('tgu:' + from.id); await kv.put('tgu:' + from.id, nl, { metadata: { l: nl, t: (o && o.metadata && o.metadata.t) || Date.now() } }); } await say(env, chat, isEn(nl) ? 'start' : T.start, MENU, nl); }
       else if (c.data === 'guide') await sayT(chat, 'guide', GUIDE_KB);
+      else if (c.data === 'donate') await sayT(chat, 'donate', [[['⭐', '50', 'don:50'], ['⭐', '100', 'don:100']], [['⭐', '250', 'don:250'], ['⭐', '500', 'don:500']], ...BACK]);
+      else if (/^don:\d+$/.test(c.data)) { const n = Math.min(Math.max(+c.data.slice(4), 1), 10000); await invoice(env, chat, n, lang); }
       else if (T[c.data]) await sayT(chat, c.data, c.data === 'support' ? [[['🚀', 'فرم پشتیبانی', 'app:#support', 'danger']], ...BACK] : BACK);
+      return new Response('ok');
+    }
+    // Telegram Stars: confirm the checkout, then thank the user and tell the admin
+    if (u.pre_checkout_query) { await tg(env, 'answerPreCheckoutQuery', { pre_checkout_query_id: u.pre_checkout_query.id, ok: true }); return new Response('ok'); }
+    if (u.message && u.message.successful_payment) {
+      const p = u.message.successful_payment, w = u.message.from || {};
+      await sayT(u.message.chat.id, 'thanks', BACK);
+      if (admin) await say(env, admin, `⭐ حمایت جدید: ${p.total_amount} ستاره از ${[w.first_name, w.username ? '@' + w.username : ''].filter(Boolean).join(' ') || 'کاربر'}`);
       return new Response('ok');
     }
     const m = u.message; if (!m || !m.chat || m.chat.type !== 'private') return new Response('ok');
@@ -226,6 +245,7 @@ export async function onRequestPost(ctx) {
       if (/^\/emoji\b/.test(text)) { await say(env, chat, '✨ دو راه:\n\n۱) لینک یک پک ایموجی پرمیوم را بفرست (مثل t.me/addemoji/…) — همهٔ ایموجی‌هایش یک‌جا ذخیره می‌شود.\n\n۲) یا یک پیام با ایموجی‌های پرمیوم بفرست، هر کدام جای یکی از این‌ها:\n👋 🛡 🚀 📥 🩺 📚 🌐 🐞 🌍 📢 🔎 ⚠️ ✅ ❌ 💡 🔒 ⚡ ✍️ 📱 💻 ✨ 🏠 ☁️ 🛟 🧹 🔑 📊 🎮 🎬 🆔 🔗 ✉️ ℹ️'); return new Response('ok'); }
     }
     const cmd = (text.match(/^\/([a-z]+)/i) || [])[1];
+    if (cmd === 'donate' || /^\/start\s+donate\b/.test(text)) { await sayT(chat, 'donate', [[['⭐', '50', 'don:50'], ['⭐', '100', 'don:100']], [['⭐', '250', 'don:250'], ['⭐', '500', 'don:500']], ...BACK]); return new Response('ok'); }
     if (cmd === 'start' || cmd === 'help') { await menu(chat); return new Response('ok'); }
     if (cmd === 'download') { await download(env, chat, lang); return new Response('ok'); }
     if (cmd === 'guide') { await sayT(chat, 'guide', GUIDE_KB); return new Response('ok'); }
