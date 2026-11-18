@@ -149,7 +149,7 @@ jobs:
           path: |
             out
             srvtools
-          key: helpers-r1-${{ env.DNSTT_VERSION }}-${{ env.MIERU_VERSION }}-${{ env.WARP_VERSION }}-${{ env.USQUE_VERSION }}-${{ env.MDV_SHA }}-${{ hashFiles('tools/awg/**') }}
+          key: helpers-r2-${{ hashFiles('tools/helpers/**') }}-${{ env.DNSTT_VERSION }}-${{ env.MIERU_VERSION }}-${{ env.WARP_VERSION }}-${{ env.USQUE_VERSION }}-${{ env.MDV_SHA }}-${{ hashFiles('tools/awg/**') }}
       - name: Build dnstt-client for every platform
         if: steps.hc.outputs.cache-hit != 'true'
         run: |
@@ -170,9 +170,9 @@ jobs:
           cp ../server/*.sh ../srvtools/ 2>/dev/null || true
           cd "$GITHUB_WORKSPACE"
           # static linux binaries run fine on Android; GOOS=android would need the NDK
-          hb() { (cd "$1" && CGO_ENABLED=0 GOOS=$2 GOARCH=$3 GOARM=7 go build -trimpath -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/out/$4" "$5"); }
-          helper() { # dir pkg name-android name-desktop
-            hb "$1" linux arm64 android-arm64/$3 "$2"; hb "$1" linux arm android-arm/$3 "$2"
+          hb() { (cd "$1" && CGO_ENABLED=0 GOOS=$2 GOARCH=$3 GOARM=7 go build -trimpath ${6:-} -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/out/$4" "$5"); }
+          helper() { # dir pkg name-android name-desktop; ATAGS = build tags for the Android binaries only
+            hb "$1" linux arm64 android-arm64/$3 "$2" "${ATAGS:-}"; hb "$1" linux arm android-arm/$3 "$2" "${ATAGS:-}"
             hb "$1" windows amd64 windows/$4.exe "$2"; hb "$1" darwin arm64 darwin-arm64/$4 "$2"
             hb "$1" darwin amd64 darwin-amd64/$4 "$2"; hb "$1" linux amd64 linux-amd64/$4 "$2"
           }
@@ -182,11 +182,15 @@ jobs:
           # warp-plus needs Go 1.22: its psiphon-tls panics at start-up ("tls.ConnectionState doesn't match")
           # when built with Go 1.23 or newer, which took down WARP and Psiphon in every mode
           export GOTOOLCHAIN=go1.22.10
-          helper wsrc ./cmd/warp-plus libwarp.so warp-plus
+          # Android: no sticky sockets / netlink ("Unable to update bind: permission denied") and a DNS resolver
+          # that works without /etc/resolv.conf — tools/helpers/android-patch.sh, behind the v2fandroid tag
+          bash "$GITHUB_WORKSPACE/tools/helpers/android-patch.sh" "$GITHUB_WORKSPACE/wsrc" cmd/warp-plus warp
+          ATAGS=-tags=v2fandroid helper wsrc ./cmd/warp-plus libwarp.so warp-plus
           (cd wsrc && go version)
           export GOTOOLCHAIN=local
           curl -fsSL -o u.tgz "https://codeload.github.com/Diniboy1123/usque/tar.gz/refs/tags/v${USQUE_VERSION}" && tar xzf u.tgz && mv "usque-${USQUE_VERSION}" usrc
-          GOTOOLCHAIN=auto helper usrc . libusque.so usque
+          bash "$GITHUB_WORKSPACE/tools/helpers/android-patch.sh" "$GITHUB_WORKSPACE/usrc" .
+          GOTOOLCHAIN=auto ATAGS=-tags=v2fandroid helper usrc . libusque.so usque
           (cd tools/awg && go mod tidy)
           helper tools/awg . libawg.so awg
           # MasterDnsVPN: fast DNS tunnel client for every platform + its server for v2fall-mdv.sh
