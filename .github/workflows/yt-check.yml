@@ -1,35 +1,20 @@
 name: YouTube status
-# Shows whether the channel's API uploads are public or still locked to private (an unaudited API project's
-# uploads are locked private until Google approves the audit). Prints only titles, ids and statuses.
+# Is an uploaded video public? An unaudited API project's uploads stay locked to private, which shows as
+# "not public" here. Uses YouTube's public oEmbed page (no sign-in), so it sees exactly what visitors see.
 on:
   workflow_dispatch:
+    inputs:
+      ids: { description: 'video ids, comma-separated', required: true, default: 'M9LSpDEgOZM' }
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - name: Check
-        env:
-          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
-          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
-          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        env: { IDS: "${{ inputs.ids }}" }
         run: |
-          python3 - <<'PY'
-          import json, os, urllib.parse, urllib.request
-          tok = json.load(urllib.request.urlopen(urllib.request.Request('https://oauth2.googleapis.com/token', data=urllib.parse.urlencode({
-              'client_id': os.environ['YT_CLIENT_ID'], 'client_secret': os.environ['YT_CLIENT_SECRET'],
-              'refresh_token': os.environ['YT_REFRESH_TOKEN'], 'grant_type': 'refresh_token'}).encode())))['access_token']
-          H = {'Authorization': 'Bearer ' + tok}
-          def get(u): return json.load(urllib.request.urlopen(urllib.request.Request(u, headers=H)))
-          ch = get('https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails,status&mine=true')['items'][0]
-          print('channel:', ch['snippet']['title'], '| longUploads:', ch.get('status', {}).get('longUploadsStatus'))
-          up = ch['contentDetails']['relatedPlaylists']['uploads']
-          items = get(f'https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=15&playlistId={up}')['items']
-          ids = ','.join(i['contentDetails']['videoId'] for i in items)
-          out = []
-          for v in get(f'https://www.googleapis.com/youtube/v3/videos?part=snippet,status&id={ids}')['items']:
-              st = v['status']
-              line = f"{v['snippet']['publishedAt'][:10]} | {st['privacyStatus']:8} | {st.get('uploadStatus')} | {st.get('rejectionReason') or st.get('failureReason') or ''} | {v['id']} | {v['snippet']['title'][:60]}"
-              print(line); out.append(line)
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as s: s.write('```\n' + '\n'.join(out) + '\n```\n')
-          PY
+          for v in $(echo "$IDS" | tr ',' ' '); do
+            echo "$v" | grep -Eq '^[A-Za-z0-9_-]{11}$' || { echo "bad id $v"; continue; }
+            c=$(curl -s -o /tmp/o.json -w '%{http_code}' "https://www.youtube.com/oembed?format=json&url=https://www.youtube.com/watch?v=$v")
+            if [ "$c" = 200 ]; then echo "$v PUBLIC: $(jq -r .title /tmp/o.json)"; else echo "$v NOT PUBLIC (http $c)"; fi | tee -a "$GITHUB_STEP_SUMMARY"
+          done
