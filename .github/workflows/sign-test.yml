@@ -1,0 +1,59 @@
+name: Sign test APK (no publish)
+# Signs the APKs of the newest "build-N" draft with the release key, so the owner can install a build over the
+# released app before publishing it. The signed files go back into the same DRAFT release (visible to the owner
+# only). Nothing is published: latest.json, download/, the site and the bot are not touched.
+on:
+  workflow_dispatch:
+    inputs:
+      version: { description: 'Version of the build to sign, e.g. 18.9.87', required: true }
+
+permissions:
+  contents: write
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      V: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+      - name: Tools
+        run: python3 -c "import cryptography" 2>/dev/null || pip install --quiet cryptography
+      - name: Sign
+        env:
+          SIGN_KEY: ${{ secrets.V2F_SIGN_KEY }}
+          SIGN_CERT: ${{ secrets.V2F_SIGN_CERT }}
+          SIGN_P12: ${{ secrets.V2F_SIGN_P12 }}
+          SIGN_P12_PASS: ${{ secrets.V2F_SIGN_P12_PASS }}
+          K: ${{ runner.temp }}/k
+        run: |
+          set -e
+          echo "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::bad version"; exit 1; }
+          umask 077; mkdir -p "$K"
+          if [ -n "$SIGN_KEY" ] && [ -n "$SIGN_CERT" ]; then
+            printf '%s\n' "$SIGN_KEY" > "$K/key.pem"; printf '%s\n' "$SIGN_CERT" > "$K/cert.pem"
+          else
+            printf '%s' "$SIGN_P12" | base64 -d > "$K/r.p12"
+            openssl pkcs12 -in "$K/r.p12" -passin env:SIGN_P12_PASS -nocerts -nodes -out "$K/key.pem" 2>/dev/null || openssl pkcs12 -legacy -in "$K/r.p12" -passin env:SIGN_P12_PASS -nocerts -nodes -out "$K/key.pem"
+            openssl pkcs12 -in "$K/r.p12" -passin env:SIGN_P12_PASS -clcerts -nokeys -out "$K/cert.pem" 2>/dev/null || openssl pkcs12 -legacy -in "$K/r.p12" -passin env:SIGN_P12_PASS -clcerts -nokeys -out "$K/cert.pem"
+          fi
+          fp=$(openssl x509 -in "$K/cert.pem" -noout -fingerprint -sha256 | cut -d= -f2)
+          [ "$fp" = "C8:55:8E:95:4B:48:24:29:BB:F7:0F:87:3B:5C:BB:B8:F6:B0:EA:71:6D:59:FD:7B:08:FE:53:56:EE:ED:13:A7" ] || { echo "::error::not the V2Fall release certificate"; exit 1; }
+          TAG=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=20" --jq '[.[] | select(.draft and (.tag_name|startswith("build-")))][0].tag_name')
+          echo "draft: $TAG"
+          mkdir -p w && cd w
+          for f in "V2Fall-$V-arm64-unsigned.apk" "V2Fall-$V-unsigned.apk"; do
+            gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p "$f"
+            out="${f/-unsigned/-TEST-signed}"
+            python3 - "$f" al.apk <<'EOF'
+          import sys; sys.path.insert(0, '../tools'); import apksign; apksign.zipalign(sys.argv[1], sys.argv[2])
+          EOF
+            python3 ../tools/apksign.py sign al.apk "$out" "$K/key.pem" "$K/cert.pem"
+            python3 ../tools/apksign.py verify "$out" | tail -2
+            gh release upload "$TAG" -R "$GITHUB_REPOSITORY" "$out" --clobber
+            rm -f al.apk "$f"
+          done
+          rm -rf "$K"
