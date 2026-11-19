@@ -85,8 +85,8 @@ for k in ('android', 'android_arm64'):
     print('delta', k, size, 'of', full, ok)
     if not ok or size > min(15_000_000, full * 0.6): os.remove(dp); continue
     m[k]['_delta'] = {'from': prev[k]['sha256'], 'fromv': prev['version'], 'file': dn, 'sha256': hashlib.sha256(open(dp, 'rb').read()).hexdigest(), 'size': size}
+sh('git', 'add', '-A', 'experimental/delta')  # also when the old ones were only removed
 if os.listdir(dd):
-    sh('git', 'add', '-A', 'experimental/delta')
     sh('git', '-c', 'user.name=Claude', '-c', 'user.email=noreply@anthropic.com', 'commit', '-qm', f'V2Fall {V} experimental: small updates\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>')
     sh('git', 'pull', '-q', '--rebase'); sh('git', 'push', '-q')
     dsha = sh('git', 'rev-parse', 'HEAD', out=True).strip()
