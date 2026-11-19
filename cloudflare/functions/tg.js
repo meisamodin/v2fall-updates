@@ -6,6 +6,8 @@
 // - admin only: forward the channel post with the APK (what /download sends); /r R-XXXXXX shows a report;
 //   send any message with premium emoji → the bot uses them instead of the plain ones (texts and buttons)
 
+import { botText } from '../lib/radar.js';
+
 const SITE = 'https://v2fall.com', APP = 'https://dl.v2fall.com/app/';
 // which build a file is, from its name (as the release names them)
 function kindOf(fn) {
@@ -27,6 +29,7 @@ async function secretOf(token) {
 const MENU = [
   [['🚀', 'باز کردن V2Fall در تلگرام', 'app:', 'success']],
   [['📥', 'دریافت آخرین نسخه', 'download', 'primary']],
+  [['📡', 'رادار فیلترینگ', 'radar', 'success']],
   [['🌍', 'Ashflake', 'ashflake', 'success']],
   [['🧰', 'ابزارهای تازه', 'tools', 'primary'], ['🎨', 'ظاهر برنامه', 'look', 'primary']],
   [['📚', 'آموزش‌ها', 'guide', 'primary'], ['🌐', 'حالت فقط DNS', 'dns', 'primary']],
@@ -63,7 +66,7 @@ const EN = {
   'باز کردن V2Fall در تلگرام': 'Open V2Fall in Telegram', 'دریافت آخرین نسخه': 'Get the latest version', 'تست کانفیگ': 'Test a config', 'آموزش‌ها': 'Guides',
   'حالت فقط DNS': 'DNS-only mode', 'حمایت از V2Fall': 'Support V2Fall',  'پشتیبانی': 'Support', 'سایت V2Fall': 'V2Fall website', 'کانال': 'Channel', 'منوی اصلی': 'Main menu', 'English': 'فارسی',
   'ابزارهای تازه': 'New tools', 'ظاهر برنامه': 'Look', 'اندروید ۶ به بالا': 'Android 6+', 'شروع سریع': 'Quick start', 'وارپ رایگان': 'Free WARP', 'وصل ماندن در قطعی': 'Stay online in shutdowns', 'IP تمیز': 'Clean IP', 'پشتیبان با کد': 'Backup code',
-  'سهمیهٔ مصرف': 'Data quota', 'کنسول بازی': 'Game consoles', 'ویدیوها': 'Videos', 'فرم پشتیبانی': 'Support form', 'مقدار دلخواه': 'Custom amount', 'دانلود از سایت': 'Download from the website', 'تست یکی دیگر': 'Test another one', 'ویندوز': 'Windows', 'مک M': 'Mac (M chip)', 'مک اینتل': 'Mac (Intel)', 'لینوکس deb': 'Linux deb', 'لینوکس tar.gz': 'Linux tar.gz',
+  'سهمیهٔ مصرف': 'Data quota', 'کنسول بازی': 'Game consoles', 'ویدیوها': 'Videos', 'فرم پشتیبانی': 'Support form', 'مقدار دلخواه': 'Custom amount', 'رادار فیلترینگ': 'Filter Radar', 'رادار کامل در سایت': 'Full radar on the website', 'تازه کردن': 'Refresh', 'دانلود از سایت': 'Download from the website', 'تست یکی دیگر': 'Test another one', 'ویندوز': 'Windows', 'مک M': 'Mac (M chip)', 'مک اینتل': 'Mac (Intel)', 'لینوکس deb': 'Linux deb', 'لینوکس tar.gz': 'Linux tar.gz',
   donate: '⭐ Support V2Fall\n\nV2Fall is free and stays free. If you would like to help keep the servers and development going, support it with Telegram Stars — no bank card, straight from Telegram.\n\nPick an amount 👇',
   thanks: '💙 Thank you for your support! It goes straight into V2Fall\'s servers and development.',
   start: '👋 Hi! I am the V2Fall bot.\n\n🛡 V2Fall is a free, fast VPN app for Android, Windows, macOS and Linux.\n\n🚀 "Open V2Fall in Telegram" has everything in one place: downloads, guides and support.\n🔒 The bot never asks for or keeps your links or configs.',
@@ -141,6 +144,12 @@ async function download(env, chat, lang) {
      [['🚀', 'باز کردن V2Fall در تلگرام', 'app:#download', 'success']], ...BACK], lang);
 }
 
+async function radar(env, chat, lang) {
+  const en = isEn(lang);
+  const text = env.STATS ? await botText(env.STATS, en) : (en ? '📡 Filter Radar is not available right now.' : '📡 رادار فیلترینگ الان در دسترس نیست.');
+  await say(env, chat, text, [[['📡', 'رادار کامل در سایت', 'url:' + SITE + (en ? '/en/radar' : '/radar'), 'primary']], [['🔄', 'تازه کردن', 'radar']], ...BACK], lang);
+}
+
 const FLOOD = new Map();
 export async function onRequestPost(ctx) {
   const { request, env } = ctx;
@@ -174,6 +183,7 @@ export async function onRequestPost(ctx) {
       if (c.data === 'download') await download(env, chat, lang);
       else if (c.data.startsWith('f:')) { const f = await kv.get('tg:f:' + c.data.slice(2)); if (f) { const j = JSON.parse(f); await tg(env, 'copyMessage', { chat_id: chat, from_chat_id: j.chat, message_id: j.id }); } }
       else if (c.data === 'start') await menu(chat);
+      else if (c.data === 'radar') await radar(env, chat, lang);
       else if (c.data === 'lang') { const nl = isEn(lang) ? 'fa' : 'en'; await kv.put('tgl:' + from.id, nl); { const o = await kv.getWithMetadata('tgu:' + from.id); await kv.put('tgu:' + from.id, nl, { metadata: { l: nl, t: (o && o.metadata && o.metadata.t) || Date.now() } }); } await say(env, chat, isEn(nl) ? 'start' : T.start, MENU, nl); }
       else if (c.data === 'guide') await sayT(chat, 'guide', GUIDE_KB);
       else if (c.data === 'donate') await sayT(chat, 'donate', [...DONATE_KB, ...BACK]);
@@ -255,6 +265,7 @@ export async function onRequestPost(ctx) {
     if (cmd === 'donate' || /^\/start\s+donate\b/.test(text)) { await sayT(chat, 'donate', [...DONATE_KB, ...BACK]); return new Response('ok'); }
     if (cmd === 'start' || cmd === 'help') { await menu(chat); return new Response('ok'); }
     if (cmd === 'download') { await download(env, chat, lang); return new Response('ok'); }
+    if (cmd === 'radar') { await radar(env, chat, lang); return new Response('ok'); }
     if (cmd === 'guide') { await sayT(chat, 'guide', GUIDE_KB); return new Response('ok'); }
     if (cmd && T[cmd]) { await sayT(chat, cmd, BACK); return new Response('ok'); }
     // config links are not taken, stored or forwarded — for privacy; the app tests them on the user's own internet

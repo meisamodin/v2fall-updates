@@ -5,6 +5,8 @@
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
 // (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
 
+import { alertCheck } from '../lib/radar.js';
+
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
 function limited(key, n, sec) {
@@ -35,7 +37,7 @@ function rows(d) {
   }
   return out;
 }
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet({ request, env, waitUntil }) {
   const db = env.STATS; if (!db) return J({ error: 'off' }, 503);
   const u = new URL(request.url), ip = request.headers.get('CF-Connecting-IP') || 'x';
   await init(db);
@@ -47,6 +49,8 @@ export async function onRequestGet({ request, env }) {
     const h = Math.floor(Date.now() / 3600000);
     await db.batch(list.map(x => db.prepare('INSERT INTO radar (h, a, k, n, ok, ms) VALUES (?, ?, ?, 1, ?, ?) ON CONFLICT(h, a, k) DO UPDATE SET n = n + 1, ok = ok + excluded.ok, ms = ms + excluded.ms').bind(h, x.a, x.k, x.ok, x.m)));
     if (Math.random() < 0.02) await db.prepare('DELETE FROM radar WHERE h < ?').bind(h - 24 * 15).run(); // two weeks for the history page
+    // a sudden drop on one operator → a post in the channel (checked at most every 20 minutes, see lib/radar.js)
+    if (waitUntil) waitUntil(alertCheck(env).catch(() => {}));
     return J({ ok: 1, n: list.length });
   }
   // public page (v2fall.com/radar): every operator with enough reports in the last 24 h, best kinds first
