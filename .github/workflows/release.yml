@@ -24,9 +24,10 @@ jobs:
           EC=$(git commit-tree "$(git mktree </dev/null)" -m "V2Fall $V")
           git push -f origin "$EC:refs/tags/v$V"
           # files over GitHub's 100 MB git limit are only committed as parts: put them back together
-          for p0 in download/parts/*.p00; do
+          # download/ also keeps the previous version's files for a while (publish_all.py): take only this version's
+          for p0 in download/parts/*"$V"*.p00; do
             [ -e "$p0" ] || continue
             n=$(basename "$p0" .p00); [ -f "download/$n" ] || cat "download/parts/$n".p* > "download/$n"
           done
-          FILES=$(find download -maxdepth 1 -type f -name '*.*' | sort)
+          FILES=$(find download -maxdepth 1 -type f \( -name "*[-_]${V}[-_.]*" -o -name '*Chrome*' -o -name '*Firefox*' \) | sort)
           gh release create "v$V" --title "V2Fall $V" --notes "$NOTES" --latest $FILES

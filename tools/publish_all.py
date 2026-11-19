@@ -2,7 +2,7 @@
 """Publish a stable V2Fall build: sign APKs from the newest draft build-N release, replace download/,
 split into parts, commit, then write latest.json + experimental/latest.json (copy, stable:true).
 usage: publish_all.py VERSION NOTES_FA NOTES_EN"""
-import sys, os, json, subprocess, hashlib, glob, shutil, datetime
+import sys, os, re, json, subprocess, hashlib, glob, shutil, datetime
 # The signer lives here (tools/apksign.py); only the key is outside the repo. Always sign with THIS tool: it
 # re-compresses deterministically, and switching signers between releases makes every file "changed", so the
 # next small update becomes a full download (that happened with 18.9.48).
@@ -89,10 +89,15 @@ for k in ('experimental/latest.json',):
         ov = json.load(open(f'{U}/{k}')).get('vcode', 0); assert vcode > ov, (vcode, ov)
     except FileNotFoundError: pass
 
-# replace download/ (keep browser extensions); universal APK only as parts
+# replace download/ (keep browser extensions); universal APK only as parts.
+# The previous version's files stay until the next release: an update that started downloading from main or
+# dl.v2fall.com while this one is being published must not lose its files halfway (release.yml only takes $V's)
+_prev = re.compile(r'[-_]' + re.escape(str(old.get('version', ''))) + r'[-_.]') if old.get('version') else None
+def _keep(f): return 'Chrome' in f or 'Firefox' in f or bool(_prev and _prev.search(os.path.basename(f)))
 for f in glob.glob(f'{U}/download/*'):
-    if os.path.isfile(f) and 'Chrome' not in f and 'Firefox' not in f: os.remove(f)
-for f in glob.glob(f'{U}/download/parts/*'): os.remove(f)
+    if os.path.isfile(f) and not _keep(f): os.remove(f)
+for f in glob.glob(f'{U}/download/parts/*'):
+    if not _keep(f): os.remove(f)
 for k, f in K.items():
     if not f: continue
     # GitHub refuses a file over 100 MB in git: such files (the universal APKs, and the macOS dmgs since Tor is in
