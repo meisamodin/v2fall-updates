@@ -69,6 +69,30 @@ for k, p in files.items():
     parts = sorted(os.path.basename(x) for x in glob.glob(os.path.join(pd, f + '.p*')))
     m[k] = {'url': f'https://github.com/{REPO}/raw/main/experimental/files/{f}' if os.path.exists(os.path.join(fd, f)) else '', 'sha256': hashlib.sha256(open(p, 'rb').read()).hexdigest(), 'size': os.path.getsize(p),
             'parts': [f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/experimental/parts/{x}' for x in parts]}
+# small updates from the previous experimental build of the same variant (V2D1, like publish_all.py); only kept
+# under 15 MB (one jsDelivr file). The old files come from that publish's work folder, checked against its manifest.
+import v2delta  # noqa: E402
+prev = json.load(open(os.path.join(U, 'experimental', 'latest.json')))
+dd = os.path.join(U, 'experimental', 'delta'); shutil.rmtree(dd, ignore_errors=True); os.makedirs(dd)
+pw = os.path.join(os.path.dirname(W), f'exp-{prev.get("version", "")}')
+for k in ('android', 'android_arm64'):
+    if k not in m or k not in prev or prev.get('stable'): continue
+    op = os.path.join(pw, os.path.basename(prev[k]['url']) or f'V2Fall-{prev["version"]}-beta.apk')
+    if not os.path.exists(op) or hashlib.sha256(open(op, 'rb').read()).hexdigest() != prev[k]['sha256']: print('no old file for', k); continue
+    dn = f'{k}-{prev["version"]}-{V}.v2d'; dp = os.path.join(dd, dn)
+    size, copied, full = v2delta.make(op, files[k], dp)
+    tmp = dp + '.chk'; v2delta.apply(op, dp, tmp); ok = open(tmp, 'rb').read() == open(files[k], 'rb').read(); os.remove(tmp)
+    print('delta', k, size, 'of', full, ok)
+    if not ok or size > min(15_000_000, full * 0.6): os.remove(dp); continue
+    m[k]['_delta'] = {'from': prev[k]['sha256'], 'fromv': prev['version'], 'file': dn, 'sha256': hashlib.sha256(open(dp, 'rb').read()).hexdigest(), 'size': size}
+if os.listdir(dd):
+    sh('git', 'add', '-A', 'experimental/delta')
+    sh('git', '-c', 'user.name=Claude', '-c', 'user.email=noreply@anthropic.com', 'commit', '-qm', f'V2Fall {V} experimental: small updates\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>')
+    sh('git', 'pull', '-q', '--rebase'); sh('git', 'push', '-q')
+    dsha = sh('git', 'rev-parse', 'HEAD', out=True).strip()
+    for k in list(m):
+        if isinstance(m[k], dict) and '_delta' in m[k]:
+            d = m[k].pop('_delta'); m[k]['delta'] = [{'from': d['from'], 'fromv': d['fromv'], 'url': f'https://cdn.jsdelivr.net/gh/{REPO}@{dsha}/experimental/delta/{d["file"]}', 'sha256': d['sha256'], 'size': d['size']}]
 m['vcode'] = vcode; m['min'] = ''; m['stable'] = False
 json.dump(m, open(os.path.join(U, 'experimental', 'latest.json'), 'w'), ensure_ascii=False, indent=2)
 sh('git', 'add', 'experimental/latest.json')

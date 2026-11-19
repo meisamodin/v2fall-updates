@@ -80,6 +80,7 @@ jobs:
           [ -d download/delta ] && mkdir -p site/download && cp -r download/delta site/download/
           [ -d cloudflare/static ] && cp -r cloudflare/static/. site/
           [ -d experimental/parts ] && cp -r experimental/parts site/experimental/
+          [ -d experimental/delta ] && cp -r experimental/delta site/experimental/
           python3 - <<'EOF'
           import json, os, re
           dom = os.environ['DOMAIN']
