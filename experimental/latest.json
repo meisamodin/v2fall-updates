@@ -1,51 +1,68 @@
 {
   "app": "V2Fall",
-  "version": "18.9.98",
+  "version": "18.9.99",
   "date": "2026-11-19",
-  "notes": "نسخهٔ آزمایشی:\n• رادار فیلترینگ (ابزارها): ببین همین الان روی اپراتور تو چه نوع اتصالی جواب می‌دهد — از گزارش ناشناس همهٔ کاربرها، بدون IP و آدرس سرور\n• NaiveProxy (لینک naive+https و naive+quic)\n• ShadowTLS روی لینک ss://",
-  "notes_en": "Experimental:\n• Filter Radar (Tools): see what kind of connection works on your operator right now — from anonymous reports of every user, no IP or server address\n• NaiveProxy (naive+https and naive+quic links)\n• ShadowTLS on ss:// links",
+  "notes": "نسخهٔ آزمایشی:\n• اشتراک‌ها دیگر سرور، اسم یا حجم یکدیگر را نمی‌گیرند (وقتی اینترنت کند بود، جواب دیرآمدهٔ یک اشتراک به اسم اشتراک بعدی ثبت می‌شد)\n• اسم طولانی اشتراک دیگر دکمه‌ها را از صفحه بیرون نمی‌زند\n• رادار فیلترینگ: اپراتور درست (نه شبکهٔ VPN)\n• رادار فیلترینگ، NaiveProxy و ShadowTLS از ۱۸.۹.۹۸",
+  "notes_en": "Experimental:\n• Subscriptions no longer get each other's servers, name or quota (on a slow network a late answer was taken for the next subscription)\n• A long subscription name no longer pushes the buttons off the screen\n• Filter Radar: the right operator (not the VPN's network)\n• Filter Radar, NaiveProxy and ShadowTLS from 18.9.98",
   "page": "https://github.com/meisamodin/v2fall-updates",
   "android": {
     "url": "",
-    "sha256": "171902895daef7e0ea3c0577e8b35c079344e124a2677d0ba0628837595a7d26",
-    "size": 179530360,
+    "sha256": "bdc9647936e29dbb6b6b270de3c9a9c4910291993f5b5be3a7e0ca024c20ac8d",
+    "size": 179530525,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p04",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p05",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p06",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p07",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p08",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-beta.apk.p09"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p04",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p05",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p06",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p07",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p08",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-beta.apk.p09"
+    ],
+    "delta": [
+      {
+        "from": "171902895daef7e0ea3c0577e8b35c079344e124a2677d0ba0628837595a7d26",
+        "fromv": "18.9.98",
+        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5411cc3ab51b9b99ce7ef7b1c88a2ae70d526bee/experimental/delta/android-18.9.98-18.9.99.v2d",
+        "sha256": "9833cc4fd9d24ab51394ea53fe1e8681062f993a26faf826a4b6c861f00412ad",
+        "size": 8712377
+      }
     ]
   },
   "android_arm64": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/experimental/files/V2Fall-18.9.98-arm64-beta.apk",
-    "sha256": "448f35f43dbdc137ac45c9ffe5b98239a5bfcf2c4c501a8b8ecafc4206b742ea",
-    "size": 90179748,
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/experimental/files/V2Fall-18.9.99-arm64-beta.apk",
+    "sha256": "26e77f9053ec5530abd26fe45493e25ce4a43bea5503f56d0e84f73151bf92b3",
+    "size": 90179912,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-arm64-beta.apk.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-arm64-beta.apk.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-arm64-beta.apk.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-arm64-beta.apk.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-18.9.98-arm64-beta.apk.p04"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-arm64-beta.apk.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-arm64-beta.apk.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-arm64-beta.apk.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-arm64-beta.apk.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-18.9.99-arm64-beta.apk.p04"
+    ],
+    "delta": [
+      {
+        "from": "448f35f43dbdc137ac45c9ffe5b98239a5bfcf2c4c501a8b8ecafc4206b742ea",
+        "fromv": "18.9.98",
+        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@5411cc3ab51b9b99ce7ef7b1c88a2ae70d526bee/experimental/delta/android_arm64-18.9.98-18.9.99.v2d",
+        "sha256": "fa842e027d7d79f55208203efadcc6c68384d4fdce2ac54cbc8a327ee0c31347",
+        "size": 4695447
+      }
     ]
   },
   "windows": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/experimental/files/V2Fall-Setup-18.9.98-beta.exe",
-    "sha256": "91e9565b5a7cf57942a2c12a3a449ff10767e3a7494f9e9acb8d8c770420236a",
-    "size": 59798517,
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/experimental/files/V2Fall-Setup-18.9.99-beta.exe",
+    "sha256": "45edae127ed0428c5d43d600d57ce58813dbe9ac0496dfee35d142a0e382d6af",
+    "size": 59768141,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-Setup-18.9.98-beta.exe.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-Setup-18.9.98-beta.exe.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-Setup-18.9.98-beta.exe.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@4888be3a93fd323019c0a87cd8b0efe266fc4db2/experimental/parts/V2Fall-Setup-18.9.98-beta.exe.p03"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-Setup-18.9.99-beta.exe.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-Setup-18.9.99-beta.exe.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@b06aa254d29a4eaf77f50ba33e007e888d7876f3/experimental/parts/V2Fall-Setup-18.9.99-beta.exe.p02"
     ]
   },
-  "vcode": 29918552,
+  "vcode": 29918606,
   "min": "",
   "stable": false
 }
