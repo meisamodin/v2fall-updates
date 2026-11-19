@@ -44,6 +44,7 @@ jobs:
           set -e
           api="https://api.telegram.org/bot$TOKEN"
           if [ -n "$FILE" ]; then
+            command -v ffprobe >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null; }
             [ -f "media/$FILE" ] || { echo "::error::media/$FILE not found"; exit 1; }
             w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "media/$FILE")
             h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "media/$FILE")
