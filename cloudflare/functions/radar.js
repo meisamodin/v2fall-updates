@@ -3,7 +3,7 @@
 //   read:   GET /radar?q=<asn>  → {n, k: [{k: "PROTO|transport|security|frag", n, ok}, …]}  (last 24 h, cached 10 min)
 // The app sends reports only through its own VPN tunnel, so the address that reaches us is the VPN's exit,
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
-// (hour, operator, kind of connection). Rows older than 7 days are deleted.
+// (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -46,8 +46,30 @@ export async function onRequestGet({ request, env }) {
     const list = rows(d); if (!list.length) return J({ ok: 1, n: 0 });
     const h = Math.floor(Date.now() / 3600000);
     await db.batch(list.map(x => db.prepare('INSERT INTO radar (h, a, k, n, ok, ms) VALUES (?, ?, ?, 1, ?, ?) ON CONFLICT(h, a, k) DO UPDATE SET n = n + 1, ok = ok + excluded.ok, ms = ms + excluded.ms').bind(h, x.a, x.k, x.ok, x.m)));
-    if (Math.random() < 0.02) await db.prepare('DELETE FROM radar WHERE h < ?').bind(h - 24 * 7).run();
+    if (Math.random() < 0.02) await db.prepare('DELETE FROM radar WHERE h < ?').bind(h - 24 * 15).run(); // two weeks for the history page
     return J({ ok: 1, n: list.length });
+  }
+  // public page (v2fall.com/radar): every operator with enough reports in the last 24 h, best kinds first
+  if (u.searchParams.get('all')) {
+    const ck = new Request(u.origin + '/radar?all=1'), hit3 = await caches.default.match(ck); if (hit3) return hit3;
+    if (limited('a:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const now = Math.floor(Date.now() / 3600000);
+    const r = await db.prepare('SELECT a, k, SUM(n) AS n, SUM(ok) AS ok, SUM(CASE WHEN h > ? THEN n ELSE 0 END) AS rn, SUM(CASE WHEN h > ? THEN ok ELSE 0 END) AS rok FROM radar WHERE h > ? GROUP BY a, k').bind(now - 2, now - 2, now - 24).all();
+    const ops = new Map();
+    for (const x of r.results || []) { const o = ops.get(x.a) || { a: x.a, n: 0, ok: 0, rn: 0, rok: 0, k: [] }; o.n += x.n; o.ok += x.ok; o.rn += x.rn; o.rok += x.rok; if (x.n >= 3) o.k.push({ k: x.k, n: x.n, ok: x.ok }); ops.set(x.a, o); }
+    const list = [...ops.values()].filter(o => o.n >= 10).map(o => (o.k.sort((p, q) => (q.ok / q.n) - (p.ok / p.n) || q.n - p.n), o.k = o.k.slice(0, 6), o)).sort((p, q) => q.n - p.n).slice(0, 20);
+    const res = J({ now, ops: list }, 200, 'public, max-age=600');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // history: success per hour for the last 7 days (all kinds together) and per day for the kinds seen most
+  const hA = parseInt(u.searchParams.get('h') || '', 10);
+  if (hA > 0) {
+    const ck = new Request(u.origin + '/radar?h=' + hA), hit2 = await caches.default.match(ck); if (hit2) return hit2;
+    if (limited('h:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const now = Math.floor(Date.now() / 3600000);
+    const r = await db.prepare('SELECT h, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE a = ? AND h > ? GROUP BY h ORDER BY h').bind(hA, now - 24 * 7).all();
+    const res = J({ a: hA, now, hours: (r.results || []).map(x => [x.h, x.n, x.ok]) }, 200, 'public, max-age=1800');
+    await caches.default.put(ck, res.clone()); return res;
   }
   const a = parseInt(u.searchParams.get('q') || '', 10);
   if (!(a > 0)) return J({ error: 'bad request' }, 400);
@@ -60,7 +82,10 @@ export async function onRequestGet({ request, env }) {
   const n = all.reduce((t, x) => t + x.n, 0);
   // at least 3 reports for a kind before it is shown; best first, then the most used
   const k = all.filter(x => x.n >= 3).sort((p, q) => (q.ok / q.n) - (p.ok / p.n) || q.n - p.n).slice(0, 12);
-  const res = J({ a, n, k, at: Date.now() }, 200, 'public, max-age=600');
+  // the last 2 hours against the 22 before them: a sudden drop is a disruption on this operator
+  const rr = await db.prepare('SELECT SUM(CASE WHEN h > ? THEN n ELSE 0 END) AS rn, SUM(CASE WHEN h > ? THEN ok ELSE 0 END) AS rok, SUM(CASE WHEN h <= ? THEN n ELSE 0 END) AS pn, SUM(CASE WHEN h <= ? THEN ok ELSE 0 END) AS pok FROM radar WHERE a = ? AND h > ?').bind(h - 2, h - 2, h - 2, h - 2, a, h - 24).first();
+  const recent = rr ? { rn: rr.rn || 0, rok: rr.rok || 0, pn: rr.pn || 0, pok: rr.pok || 0 } : null;
+  const res = J({ a, n, k, recent, at: Date.now() }, 200, 'public, max-age=600');
   await cache.put(key, res.clone());
   return res;
 }
