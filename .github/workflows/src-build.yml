@@ -16,7 +16,7 @@ permissions:
 env:
   SING_BOX_VERSION: "1.14.4"
   XRAY_VERSION: "26.9.9"
-  APP_VERSION: "18.9.96"
+  APP_VERSION: "18.9.97"
   DNSTT_VERSION: "1.20260501.0" # pinned: @latest made builds non-reproducible
   MIERU_VERSION: "3.39.0" # pinned for reproducible builds
   MDV_SHA: "4052a6b95e758adf2dc26fa1fe527457e58d627c" # masterking32/MasterDnsVPN — fast DNS tunnel
@@ -701,6 +701,7 @@ jobs:
             echo "<key>CFBundleVersion</key><string>${APP_VERSION}</string>"
             echo '<key>LSMinimumSystemVersion</key><string>11.0</string>'
             echo '<key>NSHighResolutionCapable</key><true/>'
+            echo '<key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>V2Fall link</string><key>CFBundleURLSchemes</key><array><string>v2fall</string></array></dict></array>'
             echo '</dict></plist>'
           } > build/Info.plist
       - name: Build both app bundles + DMGs
@@ -789,9 +790,9 @@ jobs:
           cp assets/appIcon.png pkg/usr/share/icons/hicolor/512x512/apps/v2fall.png
           cp assets/appIcon.png $R/v2fall.png
           ln -s /opt/v2fall/V2Fall pkg/usr/bin/v2fall
-          printf '[Desktop Entry]\nType=Application\nName=V2Fall\nComment=V2Fall VPN client\nExec=/opt/v2fall/V2Fall\nIcon=v2fall\nCategories=Network;\nTerminal=false\n' > pkg/usr/share/applications/v2fall.desktop
+          printf '[Desktop Entry]\nType=Application\nName=V2Fall\nComment=V2Fall VPN client\nExec=/opt/v2fall/V2Fall %%u\nIcon=v2fall\nCategories=Network;\nTerminal=false\nMimeType=x-scheme-handler/v2fall;\n' > pkg/usr/share/applications/v2fall.desktop
           printf 'Package: v2fall\nVersion: %s\nArchitecture: amd64\nMaintainer: odin <meisamodin@users.noreply.github.com>\nDepends: libgtk-3-0, libwebkit2gtk-4.1-0\nSection: net\nPriority: optional\nDescription: V2Fall VPN client (sing-box + Xray)\n' "$APP_VERSION" > pkg/DEBIAN/control
-          printf '#!/bin/sh\nsetcap cap_net_admin,cap_net_bind_service,cap_net_raw+eip /opt/v2fall/core/v2fall-core 2>/dev/null || true\nexit 0\n' > pkg/DEBIAN/postinst && chmod 755 pkg/DEBIAN/postinst
+          printf '#!/bin/sh\nsetcap cap_net_admin,cap_net_bind_service,cap_net_raw+eip /opt/v2fall/core/v2fall-core 2>/dev/null || true\nupdate-desktop-database -q /usr/share/applications 2>/dev/null || true\nexit 0\n' > pkg/DEBIAN/postinst && chmod 755 pkg/DEBIAN/postinst
           dpkg-deb --build --root-owner-group pkg "dist/v2fall_${APP_VERSION}_amd64.deb"
           tar -C pkg/opt -czf "dist/V2Fall-${APP_VERSION}-Linux-x64.tar.gz" v2fall
       - name: Upload outputs to draft release
