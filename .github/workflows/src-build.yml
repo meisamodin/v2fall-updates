@@ -16,12 +16,13 @@ permissions:
 env:
   SING_BOX_VERSION: "1.14.4"
   XRAY_VERSION: "26.9.9"
-  APP_VERSION: "18.9.95"
+  APP_VERSION: "18.9.96"
   DNSTT_VERSION: "1.20260501.0" # pinned: @latest made builds non-reproducible
   MIERU_VERSION: "3.39.0" # pinned for reproducible builds
   MDV_SHA: "4052a6b95e758adf2dc26fa1fe527457e58d627c" # masterking32/MasterDnsVPN — fast DNS tunnel
   WARP_VERSION: "1.2.6" # bepass-org/warp-plus — pinned for reproducible builds
   USQUE_VERSION: "4.2.1" # Diniboy1123/usque — WARP over MASQUE
+  TOR_VERSION: "15.0.5" # Tor Project expert bundle (tor + lyrebird + conjure), checked against its sha256sums
 
 jobs:
   libbox:
@@ -149,7 +150,7 @@ jobs:
           path: |
             out
             srvtools
-          key: helpers-r2-${{ hashFiles('tools/helpers/**') }}-${{ env.DNSTT_VERSION }}-${{ env.MIERU_VERSION }}-${{ env.WARP_VERSION }}-${{ env.USQUE_VERSION }}-${{ env.MDV_SHA }}-${{ hashFiles('tools/awg/**') }}
+          key: helpers-r2-${{ hashFiles('tools/helpers/**') }}-${{ env.DNSTT_VERSION }}-${{ env.MIERU_VERSION }}-${{ env.WARP_VERSION }}-${{ env.USQUE_VERSION }}-${{ env.TOR_VERSION }}-${{ env.MDV_SHA }}-${{ hashFiles('tools/awg/**') }}
       - name: Build dnstt-client for every platform
         if: steps.hc.outputs.cache-hit != 'true'
         run: |
@@ -186,6 +187,10 @@ jobs:
           # that works without /etc/resolv.conf — tools/helpers/android-patch.sh, behind the v2fandroid tag
           bash "$GITHUB_WORKSPACE/tools/helpers/android-patch.sh" "$GITHUB_WORKSPACE/wsrc" cmd/warp-plus warp
           ATAGS=-tags=v2fandroid helper wsrc ./cmd/warp-plus libwarp.so warp-plus
+          # Psiphon on its own (v2f-psiphon): built inside the warp-plus tree for its pinned psiphon-tunnel-core and go.sum
+          mkdir -p wsrc/cmd/v2f-psiphon && cp tools/helpers/psiphon/main.go wsrc/cmd/v2f-psiphon/
+          bash "$GITHUB_WORKSPACE/tools/helpers/android-patch.sh" "$GITHUB_WORKSPACE/wsrc" cmd/v2f-psiphon
+          ATAGS=-tags=v2fandroid helper wsrc ./cmd/v2f-psiphon libpsiphon.so v2f-psiphon
           (cd wsrc && go version)
           export GOTOOLCHAIN=local
           curl -fsSL -o u.tgz "https://codeload.github.com/Diniboy1123/usque/tar.gz/refs/tags/v${USQUE_VERSION}" && tar xzf u.tgz && mv "usque-${USQUE_VERSION}" usrc
@@ -199,6 +204,7 @@ jobs:
           helper mdvsrc ./cmd/client libmdv.so mdv-client
           for a in amd64 arm64; do (cd mdvsrc && CGO_ENABLED=0 GOOS=linux GOARCH=$a go build -trimpath -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/srvtools/mdv-server-linux-$a" ./cmd/server); done
           export GOTOOLCHAIN=local
+          bash tools/helpers/tor-package.sh fetch out "$TOR_VERSION"
           ls -laR out srvtools
       # «اینترنت برای ایران»: v2f-relay for every platform + its real end-to-end and safety tests,
       # against the broker's own code from this repo (always built: not part of the helper cache)
@@ -223,6 +229,8 @@ jobs:
           B=out/linux-amd64
           smoke $B/warp-plus --help
           smoke $B/usque --help
+          smoke $B/v2f-psiphon -h
+          [ -x out/linux-amd64/tor/tor ] && LD_LIBRARY_PATH=out/linux-amd64/tor out/linux-amd64/tor/tor --version | head -1 || echo "::warning::no Tor for Linux"
           smoke $B/mieru help
           smoke $B/awg -h
           smoke $B/dnstt-client -h
@@ -369,10 +377,11 @@ jobs:
           done
           cp dnstt-bin/android-arm64/libdnstt.so android/app/src/main/jniLibs/arm64-v8a/libdnstt.so
           cp dnstt-bin/android-arm/libdnstt.so android/app/src/main/jniLibs/armeabi-v7a/libdnstt.so
-          for h in libmieru libwarp libawg libusque libmdv libv2frelay; do
+          for h in libmieru libwarp libawg libusque libmdv libv2frelay libpsiphon; do
             cp dnstt-bin/android-arm64/$h.so android/app/src/main/jniLibs/arm64-v8a/$h.so
             cp dnstt-bin/android-arm/$h.so android/app/src/main/jniLibs/armeabi-v7a/$h.so
           done
+          bash tools/helpers/tor-package.sh android dnstt-bin android/app
           chmod +x android/app/src/main/jniLibs/*/*.so
           ls -la android/app/src/main/jniLibs/*/
 
@@ -483,10 +492,11 @@ jobs:
           done
           cp dnstt-bin/android-arm64/libdnstt.so android/app/src/main/jniLibs/arm64-v8a/libdnstt.so
           cp dnstt-bin/android-arm/libdnstt.so android/app/src/main/jniLibs/armeabi-v7a/libdnstt.so
-          for h in libmieru libwarp libawg libusque libmdv libv2frelay; do
+          for h in libmieru libwarp libawg libusque libmdv libv2frelay libpsiphon; do
             cp dnstt-bin/android-arm64/$h.so android/app/src/main/jniLibs/arm64-v8a/$h.so
             cp dnstt-bin/android-arm/$h.so android/app/src/main/jniLibs/armeabi-v7a/$h.so
           done
+          bash tools/helpers/tor-package.sh android dnstt-bin android/app
           chmod +x android/app/src/main/jniLibs/*/*.so
           ls -la android/app/src/main/jniLibs/*/
 
@@ -602,6 +612,8 @@ jobs:
           Copy-Item dnstt-bin/windows/mdv-client.exe build/win/core/mdv-client.exe
           Copy-Item dnstt-bin/windows/v2f-relay.exe build/win/core/v2f-relay.exe
           Copy-Item dnstt-bin/windows/awg.exe build/win/core/awg.exe
+          Copy-Item dnstt-bin/windows/v2f-psiphon.exe build/win/core/v2f-psiphon.exe
+          if (Test-Path dnstt-bin/windows/tor) { Copy-Item -Recurse dnstt-bin/windows/tor build/win/core/tor } else { Write-Host "::warning::no Tor for Windows" }
 
       - name: Build V2Fall.exe (Wails v3)
         shell: pwsh
@@ -701,7 +713,8 @@ jobs:
             cp sing-box-${SING_BOX_VERSION}-${SB}/sing-box $APP/Contents/MacOS/core/v2fall-core
             curl -fsSL -o xr.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-${XR}.zip" && unzip -q -o xr.zip -d xr
             cp xr/xray $APP/Contents/MacOS/core/xray
-            for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-relay; do cp dnstt-bin/darwin-$GOA/$h $APP/Contents/MacOS/core/$h; done
+            for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-relay v2f-psiphon; do cp dnstt-bin/darwin-$GOA/$h $APP/Contents/MacOS/core/$h; done
+            bash tools/helpers/tor-package.sh desktop dnstt-bin/darwin-$GOA $APP/Contents/MacOS/core
             chmod +x $APP/Contents/MacOS/core/*
             (cd desktop-app && CGO_ENABLED=1 GOARCH=$GOA MACOSX_DEPLOYMENT_TARGET=11.0 go build -tags production -trimpath -ldflags "-s -w -X main.AppVersion=${APP_VERSION}" -o ../$APP/Contents/MacOS/V2Fall .)
             cp build/icon.icns $APP/Contents/Resources/icon.icns
@@ -767,8 +780,9 @@ jobs:
           cp sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box $R/core/v2fall-core
           curl -fsSL -o xr.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-64.zip" && unzip -q -o xr.zip -d xr
           cp xr/xray $R/core/xray
-          for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-relay; do cp dnstt-bin/linux-amd64/$h $R/core/$h; done
+          for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-relay v2f-psiphon; do cp dnstt-bin/linux-amd64/$h $R/core/$h; done
           chmod 755 $R/core/*
+          bash tools/helpers/tor-package.sh desktop dnstt-bin/linux-amd64 $R/core
           cd desktop-app && go mod tidy
           CGO_ENABLED=1 go build -tags production,gtk3 -trimpath -ldflags "-s -w -X main.AppVersion=${APP_VERSION}" -o ../$R/V2Fall .
           cd ..
