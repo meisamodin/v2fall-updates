@@ -47,28 +47,27 @@ vcode = int(sh('python3', os.path.join(U, 'tools', 'apksign.py'), 'vcode', files
 stable = json.load(open(os.path.join(U, 'latest.json')))
 assert vcode > stable['vcode'], ('experimental must be newer than stable', vcode, stable['vcode'])
 
-# public pre-release (not "latest": the site and the stable updater never pick it)
-tag = f'v{V}-beta'
-if subprocess.run(['gh', 'release', 'view', tag, '-R', REPO], capture_output=True).returncode != 0:
-    sh('gh', 'release', 'create', tag, '-R', REPO, '--prerelease', '--latest=false', '--title', f'V2Fall {V} (experimental)', '--notes', FA + '\n\n' + EN, *files.values())
-else:
-    sh('gh', 'release', 'upload', tag, '-R', REPO, '--clobber', *files.values())
-
+# no GitHub release (this session may not create releases): files under 95 MB are committed whole in
+# experimental/files/ (raw link as the fallback), every file also as parts for jsDelivr / dl.v2fall.com
+fd = os.path.join(U, 'experimental', 'files')
+shutil.rmtree(fd, ignore_errors=True); os.makedirs(fd)
+for p in files.values():
+    if os.path.getsize(p) < 95 * 1048576: shutil.copy(p, fd)
 # parts for Iran (jsDelivr / dl.v2fall.com); the previous experimental parts are removed
 pd = os.path.join(U, 'experimental', 'parts')
 shutil.rmtree(pd, ignore_errors=True); os.makedirs(pd)
 for p in files.values():
     sh('split', '-b', '19922944', '-d', '-a', '2', p, os.path.join(pd, os.path.basename(p) + '.p'))
-sh('git', 'add', '-A', 'experimental/parts')
+sh('git', 'add', '-A', 'experimental/parts', 'experimental/files')
 sh('git', '-c', 'user.name=Claude', '-c', 'user.email=noreply@anthropic.com', 'commit', '-qm', f'V2Fall {V} experimental: files\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>')
 sh('git', 'pull', '-q', '--rebase'); sh('git', 'push', '-q')
 sha = sh('git', 'rev-parse', 'HEAD', out=True).strip()
 
-m = {'app': 'V2Fall', 'version': V, 'date': datetime.date.today().isoformat(), 'notes': FA, 'notes_en': EN, 'page': f'https://github.com/{REPO}/releases/tag/{tag}'}
+m = {'app': 'V2Fall', 'version': V, 'date': datetime.date.today().isoformat(), 'notes': FA, 'notes_en': EN, 'page': f'https://github.com/{REPO}'}
 for k, p in files.items():
     f = os.path.basename(p)
     parts = sorted(os.path.basename(x) for x in glob.glob(os.path.join(pd, f + '.p*')))
-    m[k] = {'url': f'https://github.com/{REPO}/releases/download/{tag}/{f}', 'sha256': hashlib.sha256(open(p, 'rb').read()).hexdigest(), 'size': os.path.getsize(p),
+    m[k] = {'url': f'https://github.com/{REPO}/raw/main/experimental/files/{f}' if os.path.exists(os.path.join(fd, f)) else '', 'sha256': hashlib.sha256(open(p, 'rb').read()).hexdigest(), 'size': os.path.getsize(p),
             'parts': [f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/experimental/parts/{x}' for x in parts]}
 m['vcode'] = vcode; m['min'] = ''; m['stable'] = False
 json.dump(m, open(os.path.join(U, 'experimental', 'latest.json'), 'w'), ensure_ascii=False, indent=2)
