@@ -95,7 +95,10 @@ for f in glob.glob(f'{U}/download/*'):
 for f in glob.glob(f'{U}/download/parts/*'): os.remove(f)
 for k, f in K.items():
     if not f: continue
-    if k not in ('android', 'android6'): shutil.copy(os.path.join(out, f), f'{U}/download/{f}')
+    # GitHub refuses a file over 100 MB in git: such files (the universal APKs, and the macOS dmgs since Tor is in
+    # them) are committed only as parts; release.yml puts them back together for the release page
+    big = os.path.getsize(os.path.join(out, f)) > 95 * 1048576
+    if k not in ('android', 'android6') and not big: shutil.copy(os.path.join(out, f), f'{U}/download/{f}')
     sh('split', '-b', '19922944', '-d', '-a', '2', os.path.join(out, f), f'{U}/download/parts/{f}.p')
 # small updates: V2D1 patch from the previous release's APK of the same variant (unchanged files copied
 # from the installed APK on the phone). Only kept when it really is small.
@@ -171,7 +174,7 @@ sha = sh('git', 'rev-parse', 'HEAD', cwd=U, out=True).strip()
 def ent(k, f):
     p = os.path.join(out, f)
     parts = sorted(os.path.basename(x) for x in glob.glob(f'{U}/download/parts/{f}.p*'))
-    url = (f'https://github.com/{REPO}/releases/download/v{V}/{f}' if k in ('android', 'android6')
+    url = (f'https://github.com/{REPO}/releases/download/v{V}/{f}' if k in ('android', 'android6') or os.path.getsize(p) > 95 * 1048576
            else f'https://github.com/{REPO}/raw/main/download/{f}')
     return {'url': url, 'sha256': hashlib.sha256(open(p, 'rb').read()).hexdigest(), 'size': os.path.getsize(p),
             'parts': [f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/download/parts/{x}' for x in parts]}
