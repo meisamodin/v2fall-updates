@@ -1,0 +1,57 @@
+name: Telegram channel post
+
+# Posts a video (or text only) with a caption to the public channel @v2fall through @v2fallbot.
+# The bot must be an admin of the channel with "Post messages". Caption limit: 1024 characters
+# with a video, 4096 for text only. Optional publish_at (UTC, e.g. 2026-11-19T16:30:00Z) waits
+# inside the job until that time (max ~5 h, the job limit is 6 h).
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: 'video under media/ (empty = text only)'
+        required: false
+      caption:
+        description: 'post text (Markdown is not parsed; sent as plain text)'
+        required: true
+      chat:
+        description: 'channel'
+        default: '@v2fall'
+      publish_at:
+        description: 'optional UTC time to post at'
+        required: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: media
+          lfs: false
+      - name: Wait until publish time
+        if: inputs.publish_at != ''
+        run: |
+          now=$(date -u +%s); at=$(date -u -d "${{ inputs.publish_at }}" +%s)
+          [ "$at" -gt "$now" ] && sleep $((at-now)) || true
+      - name: Post
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          FILE: ${{ inputs.file }}
+          CAPTION: ${{ inputs.caption }}
+          CHAT: ${{ inputs.chat }}
+        run: |
+          set -e
+          api="https://api.telegram.org/bot$TOKEN"
+          if [ -n "$FILE" ]; then
+            [ -f "media/$FILE" ] || { echo "::error::media/$FILE not found"; exit 1; }
+            w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "media/$FILE")
+            h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "media/$FILE")
+            d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "media/$FILE" | cut -d. -f1)
+            r=$(curl -sS "$api/sendVideo" -F chat_id="$CHAT" -F video=@"media/$FILE" --form-string caption="$CAPTION" \
+                 -F width="$w" -F height="$h" -F duration="$d" -F supports_streaming=true)
+          else
+            r=$(curl -sS "$api/sendMessage" --data-urlencode chat_id="$CHAT" --data-urlencode text="$CAPTION")
+          fi
+          echo "$r" | python3 -c "import json,sys;j=json.load(sys.stdin);print('ok' if j.get('ok') else j);sys.exit(0 if j.get('ok') else 1)"
+          echo "$r" | python3 -c "import json,sys;m=json.load(sys.stdin)['result'];print('message', m['message_id'])" >> "$GITHUB_STEP_SUMMARY"
