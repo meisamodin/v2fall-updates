@@ -58,11 +58,12 @@ const T = {
 
 // English: every fixed Persian string → English (texts and button labels); users whose Telegram is not
 // Persian get English, and "🌐 English / فارسی" switches it
+const DONATE_KB = [[['⭐', '50', 'don:50'], ['⭐', '100', 'don:100']], [['⭐', '250', 'don:250'], ['⭐', '500', 'don:500']], [['✏️', 'مقدار دلخواه', 'don:ask']]];
 const EN = {
   'باز کردن V2Fall در تلگرام': 'Open V2Fall in Telegram', 'دریافت آخرین نسخه': 'Get the latest version', 'تست کانفیگ': 'Test a config', 'آموزش‌ها': 'Guides',
   'حالت فقط DNS': 'DNS-only mode', 'حمایت از V2Fall': 'Support V2Fall',  'پشتیبانی': 'Support', 'سایت V2Fall': 'V2Fall website', 'کانال': 'Channel', 'منوی اصلی': 'Main menu', 'English': 'فارسی',
   'ابزارهای تازه': 'New tools', 'ظاهر برنامه': 'Look', 'اندروید ۶ به بالا': 'Android 6+', 'شروع سریع': 'Quick start', 'وارپ رایگان': 'Free WARP', 'وصل ماندن در قطعی': 'Stay online in shutdowns', 'IP تمیز': 'Clean IP', 'پشتیبان با کد': 'Backup code',
-  'سهمیهٔ مصرف': 'Data quota', 'کنسول بازی': 'Game consoles', 'ویدیوها': 'Videos', 'فرم پشتیبانی': 'Support form', 'دانلود از سایت': 'Download from the website', 'تست یکی دیگر': 'Test another one', 'ویندوز': 'Windows', 'مک M': 'Mac (M chip)', 'مک اینتل': 'Mac (Intel)', 'لینوکس deb': 'Linux deb', 'لینوکس tar.gz': 'Linux tar.gz',
+  'سهمیهٔ مصرف': 'Data quota', 'کنسول بازی': 'Game consoles', 'ویدیوها': 'Videos', 'فرم پشتیبانی': 'Support form', 'مقدار دلخواه': 'Custom amount', 'دانلود از سایت': 'Download from the website', 'تست یکی دیگر': 'Test another one', 'ویندوز': 'Windows', 'مک M': 'Mac (M chip)', 'مک اینتل': 'Mac (Intel)', 'لینوکس deb': 'Linux deb', 'لینوکس tar.gz': 'Linux tar.gz',
   donate: '⭐ Support V2Fall\n\nV2Fall is free and stays free. If you would like to help keep the servers and development going, support it with Telegram Stars — no bank card, straight from Telegram.\n\nPick an amount 👇',
   thanks: '💙 Thank you for your support! It goes straight into V2Fall\'s servers and development.',
   start: '👋 Hi! I am the V2Fall bot.\n\n🛡 V2Fall is a free, fast VPN app for Android, Windows, macOS and Linux.\n\n🚀 "Open V2Fall in Telegram" has everything in one place: downloads, guides and support.\n🔒 The bot never asks for or keeps your links or configs.',
@@ -175,7 +176,8 @@ export async function onRequestPost(ctx) {
       else if (c.data === 'start') await menu(chat);
       else if (c.data === 'lang') { const nl = isEn(lang) ? 'fa' : 'en'; await kv.put('tgl:' + from.id, nl); { const o = await kv.getWithMetadata('tgu:' + from.id); await kv.put('tgu:' + from.id, nl, { metadata: { l: nl, t: (o && o.metadata && o.metadata.t) || Date.now() } }); } await say(env, chat, isEn(nl) ? 'start' : T.start, MENU, nl); }
       else if (c.data === 'guide') await sayT(chat, 'guide', GUIDE_KB);
-      else if (c.data === 'donate') await sayT(chat, 'donate', [[['⭐', '50', 'don:50'], ['⭐', '100', 'don:100']], [['⭐', '250', 'don:250'], ['⭐', '500', 'don:500']], ...BACK]);
+      else if (c.data === 'donate') await sayT(chat, 'donate', [...DONATE_KB, ...BACK]);
+      else if (c.data === 'don:ask') { await kv.put('don:w:' + chat, '1', { expirationTtl: 900 }); await say(env, chat, isEn(lang) ? '✏️ Send the number of Stars (1 to 10,000), e.g. 300' : '✏️ تعداد ستاره را بفرست (۱ تا ۱۰٬۰۰۰)، مثلاً ۳۰۰', BACK, lang); }
       else if (/^don:\d+$/.test(c.data)) { const n = Math.min(Math.max(+c.data.slice(4), 1), 10000); await invoice(env, chat, n, lang); }
       else if (T[c.data]) await sayT(chat, c.data, c.data === 'support' ? [[['🚀', 'فرم پشتیبانی', 'app:#support', 'danger']], ...BACK] : BACK);
       return new Response('ok');
@@ -245,7 +247,12 @@ export async function onRequestPost(ctx) {
       if (/^\/emoji\b/.test(text)) { await say(env, chat, '✨ دو راه:\n\n۱) لینک یک پک ایموجی پرمیوم را بفرست (مثل t.me/addemoji/…) — همهٔ ایموجی‌هایش یک‌جا ذخیره می‌شود.\n\n۲) یا یک پیام با ایموجی‌های پرمیوم بفرست، هر کدام جای یکی از این‌ها:\n👋 🛡 🚀 📥 🩺 📚 🌐 🐞 🌍 📢 🔎 ⚠️ ✅ ❌ 💡 🔒 ⚡ ✍️ 📱 💻 ✨ 🏠 ☁️ 🛟 🧹 🔑 📊 🎮 🎬 🆔 🔗 ✉️ ℹ️'); return new Response('ok'); }
     }
     const cmd = (text.match(/^\/([a-z]+)/i) || [])[1];
-    if (cmd === 'donate' || /^\/start\s+donate\b/.test(text)) { await sayT(chat, 'donate', [[['⭐', '50', 'don:50'], ['⭐', '100', 'don:100']], [['⭐', '250', 'don:250'], ['⭐', '500', 'don:500']], ...BACK]); return new Response('ok'); }
+    { // a custom amount: "/donate 300", or a plain number right after the "custom amount" button
+      const dn = String(text).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,،٬\s]/g, '');
+      const dm = dn.match(/^\/donate(\d+)$/i) || (/^\d+$/.test(dn) && await kv.get('don:w:' + chat) ? [0, dn] : null);
+      if (dm) { const n = Math.min(Math.max(parseInt(dm[1], 10) || 0, 1), 10000); await kv.delete('don:w:' + chat); await invoice(env, chat, n, lang); return new Response('ok'); }
+    }
+    if (cmd === 'donate' || /^\/start\s+donate\b/.test(text)) { await sayT(chat, 'donate', [...DONATE_KB, ...BACK]); return new Response('ok'); }
     if (cmd === 'start' || cmd === 'help') { await menu(chat); return new Response('ok'); }
     if (cmd === 'download') { await download(env, chat, lang); return new Response('ok'); }
     if (cmd === 'guide') { await sayT(chat, 'guide', GUIDE_KB); return new Response('ok'); }
