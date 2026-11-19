@@ -49,7 +49,7 @@ jobs:
             w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "media/$FILE")
             h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "media/$FILE")
             d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "media/$FILE" | cut -d. -f1)
-            r=$(curl -sS "$api/sendVideo" -F chat_id="$CHAT" -F video=@"media/$FILE" --form-string caption="$CAPTION" \
+            r=$(curl -sS "$api/sendVideo" --form-string chat_id="$CHAT" -F video=@"media/$FILE" --form-string caption="$CAPTION" \
                  -F width="$w" -F height="$h" -F duration="$d" -F supports_streaming=true)
           else
             r=$(curl -sS "$api/sendMessage" --data-urlencode chat_id="$CHAT" --data-urlencode text="$CAPTION")
