@@ -1,0 +1,66 @@
+// Filter Radar: what kind of connection works on which Iranian operator, from anonymous reports of V2Fall apps.
+//   report: GET /radar?d=<base64url of {"v":1,"r":[[asn, cc, proto, transport, security, frag, ok, bucket], …]}>
+//   read:   GET /radar?q=<asn>  → {n, k: [{k: "PROTO|transport|security|frag", n, ok}, …]}  (last 24 h, cached 10 min)
+// The app sends reports only through its own VPN tunnel, so the address that reaches us is the VPN's exit,
+// never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
+// (hour, operator, kind of connection). Rows older than 7 days are deleted.
+
+const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
+const RL = new Map();
+function limited(key, n, sec) {
+  const now = Date.now(), e = RL.get(key) || { t: now, n: 0 };
+  if (now - e.t > sec * 1000) { e.t = now; e.n = 0; }
+  e.n++; RL.set(key, e);
+  if (RL.size > 20000) for (const [k, v] of RL) if (now - v.t > 3600000) RL.delete(k);
+  return e.n > n;
+}
+let ready = false;
+async function init(db) {
+  if (ready) return;
+  await db.prepare('CREATE TABLE IF NOT EXISTS radar (h INTEGER NOT NULL, a INTEGER NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, ok INTEGER NOT NULL DEFAULT 0, ms INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (h, a, k))').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS radar_a ON radar(a, h)').run();
+  ready = true;
+}
+const PROTO = /^[A-Z0-9]{1,10}$/, LOW = /^[a-z0-9]{0,10}$/;
+function rows(d) {
+  let j; try { j = JSON.parse(atob(String(d).replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return []; }
+  if (!j || j.v !== 1 || !Array.isArray(j.r)) return [];
+  const out = [];
+  for (const r of j.r.slice(0, 40)) {
+    if (!Array.isArray(r) || r.length !== 8) continue;
+    const [a, cc, p, t, s, f, ok, m] = r;
+    if (!Number.isInteger(a) || a < 1 || a > 4294967295 || !PROTO.test(p) || !LOW.test(t) || !LOW.test(s) || (f !== 0 && f !== 1) || (ok !== 0 && ok !== 1) || !Number.isInteger(m) || m < 0 || m > 9) continue;
+    if (typeof cc !== 'string' || !/^[A-Z]{0,2}$/.test(cc)) continue;
+    out.push({ a, k: [p, t, s, f].join('|'), ok, m: ok ? Math.min(m, 4) : 0 });
+  }
+  return out;
+}
+export async function onRequestGet({ request, env }) {
+  const db = env.STATS; if (!db) return J({ error: 'off' }, 503);
+  const u = new URL(request.url), ip = request.headers.get('CF-Connecting-IP') || 'x';
+  await init(db);
+  const d = u.searchParams.get('d');
+  if (d) {
+    // the address is only held in memory for the rate limit (a VPN exit is shared by many people: generous)
+    if (d.length > 6000 || limited('r:' + ip, 30, 3600)) return J({ error: 'too many' }, 429);
+    const list = rows(d); if (!list.length) return J({ ok: 1, n: 0 });
+    const h = Math.floor(Date.now() / 3600000);
+    await db.batch(list.map(x => db.prepare('INSERT INTO radar (h, a, k, n, ok, ms) VALUES (?, ?, ?, 1, ?, ?) ON CONFLICT(h, a, k) DO UPDATE SET n = n + 1, ok = ok + excluded.ok, ms = ms + excluded.ms').bind(h, x.a, x.k, x.ok, x.m)));
+    if (Math.random() < 0.02) await db.prepare('DELETE FROM radar WHERE h < ?').bind(h - 24 * 7).run();
+    return J({ ok: 1, n: list.length });
+  }
+  const a = parseInt(u.searchParams.get('q') || '', 10);
+  if (!(a > 0)) return J({ error: 'bad request' }, 400);
+  const cache = caches.default, key = new Request(u.origin + '/radar?q=' + a);
+  const hit = await cache.match(key); if (hit) return hit;
+  if (limited('q:' + ip, 60, 600)) return J({ error: 'too many' }, 429);
+  const h = Math.floor(Date.now() / 3600000);
+  const r = await db.prepare('SELECT k, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE a = ? AND h > ? GROUP BY k').bind(a, h - 24).all();
+  const all = (r.results || []).map(x => ({ k: x.k, n: x.n, ok: x.ok }));
+  const n = all.reduce((t, x) => t + x.n, 0);
+  // at least 3 reports for a kind before it is shown; best first, then the most used
+  const k = all.filter(x => x.n >= 3).sort((p, q) => (q.ok / q.n) - (p.ok / p.n) || q.n - p.n).slice(0, 12);
+  const res = J({ a, n, k, at: Date.now() }, 200, 'public, max-age=600');
+  await cache.put(key, res.clone());
+  return res;
+}
