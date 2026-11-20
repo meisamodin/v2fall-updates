@@ -33,6 +33,7 @@ function rows(d) {
     const [a, cc, p, t, s, f, ok, m] = r;
     if (!Number.isInteger(a) || a < 1 || a > 4294967295 || !PROTO.test(p) || !LOW.test(t) || !LOW.test(s) || (f !== 0 && f !== 1) || (ok !== 0 && ok !== 1) || !Number.isInteger(m) || m < 0 || m > 9) continue;
     if (typeof cc !== 'string' || !/^[A-Z]{0,2}$/.test(cc)) continue;
+    if (cc && cc !== 'IR') continue; // the radar is about Iran's operators: a user abroad or on a foreign SIM is left out
     out.push({ a, k: [p, t, s, f].join('|'), ok, m: ok ? Math.min(m, 4) : 0 });
   }
   return out;
