@@ -5,7 +5,7 @@
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
 // (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
 
-import { alertCheck, calendar } from '../lib/radar.js';
+import { alertCheck, calendar, siteReport, siteSummary } from '../lib/radar.js';
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -52,6 +52,20 @@ export async function onRequestGet({ request, env, waitUntil }) {
     // a sudden drop on one operator → a post in the channel (checked at most every 20 minutes, see lib/radar.js)
     if (waitUntil) waitUntil(alertCheck(env).catch(() => {}));
     return J({ ok: 1, n: list.length });
+  }
+  // site radar: report (?s=) and the public summary (?sites=1)
+  const sd = u.searchParams.get('s');
+  if (sd) {
+    if (sd.length > 2000 || limited('s:' + ip, 20, 3600)) return J({ error: 'too many' }, 429);
+    const n = await siteReport(db, sd);
+    if (n && waitUntil) waitUntil(alertCheck(env).catch(() => {}));
+    return J({ ok: 1, n });
+  }
+  if (u.searchParams.get('sites')) {
+    const ck = new Request(u.origin + '/radar?sites=1'), hit5 = await caches.default.match(ck); if (hit5) return hit5;
+    if (limited('t:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await siteSummary(db), 200, 'public, max-age=600');
+    await caches.default.put(ck, res.clone()); return res;
   }
   // public page (v2fall.com/radar): every operator with enough reports in the last 24 h, best kinds first
   if (u.searchParams.get('all')) {

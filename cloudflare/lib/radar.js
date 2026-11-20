@@ -81,7 +81,9 @@ export async function alertCheck(env) {
     }
     if (text) await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chat, text, link_preview_options: { is_disabled: true } }) });
-  }
+  }  const post = text => fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chat, text, link_preview_options: { is_disabled: true } }) });
+  await siteAlertCheck(env, post).catch(() => {});
 }
 
 // ---- disruption calendar: when an operator is usually worse, from the last 14 days of the same counters.
@@ -121,4 +123,61 @@ export function calLine(c, en) {
   if (!c || !c.enough || !c.wins.length) return '';
   const w = c.wins[0];
   return en ? `usually worse ${String(w.from).padStart(2, '0')}:00–${String(w.to).padStart(2, '0')}:00 (${w.rate}% vs ${c.avg}%)` : `معمولاً ساعت ${faN(w.from)} تا ${faN(w.to)} بدتر است (${faN(w.rate)}٪ در برابر ${faN(c.avg)}٪)`;
+}
+
+// ---- site radar: is each of a fixed list of popular sites reachable WITHOUT the VPN on each operator, from the
+// app's "status of popular sites" check (only with anonymous reports on). Stored per (hour, operator, site): two
+// counters. Same list and order in the app (RADAR_SITES) and on the site's radar page.
+export const SITES = [['instagram.com', 'اینستاگرام'], ['youtube.com', 'یوتیوب'], ['x.com', 'ایکس'], ['telegram.org', 'تلگرام'], ['whatsapp.com', 'واتس‌اپ'], ['chatgpt.com', 'ChatGPT'], ['github.com', 'گیت‌هاب'], ['discord.com', 'دیسکورد'], ['play.google.com', 'گوگل‌پلی'], ['wikipedia.org', 'ویکی‌پدیا'], ['linkedin.com', 'لینکدین'], ['spotify.com', 'اسپاتیفای']];
+let siteReady = false;
+export async function siteInit(db) {
+  if (siteReady) return;
+  await db.prepare('CREATE TABLE IF NOT EXISTS radar_site (h INTEGER NOT NULL, a INTEGER NOT NULL, s INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, ok INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (h, a, s))').run();
+  siteReady = true;
+}
+// report: base64url of {"v":1,"a":asn,"r":[[site, ok], …]}
+export async function siteReport(db, d) {
+  let j; try { j = JSON.parse(atob(String(d).replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return 0; }
+  if (!j || j.v !== 1 || !Number.isInteger(j.a) || j.a < 1 || j.a > 4294967295 || !Array.isArray(j.r)) return 0;
+  const rows = j.r.slice(0, SITES.length).filter(x => Array.isArray(x) && Number.isInteger(x[0]) && x[0] >= 0 && x[0] < SITES.length && (x[1] === 0 || x[1] === 1));
+  if (!rows.length) return 0;
+  await siteInit(db);
+  const h = Math.floor(Date.now() / 3600000);
+  await db.batch(rows.map(x => db.prepare('INSERT INTO radar_site (h, a, s, n, ok) VALUES (?, ?, ?, 1, ?) ON CONFLICT(h, a, s) DO UPDATE SET n = n + 1, ok = ok + excluded.ok').bind(h, j.a, x[0], x[1])));
+  if (Math.random() < 0.02) await db.prepare('DELETE FROM radar_site WHERE h < ?').bind(h - 24 * 15).run();
+  return rows.length;
+}
+// last 24 h per operator and site, and the last 3 h against the 21 before: "blocked since" / "opened since"
+export async function siteSummary(db) {
+  await siteInit(db);
+  const now = Math.floor(Date.now() / 3600000);
+  const r = await db.prepare('SELECT a, s, SUM(n) AS n, SUM(ok) AS ok, SUM(CASE WHEN h > ? THEN n ELSE 0 END) AS rn, SUM(CASE WHEN h > ? THEN ok ELSE 0 END) AS rok FROM radar_site WHERE h > ? GROUP BY a, s').bind(now - 3, now - 3, now - 24).all();
+  const ops = new Map();
+  for (const x of r.results || []) {
+    const o = ops.get(x.a) || { a: x.a, n: 0, s: [] }; o.n += x.n;
+    const pn = x.n - x.rn, pok = x.ok - x.rok, rr = x.rn ? x.rok / x.rn : null, pr = pn ? pok / pn : null;
+    const change = x.rn >= 3 && pn >= 5 ? (rr <= 0.3 && pr >= 0.7 ? 'blocked' : rr >= 0.7 && pr <= 0.3 ? 'opened' : '') : '';
+    o.s.push({ s: x.s, n: x.n, ok: x.ok, now: x.rn >= 3 ? Math.round(rr * 100) : null, change });
+    ops.set(x.a, o);
+  }
+  return { now, sites: SITES.map(x => x[0]), ops: [...ops.values()].filter(o => o.n >= 5).sort((p, q) => q.n - p.n) };
+}
+// a channel post when a site gets blocked or opens on a named operator (once per change, kept 7 days)
+export async function siteAlertCheck(env, post) {
+  const kv = env.CODES; if (!kv) return;
+  const sum = await siteSummary(env.STATS);
+  for (const o of sum.ops) {
+    if (!ISP[o.a]) continue;
+    for (const x of o.s) {
+      if (!x.change) continue;
+      const key = 'rad:site:' + o.a + ':' + x.s, was = await kv.get(key);
+      if (was === x.change) continue;
+      await kv.put(key, x.change, { expirationTtl: 86400 * 7 });
+      if (!was && x.change === 'opened') continue; // the first time we see a site at all, only a block is news
+      const op = ISP[o.a][0], site = SITES[x.s][1];
+      await post(x.change === 'blocked'
+        ? `🚫 ${site} روی ${op} فیلتر شد\n\nدر سه ساعت گذشته ${site} روی ${op} بدون VPN باز نمی‌شود، در حالی که پیش از آن باز می‌شد.\n\n📡 رادار سایت‌ها: v2fall.com/radar\n🔒 از گزارش‌های ناشناس برنامه‌های V2Fall: فقط «باز شد / نشد» و اپراتور.\n\n#رادار_فیلترینگ #فیلترینگ ${tag(op)}\n\n${SIGN}`
+        : `✅ ${site} روی ${op} باز شد\n\nدر سه ساعت گذشته ${site} روی ${op} بدون VPN باز می‌شود، در حالی که پیش از آن فیلتر بود.\n\n📡 رادار سایت‌ها: v2fall.com/radar\n\n#رادار_فیلترینگ ${tag(op)}\n\n${SIGN}`);
+    }
+  }
 }
