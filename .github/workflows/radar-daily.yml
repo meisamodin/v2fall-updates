@@ -1,16 +1,20 @@
-# Daily Filter Radar post in the channel (tools/radar_daily.py): every evening at 21:30 Tehran time; no post when
-# there were too few reports that day. Run by hand with "dry" to only print the post in the log.
+# Daily Filter Radar post in the channel (tools/radar_daily.py); no post when there were too few reports that day.
+# GitHub runs scheduled jobs late (often 5–30 min, sometimes a first run is skipped): it is set to 21:17 Tehran so it
+# lands around 21:30. One post a day at most (a cache key per Tehran date), whether it ran by schedule or by hand.
+# By hand: "dry" only prints the post; "mark" only records today as posted (after a post made another way).
 name: Radar daily post
 
 on:
   schedule:
-    - cron: '0 18 * * *'   # 21:30 in Tehran (UTC+3:30)
+    - cron: '47 17 * * *'   # 21:17 in Tehran (UTC+3:30)
   workflow_dispatch:
     inputs:
       dry: { description: 'Only print, do not post', type: boolean, default: true }
+      mark: { description: 'Only record today as posted', type: boolean, default: false }
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   post:
@@ -18,12 +22,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { sparse-checkout: tools }
+      - id: d
+        run: echo "day=$(TZ=Asia/Tehran date +%F)" >> "$GITHUB_OUTPUT"
+      - id: done
+        uses: actions/cache/restore@v4
+        with: { path: .posted, key: 'radar-posted-${{ steps.d.outputs.day }}', lookup-only: true }
       - name: Post
+        if: steps.done.outputs.cache-hit != 'true' && !inputs.mark
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry }}" = "true" ]; then
-            python3 tools/radar_daily.py
+            python3 tools/radar_daily.py; echo DRY > .dry
           else
             python3 tools/radar_daily.py --send
           fi
+      - name: Already posted today
+        if: steps.done.outputs.cache-hit == 'true'
+        run: echo "::notice::already posted today (${{ steps.d.outputs.day }})"
+      - name: Record today
+        if: steps.done.outputs.cache-hit != 'true' && hashFiles('.dry') == ''
+        run: mkdir -p .posted && date > .posted/at
+      - if: steps.done.outputs.cache-hit != 'true' && hashFiles('.dry') == ''
+        uses: actions/cache/save@v4
+        with: { path: .posted, key: 'radar-posted-${{ steps.d.outputs.day }}' }
