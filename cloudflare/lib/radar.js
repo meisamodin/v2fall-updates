@@ -84,6 +84,15 @@ export async function alertCheck(env) {
   }  const post = text => fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chat, text, link_preview_options: { is_disabled: true } }) });
   await siteAlertCheck(env, post).catch(() => {});
+  // international speed: once a day per operator when it is clearly slower than the week before
+  const sp = await speedSummary(db).catch(() => null), day = new Date(Date.now() + 12600000).toISOString().slice(0, 10);
+  for (const o of (sp && sp.ops) || []) {
+    if (!o.worse || !ISP[o.a]) continue;
+    const key = 'rad:spd:' + o.a + ':' + day; if (await kv.get(key)) continue;
+    await kv.put(key, '1', { expirationTtl: 86400 * 2 });
+    const name = ISP[o.a][0];
+    await post(`🐢 اینترنت بین‌الملل ${name} امروز کندتر شده\n\n${FA(o.slow[6])}٪ اندازه‌گیری‌های امروز روی ${name} کمتر از ۱ مگابیت بوده؛ در هفتهٔ پیش ${FA(o.base)}٪.${o.med !== null ? '\nسرعت معمول امروز: ' + bandFa(o.med) : ''}\n\n📡 v2fall.com/radar\n🔒 از اندازه‌گیری‌های ناشناس برنامه‌های V2Fall (فقط بازهٔ سرعت و اپراتور).\n\n#رادار_فیلترینگ #کندی_اینترنت ${tag(name)}\n\n${SIGN}`);
+  }
 }
 
 // ---- disruption calendar: when an operator is usually worse, from the last 14 days of the same counters.
@@ -181,3 +190,49 @@ export async function siteAlertCheck(env, post) {
     }
   }
 }
+
+// ---- international speed index: the short direct download in the app's "Filtering type" check (the user's own
+// line to Cloudflare, not the VPN), as a band only: 0 <250 kbps, 1 <1 Mbps, 2 <4 Mbps, 3 <16 Mbps, 4 above.
+// Per (hour, operator, band): one counter. Public: each operator's usual band today and the share of slow
+// measurements (<1 Mbps) per day for 7 days, so throttling shows as a jump.
+export const BANDS = [[0, 250], [250, 1000], [1000, 4000], [4000, 16000], [16000, 0]];
+let spdReady = false;
+async function spdInit(db) {
+  if (spdReady) return;
+  await db.prepare('CREATE TABLE IF NOT EXISTS radar_speed (h INTEGER NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (h, a, b))').run();
+  spdReady = true;
+}
+export const bandOf = kbps => kbps < 250 ? 0 : kbps < 1000 ? 1 : kbps < 4000 ? 2 : kbps < 16000 ? 3 : 4;
+export async function speedReport(db, d) {
+  let j; try { j = JSON.parse(atob(String(d).replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return 0; }
+  if (!j || j.v !== 1 || !Number.isInteger(j.a) || j.a < 1 || j.a > 4294967295 || !Number.isInteger(j.b) || j.b < 0 || j.b > 4) return 0;
+  await spdInit(db);
+  const h = Math.floor(Date.now() / 3600000);
+  await db.prepare('INSERT INTO radar_speed (h, a, b, n) VALUES (?, ?, ?, 1) ON CONFLICT(h, a, b) DO UPDATE SET n = n + 1').bind(h, j.a, j.b).run();
+  if (Math.random() < 0.02) await db.prepare('DELETE FROM radar_speed WHERE h < ?').bind(h - 24 * 15).run();
+  return 1;
+}
+export async function speedSummary(db) {
+  await spdInit(db);
+  const now = Math.floor(Date.now() / 3600000);
+  const r = await db.prepare('SELECT h, a, b, SUM(n) AS n FROM radar_speed WHERE h > ? GROUP BY h, a, b').bind(now - 24 * 7).all();
+  const ops = new Map();
+  for (const x of r.results || []) {
+    const o = ops.get(x.a) || { a: x.a, today: [0, 0, 0, 0, 0], days: Array.from({ length: 7 }, () => [0, 0]) };
+    const age = now - x.h, day = Math.min(6, Math.floor(age / 24));
+    if (age < 24) o.today[x.b] += x.n;
+    o.days[6 - day][0] += x.n; if (x.b <= 1) o.days[6 - day][1] += x.n;
+    ops.set(x.a, o);
+  }
+  const list = [...ops.values()].map(o => {
+    const n = o.today.reduce((t, v) => t + v, 0);
+    let acc = 0, med = null; for (let b = 0; b < 5 && n; b++) { acc += o.today[b]; if (acc * 2 >= n) { med = b; break; } }
+    const slow = o.days.map(d => d[0] >= 5 ? Math.round(d[1] * 100 / d[0]) : null);
+    const prev = o.days.slice(0, 6).filter(d => d[0] >= 5), pn = prev.reduce((t, d) => t + d[0], 0), ps = prev.reduce((t, d) => t + d[1], 0);
+    const base = pn >= 15 ? Math.round(ps * 100 / pn) : null;
+    return { a: o.a, n, med, slow, base, worse: n >= 10 && base !== null && slow[6] !== null && slow[6] >= base + 20 };
+  }).filter(o => o.n >= 3 || o.slow.some(v => v !== null)).sort((p, q) => q.n - p.n);
+  return { now, bands: BANDS, ops: list };
+}
+const BAND_FA = ['زیر ۲۵۰ کیلوبیت', '۰.۲۵ تا ۱ مگابیت', '۱ تا ۴ مگابیت', '۴ تا ۱۶ مگابیت', 'بیشتر از ۱۶ مگابیت'];
+export const bandFa = b => BAND_FA[b] || '';

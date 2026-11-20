@@ -5,7 +5,7 @@
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
 // (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
 
-import { alertCheck, calendar, siteReport, siteSummary } from '../lib/radar.js';
+import { alertCheck, calendar, siteReport, siteSummary, speedReport, speedSummary } from '../lib/radar.js';
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -60,6 +60,18 @@ export async function onRequestGet({ request, env, waitUntil }) {
     const n = await siteReport(db, sd);
     if (n && waitUntil) waitUntil(alertCheck(env).catch(() => {}));
     return J({ ok: 1, n });
+  }
+  // international speed index: report (?p=, a band only) and the public summary (?speed=1)
+  const pd = u.searchParams.get('p');
+  if (pd) {
+    if (pd.length > 400 || limited('p:' + ip, 20, 3600)) return J({ error: 'too many' }, 429);
+    return J({ ok: 1, n: await speedReport(db, pd) });
+  }
+  if (u.searchParams.get('speed')) {
+    const ck = new Request(u.origin + '/radar?speed=1'), hit6 = await caches.default.match(ck); if (hit6) return hit6;
+    if (limited('v:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await speedSummary(db), 200, 'public, max-age=900');
+    await caches.default.put(ck, res.clone()); return res;
   }
   if (u.searchParams.get('sites')) {
     const ck = new Request(u.origin + '/radar?sites=1'), hit5 = await caches.default.match(ck); if (hit5) return hit5;

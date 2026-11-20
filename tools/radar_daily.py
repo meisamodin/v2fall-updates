@@ -62,6 +62,11 @@ def build(data, cals=None):
         w = (c.get('wins') or [None])[0]
         if c.get('enough') and w:
             risky.append(f"• {ISP[o['a']]}: ساعت {fa(w['from'])} تا {fa(w['to'])}")
+    # international speed index: the usual band today, and a word when clearly slower than last week
+    BANDS = ['زیر ۲۵۰ کیلوبیت', '۰.۲۵ تا ۱ مگابیت', '۱ تا ۴ مگابیت', '۴ تا ۱۶ مگابیت', 'بیشتر از ۱۶ مگابیت']
+    sp = [o for o in ((cals or {}).get('speed') or []) if o.get('a') in ISP and o.get('med') is not None and o.get('n', 0) >= 5]
+    if sp:
+        txt += '\n\n🌐 سرعت بین‌الملل معمول امروز:\n' + '\n'.join(f"• {ISP[o['a']]}: {BANDS[o['med']]}" + (' 🐢 کندتر از هفتهٔ پیش' if o.get('worse') else '') for o in sp[:6])
     if risky:
         txt += '\n\n⏰ ساعت‌های پرخطر معمول (دو هفتهٔ گذشته):\n' + '\n'.join(risky)
     txt += '\n\n📡 رادار زنده: v2fall.com/radar\n🔒 فقط شمارنده برای هر اپراتور؛ نه IP، نه سرور، نه کاربر.\n\n#رادار_فیلترینگ #گزارش_روزانه\n\n' + SIGN
@@ -79,6 +84,11 @@ def main():
                     cals[o['a']] = json.load(r)
             except Exception:
                 pass
+    try:
+        with urllib.request.urlopen(urllib.request.Request('https://dl.v2fall.com/radar?speed=1', headers={'User-Agent': 'V2Fall-daily'}), timeout=20) as r:
+            cals['speed'] = json.load(r).get('ops', [])
+    except Exception:
+        pass
     txt = build(data, cals)
     print(txt or '(too few reports today: no post)')
     if txt and '--send' in sys.argv:
