@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  actions: write  # to start winget.yml at the end
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -31,3 +32,6 @@ jobs:
           done
           FILES=$(find download -maxdepth 1 -type f \( -name "*[-_]${V}[-_.]*" -o -name '*Chrome*' -o -name '*Firefox*' \) | sort)
           gh release create "v$V" --title "V2Fall $V" --notes "$NOTES" --latest $FILES
+          # winget (needs the release's setup file, so only now). Started here because a run that GITHUB_TOKEN
+          # started (this one, from publish.yml) never fires workflow_run, so winget.yml's own trigger never came.
+          gh workflow run winget.yml -R "$GITHUB_REPOSITORY" --ref main -f version="$V" || echo "::warning::winget not started"

@@ -8,16 +8,13 @@ on:
   workflow_dispatch:
     inputs:
       version: { description: 'Version (empty = the one in latest.json)', default: '' }
-  workflow_run:
-    workflows: ["Publish release (download counter)"]
-    types: [completed]
+  # started by release.yml at its end (workflow_run never fired: release.yml is started with GITHUB_TOKEN)
 
 permissions:
   contents: read
 
 jobs:
   winget:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
