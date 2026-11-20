@@ -1,0 +1,29 @@
+# Daily Filter Radar post in the channel (tools/radar_daily.py): every evening at 21:30 Tehran time; no post when
+# there were too few reports that day. Run by hand with "dry" to only print the post in the log.
+name: Radar daily post
+
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 21:30 in Tehran (UTC+3:30)
+  workflow_dispatch:
+    inputs:
+      dry: { description: 'Only print, do not post', type: boolean, default: true }
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools }
+      - name: Post
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry }}" = "true" ]; then
+            python3 tools/radar_daily.py
+          else
+            python3 tools/radar_daily.py --send
+          fi
