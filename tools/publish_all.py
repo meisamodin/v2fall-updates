@@ -63,7 +63,7 @@ for p in sorted(glob.glob(os.path.join(W, '*'))):
         ref = old_apk(clean)
         sh('python3', f'{TOOLS}/apksign.py', 'sign', al, dst, f'{KEY}/key.pem', f'{KEY}/cert.pem', *([ref] if ref else []))
         os.remove(al)
-    elif n.endswith(('.exe', '.dmg', '.deb', '.tar.gz')):
+    elif n.endswith(('.exe', '.dmg', '.deb', '.tar.gz', '-portable.zip')):
         shutil.copy(p, os.path.join(out, n))
 files = sorted(os.listdir(out)); print('files', files)
 
@@ -80,6 +80,7 @@ K = {
     'macos_intel': find(lambda f: 'Intel' in f),
     'linux': find(lambda f: f.endswith('.deb')),
     'linux_tar': find(lambda f: f.endswith('.tar.gz')),
+    'windows_portable': find(lambda f: f.endswith('-Windows-x64-portable.zip')),  # the USB copy (data beside the app)
 }
 assert K['android'] and K['android_arm64'] and K['windows'] and K['linux'], K
 vcode = int(sh('python3', f'{TOOLS}/apksign.py', 'vcode', os.path.join(out, K['android']), out=True).strip().split()[-1])
@@ -135,7 +136,8 @@ def files_of(path):
     if path.endswith('.zip'):
         z = zipfile.ZipFile(path)
         for i in z.infolist():
-            if not i.is_dir(): out[i.filename.replace('\\', '/')] = z.read(i)
+            # portable.txt (the portable zip's marker) never goes into a small update: installed copies would turn portable
+            if not i.is_dir() and i.filename.replace('\\', '/') != 'portable.txt': out[i.filename.replace('\\', '/')] = z.read(i)
     else:
         t = tarfile.open(path)
         for m in t.getmembers():
@@ -191,7 +193,7 @@ def addd(k):
         d = DELTA[k]; m[k]['delta'] = [{'from': d['from'], 'fromv': d['fromv'], 'url': f'https://cdn.jsdelivr.net/gh/{REPO}@{sha}/download/delta/{d["file"]}', 'sha256': d['sha256'], 'size': d['size']}]
 m['page'] = f'https://github.com/{REPO}'
 if K['android6']: m['android6'] = ent('android6', K['android6'])  # never carried over from an older version
-for k in ('macos', 'macos_intel', 'linux', 'linux_tar', 'android_arm64', 'android_armv7'):
+for k in ('macos', 'macos_intel', 'linux', 'linux_tar', 'android_arm64', 'android_armv7', 'windows_portable'):
     if K[k]: m[k] = ent(k, K[k])
     elif k in old: m[k] = old[k]; print('kept old', k)
 for k in ('android', 'android_arm64', 'android_armv7', 'android6', 'windows', 'linux_tar'): addd(k)

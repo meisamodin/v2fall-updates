@@ -390,8 +390,15 @@ jobs:
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          # Microsoft's WebView2 bootstrapper: the installer runs it only on a Windows without the runtime
+          try { Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile desktop/installer/MicrosoftEdgeWebview2Setup.exe; Write-Host "WebView2 bootstrapper: $((Get-Item desktop/installer/MicrosoftEdgeWebview2Setup.exe).Length) bytes" } catch { Write-Host "::warning::WebView2 bootstrapper not downloaded: $_" }
           & $iscc "/DAppVer=$env:APP_VERSION" "/DSrcDir=..\build\win" desktop/installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+          # portable zip: "portable.txt" makes V2Fall keep its data in a "data" folder beside it (publish_all leaves
+          # this file out of the small updates, so installed copies never become portable)
+          Set-Content -Path build/win/portable.txt -Value "V2Fall portable: settings, servers and subscriptions are kept in the data folder next to V2Fall.exe. Delete this file to use the normal per-user location." -Encoding utf8
           Compress-Archive -Path build/win/* -DestinationPath "dist/V2Fall-$env:APP_VERSION-Windows-x64-portable.zip"
+          Remove-Item build/win/portable.txt
 
       - name: Upload to the draft release
         shell: bash
