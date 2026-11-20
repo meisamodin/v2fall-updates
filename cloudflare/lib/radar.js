@@ -93,6 +93,16 @@ export async function alertCheck(env) {
     const name = ISP[o.a][0];
     await post(`🐢 اینترنت بین‌الملل ${name} امروز کندتر شده\n\n${FA(o.slow[6])}٪ اندازه‌گیری‌های امروز روی ${name} کمتر از ۱ مگابیت بوده؛ در هفتهٔ پیش ${FA(o.base)}٪.${o.med !== null ? '\nسرعت معمول امروز: ' + bandFa(o.med) : ''}\n\n📡 v2fall.com/radar\n🔒 از اندازه‌گیری‌های ناشناس برنامه‌های V2Fall (فقط بازهٔ سرعت و اپراتور).\n\n#رادار_فیلترینگ #کندی_اینترنت ${tag(name)}\n\n${SIGN}`);
   }
+  // early warning: several operators getting worse together (a drop on 2 or more, or drops and slowdowns on 3 or
+  // more) is how the wide disruptions have started. Not a forecast: a nudge to get ready while the internet is still
+  // open. At most once every 6 hours; the app reads the same note (/radar?w=1).
+  const drops = ops.filter(o => ISP[o.a] && o.drop).map(o => o.a), slows = ((sp && sp.ops) || []).filter(o => ISP[o.a] && o.worse).map(o => o.a);
+  const both = [...new Set([...drops, ...slows])];
+  if ((drops.length >= 2 || both.length >= 3) && !(await kv.get('rad:wide'))) {
+    await kv.put('rad:wide', JSON.stringify({ t: Date.now(), ops: both }), { expirationTtl: 6 * 3600 });
+    const names = both.map(a => ISP[a][0]).join('، ');
+    await post(`🚨 بدتر شدن هم‌زمان اینترنت روی چند اپراتور\n\nدر چند ساعت گذشته اتصال‌ها روی ${names} هم‌زمان بدتر شده. اختلال‌های گسترده معمولاً همین‌طور شروع شده‌اند؛ این پیش‌بینی قطعی نیست، ولی آماده بودن ضرری ندارد.\n\n✅ تا اینترنت باز است:\n• در V2Fall: تنظیمات ← حالت قطعی اینترنت ← «آماده شو برای قطعی» (اشتراک‌ها به‌روز، DNSهای سالم، مسیرهای اضطراری)\n• برنامه را برای خانواده و دوستان هم بفرست\n\n📡 رادار زنده: v2fall.com/radar\n\n#رادار_فیلترینگ #قطعی_اینترنت #اختلال\n\n${SIGN}`);
+  }
 }
 
 // ---- disruption calendar: when an operator is usually worse, from the last 14 days of the same counters.
@@ -137,6 +147,8 @@ export function calLine(c, en) {
 // ---- site radar: is each of a fixed list of popular sites reachable WITHOUT the VPN on each operator, from the
 // app's "status of popular sites" check (only with anonymous reports on). Stored per (hour, operator, site): two
 // counters. Same list and order in the app (RADAR_SITES) and on the site's radar page.
+export async function wideNote(kv) { try { const v = kv && await kv.get('rad:wide'); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+
 export const SITES = [['instagram.com', 'اینستاگرام'], ['youtube.com', 'یوتیوب'], ['x.com', 'ایکس'], ['telegram.org', 'تلگرام'], ['whatsapp.com', 'واتس‌اپ'], ['chatgpt.com', 'ChatGPT'], ['github.com', 'گیت‌هاب'], ['discord.com', 'دیسکورد'], ['play.google.com', 'گوگل‌پلی'], ['wikipedia.org', 'ویکی‌پدیا'], ['linkedin.com', 'لینکدین'], ['spotify.com', 'اسپاتیفای']];
 let siteReady = false;
 export async function siteInit(db) {

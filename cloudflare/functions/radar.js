@@ -5,7 +5,7 @@
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
 // (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
 
-import { alertCheck, calendar, siteReport, siteSummary, speedReport, speedSummary } from '../lib/radar.js';
+import { alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary } from '../lib/radar.js';
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -66,6 +66,11 @@ export async function onRequestGet({ request, env, waitUntil }) {
   if (pd) {
     if (pd.length > 400 || limited('p:' + ip, 20, 3600)) return J({ error: 'too many' }, 429);
     return J({ ok: 1, n: await speedReport(db, pd) });
+  }
+  // early warning (lib/radar.js alertCheck): several operators worse together in the last hours, or null
+  if (u.searchParams.get('w')) {
+    if (limited('w:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    return J({ wide: await wideNote(env.CODES) }, 200, 'public, max-age=300');
   }
   if (u.searchParams.get('speed')) {
     const ck = new Request(u.origin + '/radar?speed=1'), hit6 = await caches.default.match(ck); if (hit6) return hit6;
