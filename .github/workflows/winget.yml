@@ -1,0 +1,98 @@
+# winget (Windows Package Manager): after a stable release, writes the V2Fall manifests for that version and,
+# when the WINGET_TOKEN secret exists (a classic GitHub token with public_repo, from the account that owns the
+# winget-pkgs fork), opens the pull request to microsoft/winget-pkgs with wingetcreate. Without the secret the
+# manifests are only kept as the run's artifact (for a manual PR).
+name: winget manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      version: { description: 'Version (empty = the one in latest.json)', default: '' }
+  workflow_run:
+    workflows: ["Publish release (download counter)"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  winget:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: latest.json, sparse-checkout-cone-mode: false }
+      - name: Write manifests
+        id: m
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $man = Get-Content latest.json -Raw | ConvertFrom-Json
+          $V = if ("${{ inputs.version }}") { "${{ inputs.version }}" } else { $man.version }
+          $url = "https://github.com/${{ github.repository }}/releases/download/v$V/V2Fall-Setup-$V.exe"
+          # the release page is made by release.yml: wait for the setup to be there, then hash the real file
+          for ($i = 0; $i -lt 30; $i++) { try { Invoke-WebRequest $url -OutFile setup.exe; break } catch { Start-Sleep 20 } }
+          if (-not (Test-Path setup.exe)) { throw "setup not on the release page: $url" }
+          $sha = (Get-FileHash setup.exe -Algorithm SHA256).Hash
+          $id = 'V2Fall.V2Fall'
+          $dir = "manifests/v/V2Fall/V2Fall/$V"
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          @"
+          PackageIdentifier: $id
+          PackageVersion: $V
+          DefaultLocale: en-US
+          ManifestType: version
+          ManifestVersion: 1.6.0
+          "@ -replace '(?m)^          ', '' | Set-Content "$dir/$id.yaml" -Encoding utf8
+          @"
+          PackageIdentifier: $id
+          PackageVersion: $V
+          InstallerType: inno
+          Scope: user
+          UpgradeBehavior: install
+          ProductCode: '{6D1F2B7A-3C94-4E58-9B0E-5A2F7C11D4E3}_is1'
+          FileExtensions:
+          - v2f
+          Protocols:
+          - v2fall
+          Installers:
+          - Architecture: x64
+            InstallerUrl: $url
+            InstallerSha256: $sha
+          ManifestType: installer
+          ManifestVersion: 1.6.0
+          "@ -replace '(?m)^          ', '' | Set-Content "$dir/$id.installer.yaml" -Encoding utf8
+          @"
+          PackageIdentifier: $id
+          PackageVersion: $V
+          PackageLocale: en-US
+          Publisher: odin
+          PublisherUrl: https://v2fall.com
+          PublisherSupportUrl: https://v2fall.com/guide
+          PrivacyUrl: https://v2fall.com/privacy
+          PackageName: V2Fall
+          PackageUrl: https://v2fall.com
+          License: Freeware
+          ShortDescription: Free, secure connection app with automatic server choice, for Windows, Android, macOS and Linux.
+          Description: V2Fall connects securely over all the common protocols. Add subscriptions and configs in one click; the fastest working server is picked for you, with tools such as a filter radar, leak test and game mode.
+          Tags:
+          - vpn
+          - proxy
+          - privacy
+          - censorship
+          ReleaseNotesUrl: https://v2fall.com
+          ManifestType: defaultLocale
+          ManifestVersion: 1.6.0
+          "@ -replace '(?m)^          ', '' | Set-Content "$dir/$id.locale.en-US.yaml" -Encoding utf8
+          Get-ChildItem $dir | ForEach-Object { Write-Host "--- $($_.Name)"; Get-Content $_.FullName }
+          "dir=$dir" >> $env:GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with: { name: winget-manifests, path: manifests }
+      - name: Submit to winget-pkgs
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        shell: pwsh
+        run: |
+          if (-not $env:WINGET_TOKEN) { Write-Host "::notice::No WINGET_TOKEN secret: manifests kept as the run's artifact only"; exit 0 }
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe submit --token $env:WINGET_TOKEN "${{ steps.m.outputs.dir }}"
