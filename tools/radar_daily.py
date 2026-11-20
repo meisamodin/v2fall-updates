@@ -32,7 +32,7 @@ def fa(x):
     return str(x).translate(FA)
 
 
-def build(data):
+def build(data, cals=None):
     ops = [o for o in data.get('ops', []) if o.get('a') in ISP and o.get('n', 0) >= 20]
     total = sum(o['n'] for o in ops)
     if len(ops) < 2 or total < 80:
@@ -55,6 +55,15 @@ def build(data):
     if top:
         txt += '\n\n🏆 بهترین نوع اتصال امروز:\n' + '\n'.join(f"{fa(i + 1)}. {k} — {fa(pct(v[1], v[0]))}٪" for i, (k, v) in enumerate(top))
     txt += f"\n\n✨ بهترین اپراتور امروز: {ISP[best_op['a']]}"
+    # disruption calendar: the hours each operator is usually worse (14 days), only with enough reports
+    risky = []
+    for o in ops[:8]:
+        c = (cals or {}).get(o['a']) or {}
+        w = (c.get('wins') or [None])[0]
+        if c.get('enough') and w:
+            risky.append(f"• {ISP[o['a']]}: ساعت {fa(w['from'])} تا {fa(w['to'])}")
+    if risky:
+        txt += '\n\n⏰ ساعت‌های پرخطر معمول (دو هفتهٔ گذشته):\n' + '\n'.join(risky)
     txt += '\n\n📡 رادار زنده: v2fall.com/radar\n🔒 فقط شمارنده برای هر اپراتور؛ نه IP، نه سرور، نه کاربر.\n\n#رادار_فیلترینگ #گزارش_روزانه\n\n' + SIGN
     return txt
 
@@ -62,7 +71,15 @@ def build(data):
 def main():
     with urllib.request.urlopen(urllib.request.Request('https://dl.v2fall.com/radar?all=1', headers={'User-Agent': 'V2Fall-daily'}), timeout=30) as r:
         data = json.load(r)
-    txt = build(data)
+    cals = {}
+    for o in data.get('ops', [])[:10]:
+        if o.get('a') in ISP:
+            try:
+                with urllib.request.urlopen(urllib.request.Request(f"https://dl.v2fall.com/radar?cal={o['a']}", headers={'User-Agent': 'V2Fall-daily'}), timeout=20) as r:
+                    cals[o['a']] = json.load(r)
+            except Exception:
+                pass
+    txt = build(data, cals)
     print(txt or '(too few reports today: no post)')
     if txt and '--send' in sys.argv:
         tok = os.environ['TELEGRAM_BOT_TOKEN']

@@ -46,7 +46,8 @@ export async function botText(db, en) {
   for (const o of ops) {
     const p = pct(o.ok, o.n), dot = o.drop ? '⚠️' : p >= 70 ? '🟢' : p >= 40 ? '🟡' : '🔴';
     const b = o.best.slice(0, 2).map(x => label(x.k) + ' ' + (en ? pct(x.ok, x.n) + '%' : FA(pct(x.ok, x.n)) + '٪'));
-    L.push(`${dot} ${ispName(o.a, en)}: ${en ? p + '%' : FA(p) + '٪'}${o.drop ? (en ? ' — sudden drop in the last 2 h' : ' — افت ناگهانی در ۲ ساعت اخیر') : ''}` + (b.length ? '\n   ' + (en ? 'best: ' : 'بهترین: ') + b.join(en ? ', ' : '، ') : ''));
+    const cl = calLine(await calendar(db, o.a).catch(() => null), en);
+    L.push(`${dot} ${ispName(o.a, en)}: ${en ? p + '%' : FA(p) + '٪'}${o.drop ? (en ? ' — sudden drop in the last 2 h' : ' — افت ناگهانی در ۲ ساعت اخیر') : ''}` + (b.length ? '\n   ' + (en ? 'best: ' : 'بهترین: ') + b.join(en ? ', ' : '، ') : '') + (cl ? '\n   ⏰ ' + cl : ''));
   }
   L.push(en ? '\n🔒 Only counters per operator are kept: no IP, no server, no user.' : '\n🔒 فقط شمارنده برای هر اپراتور نگه داشته می‌شود: نه IP، نه سرور، نه کاربر.');
   return L.join('\n');
@@ -81,4 +82,43 @@ export async function alertCheck(env) {
     if (text) await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chat, text, link_preview_options: { is_disabled: true } }) });
   }
+}
+
+// ---- disruption calendar: when an operator is usually worse, from the last 14 days of the same counters.
+// By hour of the day in Tehran (14 samples per hour); weekdays only when each has enough reports. A window is
+// "risky" when its success is clearly under the operator's own average (12 points or more), with enough reports.
+const TEH = h => new Date(h * 3600000 + 12600000); // UTC hour index → a Date whose UTC fields are Tehran's (+3:30)
+export async function calendar(db, a) {
+  const now = Math.floor(Date.now() / 3600000);
+  const r = await db.prepare('SELECT h, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE a = ? AND h > ? GROUP BY h').bind(a, now - 24 * 14).all();
+  const hr = Array.from({ length: 24 }, () => [0, 0]), dw = Array.from({ length: 7 }, () => [0, 0]);
+  let N = 0, OK = 0;
+  for (const x of r.results || []) {
+    const t = TEH(x.h), H = t.getUTCHours(), D = t.getUTCDay();
+    hr[H][0] += x.n; hr[H][1] += x.ok; dw[D][0] += x.n; dw[D][1] += x.ok; N += x.n; OK += x.ok;
+  }
+  const avg = N ? OK / N : 0, rate = v => v[0] ? v[1] / v[0] : null;
+  const hours = hr.map(v => [v[0], v[0] >= 15 ? Math.round(rate(v) * 100) : null]);
+  const bad = hr.map(v => v[0] >= 15 && rate(v) <= avg - 0.12);
+  // join neighbouring risky hours into windows (across midnight too)
+  const wins = [];
+  for (let s = 0; s < 24; s++) {
+    if (!bad[s] || bad[(s + 23) % 24] && !bad.every(Boolean)) continue;
+    let e = s; while (bad[(e + 1) % 24] && (e + 1) % 24 !== s) e = (e + 1) % 24;
+    const span = []; for (let i = s; ; i = (i + 1) % 24) { span.push(i); if (i === e) break; }
+    const n = span.reduce((t, i) => t + hr[i][0], 0), ok = span.reduce((t, i) => t + hr[i][1], 0);
+    wins.push({ from: s, to: (e + 1) % 24, rate: Math.round(ok * 100 / n), n });
+  }
+  wins.sort((p, q) => p.rate - q.rate);
+  const days = dw.every(v => v[0] >= 20) ? dw.map(v => Math.round(rate(v) * 100)) : null;
+  // the next risky window starting within 12 hours (Tehran time), for "tonight from 20:00"
+  const nowH = TEH(now).getUTCHours(); let next = null;
+  for (const w of wins) { const inH = (w.from - nowH + 24) % 24; const inside = (nowH - w.from + 24) % 24 < (w.to - w.from + 24) % 24 || w.to === w.from; if (inside) { next = { ...w, inH: 0 }; break; } if (inH <= 12 && (!next || inH < next.inH)) next = { ...w, inH }; }
+  return { a, n: N, avg: Math.round(avg * 100), hours, wins: wins.slice(0, 3), days, next, enough: N >= 200 };
+}
+const faN = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+export function calLine(c, en) {
+  if (!c || !c.enough || !c.wins.length) return '';
+  const w = c.wins[0];
+  return en ? `usually worse ${String(w.from).padStart(2, '0')}:00–${String(w.to).padStart(2, '0')}:00 (${w.rate}% vs ${c.avg}%)` : `معمولاً ساعت ${faN(w.from)} تا ${faN(w.to)} بدتر است (${faN(w.rate)}٪ در برابر ${faN(c.avg)}٪)`;
 }

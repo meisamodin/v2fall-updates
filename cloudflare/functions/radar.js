@@ -5,7 +5,7 @@
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
 // (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
 
-import { alertCheck } from '../lib/radar.js';
+import { alertCheck, calendar } from '../lib/radar.js';
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -63,6 +63,14 @@ export async function onRequestGet({ request, env, waitUntil }) {
     for (const x of r.results || []) { const o = ops.get(x.a) || { a: x.a, n: 0, ok: 0, rn: 0, rok: 0, k: [] }; o.n += x.n; o.ok += x.ok; o.rn += x.rn; o.rok += x.rok; if (x.n >= 3) o.k.push({ k: x.k, n: x.n, ok: x.ok }); ops.set(x.a, o); }
     const list = [...ops.values()].filter(o => o.n >= 10).map(o => (o.k.sort((p, q) => (q.ok / q.n) - (p.ok / p.n) || q.n - p.n), o.k = o.k.slice(0, 6), o)).sort((p, q) => q.n - p.n).slice(0, 20);
     const res = J({ now, ops: list }, 200, 'public, max-age=600');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // disruption calendar: the hours of the day (Tehran time) this operator is usually worse, from 14 days
+  const cA = parseInt(u.searchParams.get('cal') || '', 10);
+  if (cA > 0) {
+    const ck = new Request(u.origin + '/radar?cal=' + cA), hit4 = await caches.default.match(ck); if (hit4) return hit4;
+    if (limited('c:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await calendar(db, cA), 200, 'public, max-age=3600');
     await caches.default.put(ck, res.clone()); return res;
   }
   // history: success per hour for the last 7 days (all kinds together) and per day for the kinds seen most
