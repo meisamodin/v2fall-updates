@@ -181,7 +181,8 @@ export async function siteReport(db, d) {
   if (!rows.length) return 0;
   await siteInit(db);
   const h = Math.floor(Date.now() / 3600000);
-  await db.batch(rows.map(x => db.prepare('INSERT INTO radar_site (h, a, s, n, ok) VALUES (?, ?, ?, 1, ?) ON CONFLICT(h, a, s) DO UPDATE SET n = n + 1, ok = ok + excluded.ok').bind(h, j.a, x[0], x[1])));
+  await dayInit(db, null);
+  await db.batch(rows.flatMap(x => [db.prepare('INSERT INTO radar_site (h, a, s, n, ok) VALUES (?, ?, ?, 1, ?) ON CONFLICT(h, a, s) DO UPDATE SET n = n + 1, ok = ok + excluded.ok').bind(h, j.a, x[0], x[1]), siteDayRow(db, h, j.a, x[0], x[1])]));
   if (Math.random() < 0.02) await db.prepare('DELETE FROM radar_site WHERE h < ?').bind(h - 24 * 15).run();
   return rows.length;
 }
@@ -295,12 +296,18 @@ export async function incidents(db, kv) {
   }
   for (const e of out) e.wide = out.some(o => o !== e && o.a !== e.a && o.from <= (e.to ?? now) && (o.to ?? now) >= e.from);
   const ev = out.map(e => ({ type: 'drop', a: e.a, from: e.from, to: e.to, base: Math.round(e.base * 100), low: Math.round(e.low * 100), n: e.n, wide: e.wide }));
-  try { const s = JSON.parse(await kv.get('rad:sev') || '[]'); for (const x of s) if (x.h > now - 24 * 30) ev.push(x); } catch (e) {}
+  try {
+    await dayInit(db, kv);
+    if (ev.length) await db.batch(ev.map(e => db.prepare('INSERT INTO radar_inc (a, f, t, base, low, n, wide) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(a, f) DO UPDATE SET t = excluded.t, base = excluded.base, low = excluded.low, n = excluded.n, wide = MAX(wide, excluded.wide)').bind(e.a, e.from, e.to, e.base, e.low, e.n, e.wide ? 1 : 0)));
+    const old = await db.prepare('SELECT a, f, t, base, low, n, wide FROM radar_inc WHERE f <= ? ORDER BY f DESC LIMIT 200').bind(from).all();
+    for (const x of old.results || []) if (ISP[x.a]) ev.push({ type: 'drop', a: x.a, from: x.f, to: x.t ?? x.f + 1, base: x.base, low: x.low, n: x.n, wide: !!x.wide });
+  } catch (e) {}
+  try { const s = JSON.parse(await kv.get('rad:sev') || '[]'); for (const x of s) ev.push(x); } catch (e) {}
   ev.sort((p, q) => (q.from ?? q.h) - (p.from ?? p.h));
-  return { now, ev: ev.slice(0, 120) };
+  return { now, ev: ev.slice(0, 300) };
 }
 async function siteEvent(kv, x) {
-  try { const l = JSON.parse(await kv.get('rad:sev') || '[]'); l.unshift(x); await kv.put('rad:sev', JSON.stringify(l.slice(0, 200))); } catch (e) {}
+  try { const l = JSON.parse(await kv.get('rad:sev') || '[]'); l.unshift(x); await kv.put('rad:sev', JSON.stringify(l.slice(0, 500))); } catch (e) {}
 }
 
 // ---- trends: the whole country hour by hour (8 days, every named operator together) and each operator day by day
@@ -327,4 +334,75 @@ export async function siteTrends(db, a) {
   const s = SITES.map(() => Array.from({ length: 14 }, () => [0, 0]));
   for (const x of r.results || []) { const d = 13 - (today - dayOf(x.h)); if (d < 0 || d > 13 || !s[x.s]) continue; s[x.s][d][0] += x.n; s[x.s][d][1] += x.ok; }
   return { now, a: a || 0, sites: SITES.map(x => x[0]), days: s };
+}
+
+// ---- long-term history: the hourly tables keep 15 days; these daily ones (Tehran days) are kept for good, so the
+// radar can show months and years. Written at report time next to the hourly rows; filled once from what the
+// hourly tables still hold.
+export const dayOf = h => Math.floor((h * 3600000 + 12600000) / 864e5);
+let dayReady = false;
+export async function dayInit(db, kv) {
+  if (dayReady) return;
+  await db.prepare('CREATE TABLE IF NOT EXISTS radar_day (d INTEGER NOT NULL, a INTEGER NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, ok INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (d, a, k))').run();
+  await db.prepare('CREATE TABLE IF NOT EXISTS radar_site_day (d INTEGER NOT NULL, a INTEGER NOT NULL, s INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, ok INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (d, a, s))').run();
+  await db.prepare('CREATE TABLE IF NOT EXISTS radar_inc (a INTEGER NOT NULL, f INTEGER NOT NULL, t INTEGER, base INTEGER, low INTEGER, n INTEGER, wide INTEGER, PRIMARY KEY (a, f))').run();
+  if (kv && !(await kv.get('rad:dayfill'))) {
+    await kv.put('rad:dayfill', '1');
+    await siteInit(db);
+    // the first fill: every day the 15-day tables still have (today too; reports from now on add to it)
+    await db.prepare('INSERT INTO radar_day (d, a, k, n, ok) SELECT (h * 3600000 + 12600000) / 86400000, a, k, SUM(n), SUM(ok) FROM radar GROUP BY 1, a, k ON CONFLICT(d, a, k) DO NOTHING').run();
+    await db.prepare('INSERT INTO radar_site_day (d, a, s, n, ok) SELECT (h * 3600000 + 12600000) / 86400000, a, s, SUM(n), SUM(ok) FROM radar_site GROUP BY 1, a, s ON CONFLICT(d, a, s) DO NOTHING').run();
+  }
+  dayReady = true;
+}
+export const dayRow = (db, h, a, k, ok) => db.prepare('INSERT INTO radar_day (d, a, k, n, ok) VALUES (?, ?, ?, 1, ?) ON CONFLICT(d, a, k) DO UPDATE SET n = n + 1, ok = ok + excluded.ok').bind(dayOf(h), a, k, ok);
+export const siteDayRow = (db, h, a, s, ok) => db.prepare('INSERT INTO radar_site_day (d, a, s, n, ok) VALUES (?, ?, ?, 1, ?) ON CONFLICT(d, a, s) DO UPDATE SET n = n + 1, ok = ok + excluded.ok').bind(dayOf(h), a, s, ok);
+
+// ?long=1 → every day so far (up to 3 years): the whole country and each named operator
+export async function longTrend(db, kv) {
+  await dayInit(db, kv);
+  const today = dayOf(Math.floor(Date.now() / 3600000));
+  const r = await db.prepare('SELECT d, a, SUM(n) AS n, SUM(ok) AS ok FROM radar_day WHERE d > ? GROUP BY d, a').bind(today - 1100).all();
+  const nat = new Map(), ops = {};
+  for (const x of r.results || []) {
+    if (!ISP[x.a]) continue;
+    const v = nat.get(x.d) || [x.d, 0, 0]; v[1] += x.n; v[2] += x.ok; nat.set(x.d, v);
+    (ops[x.a] || (ops[x.a] = [])).push([x.d, x.n, x.ok]);
+  }
+  for (const a in ops) ops[a].sort((p, q) => p[0] - q[0]);
+  return { today, nat: [...nat.values()].sort((p, q) => p[0] - q[0]), ops };
+}
+// ?kinds=1[&a=asn] → the main kinds of connection day by day, last 30 days: when each one got hit
+export async function kindTrend(db, kv, a) {
+  await dayInit(db, kv);
+  const today = dayOf(Math.floor(Date.now() / 3600000)), from = today - 29;
+  const r = a ? await db.prepare('SELECT d, k, SUM(n) AS n, SUM(ok) AS ok FROM radar_day WHERE d >= ? AND a = ? GROUP BY d, k').bind(from, a).all()
+    : await db.prepare('SELECT d, k, SUM(n) AS n, SUM(ok) AS ok FROM radar_day WHERE d >= ? GROUP BY d, k').bind(from).all();
+  // a family = protocol + its kind of security (VLESS Reality, VLESS TLS, Hysteria2, WireGuard…): transports apart
+  // split the reports too thin to read
+  const fam = k => { const [p, , s] = String(k).split('|'); return p + (s && s !== 'none' && ['VLESS', 'VMESS', 'TROJAN'].includes(p) ? '|' + s : ''); };
+  const by = new Map();
+  for (const x of r.results || []) {
+    const f = fam(x.k), o = by.get(f) || { k: f, n: 0, days: Array.from({ length: 30 }, () => [0, 0]) };
+    o.n += x.n; const i = x.d - from; if (i >= 0 && i < 30) { o.days[i][0] += x.n; o.days[i][1] += x.ok; }
+    by.set(f, o);
+  }
+  const fams = [...by.values()].filter(o => o.n >= 30).sort((p, q) => q.n - p.n).slice(0, 8);
+  return { today, from, a: a || 0, fams: fams.map(o => ({ k: o.k, label: (([p, sec]) => (P[p] || p) + (sec ? ' ' + ({ reality: 'Reality', tls: 'TLS' }[sec] || sec) : ''))(o.k.split('|')), n: o.n, days: o.days })) };
+}
+
+// ---- one incident: what was stored plus every named operator's hours from 12 h before to 12 h after
+export async function incidentDetail(db, kv, id) {
+  const [a, f] = id.split('-').map(Number);
+  await dayInit(db, kv);
+  let x = await db.prepare('SELECT a, f, t, base, low, n, wide FROM radar_inc WHERE a = ? AND f = ?').bind(a, f).first();
+  if (!x) { await incidents(db, kv); x = await db.prepare('SELECT a, f, t, base, low, n, wide FROM radar_inc WHERE a = ? AND f = ?').bind(a, f).first(); }
+  if (!x || !ISP[x.a]) return null;
+  const now = Math.floor(Date.now() / 3600000), to = x.t ?? now, h0 = x.f - 12, h1 = Math.min(now, to + 12);
+  const r = await db.prepare('SELECT a, h, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE h >= ? AND h <= ? GROUP BY a, h').bind(h0, h1).all();
+  const ops = {};
+  for (const y of r.results || []) { if (!ISP[y.a]) continue; (ops[y.a] || (ops[y.a] = [])).push([y.h, y.n, y.ok]); }
+  // other operators that fell at the same time
+  const also = (await db.prepare('SELECT a, f, t, low FROM radar_inc WHERE a != ? AND f <= ? AND COALESCE(t, ?) >= ?').bind(a, to, now, x.f).all()).results || [];
+  return { now, inc: { a: x.a, from: x.f, to: x.t, base: x.base, low: x.low, n: x.n, wide: !!x.wide }, also: also.filter(y => ISP[y.a]).map(y => ({ a: y.a, from: y.f, to: y.t, low: y.low })), h0, h1, ops };
 }

@@ -3,11 +3,13 @@
 //   read:   GET /radar?q=<asn>  → {n, k: [{k: "PROTO|transport|security|frag", n, ok}, …]}  (last 24 h, cached 10 min)
 //           ?all=1 every operator · ?h=<asn> 8 days hourly · ?cal=<asn> usual bad hours · ?ev=1 incident archive
 //           ?trend=1 country hourly + operators daily · ?sites=1 · ?sh=1|<asn> sites daily · ?speed=1 · ?export=csv
+//           ?long=1 every day so far (kept for good) · ?kinds=1[&a=<asn>] kinds of connection, 30 days · ?inc=<asn>-<hour>
+//           /radar/feed incidents as an Atom feed
 // The app sends reports only through its own VPN tunnel, so the address that reaches us is the VPN's exit,
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
-// (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
+// (hour, operator, kind of connection). Hourly rows older than 15 days are deleted; daily totals stay.
 
-import { ISP, alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary, incidents, trends, siteTrends } from '../lib/radar.js';
+import { ISP, alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary, incidents, trends, siteTrends, dayInit, dayRow, longTrend, kindTrend, incidentDetail } from '../lib/radar.js';
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -49,7 +51,8 @@ export async function onRequestGet({ request, env, waitUntil }) {
     if (d.length > 6000 || limited('r:' + ip, 30, 3600)) return J({ error: 'too many' }, 429);
     const list = rows(d); if (!list.length) return J({ ok: 1, n: 0 });
     const h = Math.floor(Date.now() / 3600000);
-    await db.batch(list.map(x => db.prepare('INSERT INTO radar (h, a, k, n, ok, ms) VALUES (?, ?, ?, 1, ?, ?) ON CONFLICT(h, a, k) DO UPDATE SET n = n + 1, ok = ok + excluded.ok, ms = ms + excluded.ms').bind(h, x.a, x.k, x.ok, x.m)));
+    await dayInit(db, env.CODES); // the daily tables kept for good (long-term history)
+    await db.batch(list.flatMap(x => [db.prepare('INSERT INTO radar (h, a, k, n, ok, ms) VALUES (?, ?, ?, 1, ?, ?) ON CONFLICT(h, a, k) DO UPDATE SET n = n + 1, ok = ok + excluded.ok, ms = ms + excluded.ms').bind(h, x.a, x.k, x.ok, x.m), dayRow(db, h, x.a, x.k, x.ok)]));
     if (Math.random() < 0.02) await db.prepare('DELETE FROM radar WHERE h < ?').bind(h - 24 * 15).run(); // two weeks for the history page
     // a sudden drop on one operator → a post in the channel (checked at most every 20 minutes, see lib/radar.js)
     if (waitUntil) waitUntil(alertCheck(env).catch(() => {}));
@@ -84,6 +87,28 @@ export async function onRequestGet({ request, env, waitUntil }) {
     const ck = new Request(u.origin + '/radar?sites=1'), hit5 = await caches.default.match(ck); if (hit5) return hit5;
     if (limited('t:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
     const res = J(await siteSummary(db), 200, 'public, max-age=600');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // long-term history (daily, kept for good) and the kinds of connection over 30 days
+  if (u.searchParams.get('long')) {
+    const ck = new Request(u.origin + '/radar?long=1'), hitL = await caches.default.match(ck); if (hitL) return hitL;
+    if (limited('l:' + ip, 20, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await longTrend(db, env.CODES), 200, 'public, max-age=3600');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  if (u.searchParams.get('kinds')) {
+    const ka = parseInt(u.searchParams.get('a') || '0', 10) || 0, ck = new Request(u.origin + '/radar?kinds=1&a=' + ka), hitK = await caches.default.match(ck); if (hitK) return hitK;
+    if (limited('k:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await kindTrend(db, env.CODES, ka), 200, 'public, max-age=1800');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // one incident with the hours around it (its own page on the site: v2fall.com/radar/event?id=<asn>-<hour>)
+  const inc = u.searchParams.get('inc');
+  if (inc && /^\d{1,10}-\d{5,7}$/.test(inc)) {
+    const ck = new Request(u.origin + '/radar?inc=' + inc), hitI = await caches.default.match(ck); if (hitI) return hitI;
+    if (limited('e:' + ip, 60, 600)) return J({ error: 'too many' }, 429);
+    const r = await incidentDetail(db, env.CODES, inc); if (!r) return J({ error: 'not found' }, 404);
+    const res = J(r, 200, r.inc.to == null ? 'public, max-age=300' : 'public, max-age=86400');
     await caches.default.put(ck, res.clone()); return res;
   }
   // incident archive (14 days of drops on each operator, site blocks / openings for 30 days)
