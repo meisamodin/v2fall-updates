@@ -25,8 +25,8 @@ export async function onRequestGet({ request, env }) {
   }).join('');
   const total = ops.reduce((s, o) => s + o.n, 0);
   const T = fa
-    ? { h: 'رادار فیلترینگ', s: 'موفقیت اتصال در ۲۴ ساعت گذشته', none: 'هنوز گزارش کافی نیامده', f: 'گزارش ناشناس کاربران V2Fall', more: 'جزئیات کامل' }
-    : { h: 'Filter Radar', s: 'Connections that worked, last 24 h', none: 'Not enough reports yet', f: 'anonymous reports of V2Fall users', more: 'Full details' };
+    ? { h: 'رادار فیلترینگ', s: 'موفقیت اتصال در ۲۴ ساعت گذشته', none: 'هنوز گزارش کافی نیامده', f: 'گزارش ناشناس کاربران V2Fall', more: 'جزئیات کامل در V2Fall' }
+    : { h: 'Filter Radar', s: 'Connections that worked, last 24 h', none: 'Not enough reports yet', f: 'anonymous reports of V2Fall users', more: 'Full details on V2Fall' };
   const C = light ? { bg: '#FFFFFF', card: '#F4F1EA', text: '#1D1A16', muted: '#6B6358', line: 'rgba(0,0,0,.08)', bar: '#E6E0D5' }
                   : { bg: '#0C0806', card: '#181412', text: '#EDE7DB', muted: '#A79C8B', line: 'rgba(237,231,221,.09)', bar: '#241D17' };
   const html = `<!doctype html><html lang="${fa ? 'fa' : 'en'}" dir="${fa ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${T.h} · V2Fall</title>
@@ -42,7 +42,7 @@ export async function onRequestGet({ request, env }) {
 .f a{color:#F0994B;text-decoration:none;font-weight:700}</style></head><body><div class="w">
 <div class="h"><b>📡 ${fa ? 'رادار <span>فیلترینگ</span>' : 'Filter <span>Radar</span>'}</b><small>${T.s}</small></div>
 ${rows || `<div class="none">${T.none}</div>`}
-<div class="f"><span>${T.f}${total ? ' · ' + n(total) : ''}</span><a href="https://v2fall.com/radar" target="_blank" rel="noopener">${T.more} ${fa ? "←" : "→"} V2Fall</a></div>
+<div class="f"><span>${total ? n(total) + ' ' + T.f : T.f}</span><a href="https://v2fall.com/${fa ? '' : 'en/'}radar" target="_blank" rel="noopener">${T.more} ${fa ? "←" : "→"}</a></div>
 </div></body></html>`;
   const res = new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; frame-ancestors *" } });
   try { await caches.default.put(key, res.clone()); } catch (e) {}
