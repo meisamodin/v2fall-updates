@@ -1,4 +1,5 @@
-# Daily Filter Radar post in the channel (tools/radar_daily.py); no post when there were too few reports that day.
+# Daily Filter Radar post in the channel (tools/radar_daily.py): a picture (headless Chrome) with the text; no post when
+# there were too few reports that day.
 # GitHub runs scheduled jobs late (often 5–30 min, sometimes a first run is skipped): it is set to 21:17 Tehran so it
 # lands around 21:30. One post a day at most (a cache key per Tehran date), whether it ran by schedule or by hand.
 # By hand: "dry" only prints the post; "mark" only records today as posted (after a post made another way).
@@ -28,6 +29,12 @@ jobs:
       - id: done
         uses: actions/cache/restore@v4
         with: { path: .posted, key: 'radar-day-${{ steps.d.outputs.day }}', lookup-only: true }
+      - name: Font for the picture
+        if: steps.done.outputs.cache-hit != 'true' && !inputs.mark
+        run: |
+          npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
+          F=$(find package -iname "*.woff2" | grep -iE "wght|variable" | grep -viE "ui|fd|round|nl|misc" | head -1)
+          [ -n "$F" ] && echo "RADAR_FONT=file://$(realpath "$F")" >> "$GITHUB_ENV" || echo "::warning::no font, text-only post"
       - name: Post
         if: steps.done.outputs.cache-hit != 'true' && !inputs.mark
         env:
