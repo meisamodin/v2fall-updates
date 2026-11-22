@@ -1,0 +1,16 @@
+name: Windows compile check
+on:
+  push:
+    branches: [wincheck]
+jobs:
+  win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { repository: meisamodin/v2fall, ref: next, token: "${{ secrets.SOURCE_TOKEN }}" }
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26" }
+      - shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force desktop-app/frontend | Out-Null; Copy-Item web/index.html desktop-app/frontend/index.html
+          cd desktop-app; go vet . ; go build -tags production -o ../V2Fall.exe . ; if ($LASTEXITCODE) { exit 1 }; Write-Host "BUILD OK"
