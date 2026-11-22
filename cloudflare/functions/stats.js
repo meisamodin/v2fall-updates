@@ -1,3 +1,4 @@
+import { crashList } from '../lib/crash.js';
 // /stats — private statistics page. The first visitor sets the password (stored only as a salted hash);
 // after that the page needs it. Login keeps a cookie for 30 days.
 import { ensure } from '../lib/stats.js';
@@ -78,6 +79,7 @@ async function extras(env) {
   const out = {}, kv = env.CODES, UA = { 'User-Agent': 'v2fall-stats' };
   const countKeys = async (prefix, meta) => { let n = 0, c, m = []; do { const l = await kv.list({ prefix, cursor: c }); n += l.keys.length; if (meta) m.push(...l.keys.map((k) => k.metadata || {})); c = l.list_complete ? null : l.cursor; } while (c && n < 200000); return meta ? { n, m } : n; };
   await Promise.all([
+    (async () => { try { out.crash = env.STATS ? await crashList(env.STATS, 7) : []; } catch (e) { out.crash = []; } })(), // app errors (opt-in)
     (async () => { // Telegram bot users (+ language, new per day), problem reports, live backup codes
       const u = await countKeys('tgu:', true); out.bot = { users: u.n, en: u.m.filter((x) => x.l === 'en').length, days: {} };
       u.m.forEach((x) => { if (x.t) { const d = new Date(x.t).toISOString().slice(0, 10); out.bot.days[d] = (out.bot.days[d] || 0) + 1; } });
@@ -195,6 +197,13 @@ function extraHtml(X, days, fa, bars, esc) {
     h += `<div class="grid">${card('بازدید ' + fa(yt.length) + ' ویدیوی آخر', fa(v))}${card('لایک‌ها', fa(l))}${card('پربازدیدترین', fa(mx))}</div>
     <div class="card"><table>${yt.map((x) => `<tr><td><a href="https://youtu.be/${esc(x.id)}" target="_blank" rel="noopener">${esc(x.title)}</a><div class="meter"><i style="width:${(x.views / mx) * 100}%"></i></div></td><td class="n">${fa(x.views)}</td></tr>`).join('')}</table></div>`;
   } else h += '<div class="card mut">فید یوتیوب در دسترس نیست.</div>';
+  // app errors, only from users who turned on «گزارش ناشناس خطاهای برنامه»
+  h += '<h2 style="margin-top:26px">🐞 خطاهای برنامه — ۷ روز</h2>';
+  const cr = X.crash || [];
+  if (cr.length) {
+    const when = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? fa(m) + ' دقیقه پیش' : m < 1440 ? fa(Math.round(m / 60)) + ' ساعت پیش' : fa(Math.round(m / 1440)) + ' روز پیش'; };
+    h += `<div class="card"><table>${cr.map((x) => `<tr><td><details><summary><b>${esc(x.m)}</b><div class="mut">${esc(x.p)} · ${esc(x.k === 'native' ? 'اندروید (Kotlin)' : 'رابط برنامه (JS)')} · نسخهٔ ${esc(x.v)} · آخرین بار ${when(x.last)}</div></summary><pre style="white-space:pre-wrap;direction:ltr;text-align:left;font-size:11px;opacity:.8">${esc(x.s || '')}</pre></details></td><td class="num">${fa(x.n)}</td></tr>`).join('')}</table></div>`;
+  } else h += '<div class="card mut">در ۷ روز گذشته خطایی گزارش نشده (فقط کاربرانی که گزینه را روشن کرده‌اند گزارش می‌فرستند).</div>';
   // github
   const g = X.gh || {};
   h += `<h2 style="margin-top:26px">🐙 گیت‌هاب</h2><div class="grid">${card('ستاره‌ها', fa(g.stars), 'فورک: ' + fa(g.forks))}${card('دانلود آخرین ریلیز', fa((g.files || []).reduce((s, x) => s + x[1], 0)), esc(g.rel || ''))}</div>`;
