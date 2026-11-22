@@ -1,0 +1,4 @@
+desk {"title":"V2Fall — کلاینت VPN سریع و امن","hscroll":false,"dl":["https://dl.multiapvps.org/get/linux","https://dl.v2fall.com/get/linux","https://dl.multiapvps.org/get/linux_tar","https://dl.v2fall.com/get/linux_tar"]}
+no errors
+mob {"title":"V2Fall — کلاینت VPN سریع و امن","hscroll":false,"dl":["https://dl.multiapvps.org/get/linux","https://dl.v2fall.com/get/linux","https://dl.multiapvps.org/get/linux_tar","https://dl.v2fall.com/get/linux_tar"]}
+no errors
