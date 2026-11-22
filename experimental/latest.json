@@ -1,193 +1,193 @@
 {
   "app": "V2Fall",
-  "version": "18.9.119",
+  "version": "18.9.120",
   "date": "2026-11-22",
-  "notes": "📶 رادار همهٔ اپراتورها: آپتل، شاتل موبایل، زی‌تل، سامانتل، تالیا و بقیه هم جدا شمرده می‌شوند\n🪄 راه‌اندازی هوشمند: بار اول، از روی رادار اپراتورت خودش تنظیم می‌شود (با یک دکمه برمی‌گردد)\n📡 ویجت رادار روی صفحهٔ گوشی: درصد موفقیت و بهترین نوع اتصال روی اپراتورت\n🎨 ظاهر و زبان: کارت‌های تم، دایره‌های بزرگ رنگ و «ساخت تم دلخواه»\n🧭 سربرگ «تنظیمات / …» با دکمهٔ بازگشت؛ برگشتی، لیست همان‌جایی است که بود\n🐞 گزارش ناشناس خطاهای برنامه (دلخواه، پیش‌فرض خاموش)\n🛡 تست خودکار همهٔ کلیدها پیش از هر انتشار\n🛠 نصب بدون هشدار «ناامن»: مجوز «دسترسی به آمار مصرف» برداشته شد\n🧠 ابزارها ← اتصال هوشمند (همه دلخواه، پیش‌فرض خاموش): وای‌فای امن، سرور جدا برای هر سایت، حالت‌های یک‌لمسی، پیشنهاد صرفه‌جویی حجم\n🔑 کلید اشتراک اپ Amnezia (vpn://) مستقیم خوانده می‌شود: AmneziaWG، WireGuard، Xray و OpenVPN\n📜 رادار: ۱۴ روز اخیر اپراتورت، بایگانی اختلال‌ها و وضعیت کل ایران",
-  "notes_en": "📶 Radar for every operator: Aptel, Shatel Mobile, Zi-Tel, Samantel, Taliya and the rest count on their own\n🪄 Smart first run: your operator's radar sets things up (one tap undoes it)\n📡 Home-screen radar widget: success rate and the best kind of connection on your operator\n🎨 Look: theme cards, big colour schemes and «Make your own theme»\n🧭 «Settings / …» header with a Back button; the list keeps its place on the way back\n🐞 Anonymous app error reports (optional, off by default)\n🛡 Every switch is tested automatically before each release\n🛠 Installs without the «unsafe» warning: the «Usage access» permission is gone\n🧠 Tools → Smart connection (all optional, off by default): trusted Wi-Fi, a server for each site, one-tap modes, data-saving tips\n🔑 Amnezia app share keys (vpn://) import directly: AmneziaWG, WireGuard, Xray and OpenVPN\n📜 Radar: your operator's last 14 days, an incident archive and the whole country pulse",
+  "notes": "🩺 چکاپ کانفیگ: لینک تکی، اشتراک، فایل OpenVPN و WireGuard، کلید Amnezia یا سرور خودت؛ سرعت، پینگ بازی، کشور و نوع واقعی IP، DNS، سایت‌ها و هوش مصنوعی، IP سالم، با نمره و عکس گزارش بدون آدرس سرور\n📶 اشتراک VPN با هات‌اسپات (بدون روت): QR، فایل PAC و آدرس v2fall.local، رمز مهمان، لیست دستگاه‌ها با سرعت و مصرف، مسدود کردن دستگاه یا سایت\n🔮 پیش‌بینی اختلال: ساعت‌های پرخطر ۲۴ ساعت آینده روی اپراتورت (دلخواه)\n🪪 شناسنامهٔ اینترنت کامل‌تر: کیفیت خط، QUIC، IPv6، تونل DNS و مقایسه با بررسی قبلی\n🩹 عیب‌یاب دقیق‌تر: ساعت گوشی، اشتراک تمام‌شده، DNS سرور، تست واقعی و توضیح خطا\n📈 نمودار پینگ با مقصد دلخواه، اتصال‌های زنده با قانون یک‌لمسی، تست DoH و DoT\n📱 گوشی‌های دو سیم‌کارته: اپراتور از سیم دیتا خوانده می‌شود\n🌐 ترجمهٔ کامل روسی، چینی، عربی و ترکی",
+  "notes_en": "🩺 Config checkup: a link, a subscription, an OpenVPN or WireGuard file, an Amnezia key or your own server; speed, game ping, the real country and kind of IP, DNS, sites and AI, a clean IP, with a score and a report picture without the server address\n📶 Share the VPN over hotspot (no root): QR, PAC file and v2fall.local, a guest password, connected devices with speed and usage, blocking a device or a site\n🔮 Outage forecast: the risky hours of the next 24 hours on your operator (optional)\n🪪 Fuller network ID: line quality, QUIC, IPv6, DNS tunnel and a comparison with the last check\n🩹 Sharper doctor: phone clock, ended subscription, server DNS, a real test and the error explained\n📈 Ping chart to any target, live connections with one-tap rules, DoH and DoT test\n📱 Dual-SIM phones: the operator comes from the data SIM\n🌐 Russian, Chinese, Arabic and Turkish fully translated",
   "android": {
-    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.119/V2Fall-18.9.119.apk",
-    "sha256": "3f01768b4bae8951f53c90e564dcbce35831fbb027a53879cc739a4eea523c3b",
-    "size": 170690904,
+    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.120/V2Fall-18.9.120.apk",
+    "sha256": "5abda2fdcebabe756c04963e7bc418965b3ae9244f0dd5d58549ef9a8a5d5078",
+    "size": 170776854,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p04",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p05",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p06",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p07",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119.apk.p08"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p04",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p05",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p06",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p07",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120.apk.p08"
     ],
     "delta": [
       {
-        "from": "12fcc06d6ed4b7121605ce4305a7817ae3d6f72518a4c49be85c1752275020f5",
-        "fromv": "18.9.118",
-        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/delta/android-18.9.118-18.9.119.v2d",
-        "sha256": "eac38c7d4539d2f199e9fe33fd7295a36f07d82ef5df42905eb6820a5505b8e8",
-        "size": 8848161
+        "from": "3f01768b4bae8951f53c90e564dcbce35831fbb027a53879cc739a4eea523c3b",
+        "fromv": "18.9.119",
+        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/delta/android-18.9.119-18.9.120.v2d",
+        "sha256": "ccdfa7be825e268f5d49abbe761910d435d0dedd9dfd0e5c0ce065bf9ecf5bf6",
+        "size": 8933975
       }
     ]
   },
   "windows": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-Setup-18.9.119.exe",
-    "sha256": "50b3f769ccef81337e2925832b8e903a8df9a5e859076751362660e6fe556613",
-    "size": 61703636,
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-Setup-18.9.120.exe",
+    "sha256": "8b70e7dd975b5b4168a787e18b6411c7539e15591a23c47ad678bccc27993694",
+    "size": 61747985,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-Setup-18.9.119.exe.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-Setup-18.9.119.exe.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-Setup-18.9.119.exe.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-Setup-18.9.119.exe.p03"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-Setup-18.9.120.exe.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-Setup-18.9.120.exe.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-Setup-18.9.120.exe.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-Setup-18.9.120.exe.p03"
     ],
     "delta": [
       {
         "from": "",
-        "fromv": "18.9.118",
-        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/delta/windows-18.9.118-18.9.119.v2dd.zip",
-        "sha256": "f24a7e6908345ecf5d911a13ee2d276de17bf010264ca8e53e12829228fdc203",
-        "size": 10927341
+        "fromv": "18.9.119",
+        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/delta/windows-18.9.119-18.9.120.v2dd.zip",
+        "sha256": "880c71ebaab34f9a9d985c8851a8b3ada482929e56c2cb940875aa8237e3789a",
+        "size": 6712891
       }
     ]
   },
   "page": "https://github.com/meisamodin/v2fall-updates",
   "android6": {
-    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.119/V2Fall-18.9.119-android6.apk",
-    "sha256": "812fce41e20a204ba8437d40b9d8a93ff556436ddec79c523b9a8ebcb3c1b41b",
-    "size": 86884213,
+    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.120/V2Fall-18.9.120-android6.apk",
+    "sha256": "31b6e7d1a2b62c13922cd8ccc5a19b84b662ae29be274f38d2bbb527528e4ea9",
+    "size": 86970033,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-android6.apk.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-android6.apk.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-android6.apk.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-android6.apk.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-android6.apk.p04"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-android6.apk.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-android6.apk.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-android6.apk.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-android6.apk.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-android6.apk.p04"
     ],
     "delta": [
       {
-        "from": "7e6feee4196a11d7393915d9b0d7eef73b3cddce0b9be13fbbb13f6ad7b0b11b",
-        "fromv": "18.9.118",
-        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/delta/android6-18.9.118-18.9.119.v2d",
-        "sha256": "7bc0c03b59d6fe6d2cfc46ab85fec880641e76e37c5e195cad96eb5376051b21",
-        "size": 5028310
+        "from": "812fce41e20a204ba8437d40b9d8a93ff556436ddec79c523b9a8ebcb3c1b41b",
+        "fromv": "18.9.119",
+        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/delta/android6-18.9.119-18.9.120.v2d",
+        "sha256": "80d53fa90a22c60bcf884d4f7c09c8ec20c3e62f995e6a74db7341a90931b945",
+        "size": 5113671
       }
     ]
   },
   "macos": {
-    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.119/V2Fall-18.9.119-macOS-Apple-Silicon.dmg",
-    "sha256": "3192401ff5cba5863dd9cfc800f9cc53c4a155f845ad50a128fb9fe9a9741aeb",
-    "size": 111449457,
+    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.120/V2Fall-18.9.120-macOS-Apple-Silicon.dmg",
+    "sha256": "606addc83c896442df2463975f1ad700712d057e14a3ede04843607d93c87234",
+    "size": 111623498,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Apple-Silicon.dmg.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Apple-Silicon.dmg.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Apple-Silicon.dmg.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Apple-Silicon.dmg.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Apple-Silicon.dmg.p04",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Apple-Silicon.dmg.p05"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Apple-Silicon.dmg.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Apple-Silicon.dmg.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Apple-Silicon.dmg.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Apple-Silicon.dmg.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Apple-Silicon.dmg.p04",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Apple-Silicon.dmg.p05"
     ]
   },
   "macos_intel": {
-    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.119/V2Fall-18.9.119-macOS-Intel.dmg",
-    "sha256": "d8493c85d718d2f0ab4ffe6bb9991a77d168e515851e58b37f42dbc21cd76356",
-    "size": 123671094,
+    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.120/V2Fall-18.9.120-macOS-Intel.dmg",
+    "sha256": "a4604aded5a674c27cc36479a22af5b432cb60391c992a18c200b446939653c5",
+    "size": 123772937,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Intel.dmg.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Intel.dmg.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Intel.dmg.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Intel.dmg.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Intel.dmg.p04",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Intel.dmg.p05",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-macOS-Intel.dmg.p06"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Intel.dmg.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Intel.dmg.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Intel.dmg.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Intel.dmg.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Intel.dmg.p04",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Intel.dmg.p05",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-macOS-Intel.dmg.p06"
     ]
   },
   "linux": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/v2fall_18.9.119_amd64.deb",
-    "sha256": "7a12322b994808a84a337025f6afa8ebc7a0984f833b5efcbca77fa74ad0d8e5",
-    "size": 82199846,
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/v2fall_18.9.120_amd64.deb",
+    "sha256": "a5899423fa1d12321b1293fc4dc1f7a7d0ca5634fe03c6a07454fabb2b97cd28",
+    "size": 82235204,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/v2fall_18.9.119_amd64.deb.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/v2fall_18.9.119_amd64.deb.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/v2fall_18.9.119_amd64.deb.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/v2fall_18.9.119_amd64.deb.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/v2fall_18.9.119_amd64.deb.p04"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/v2fall_18.9.120_amd64.deb.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/v2fall_18.9.120_amd64.deb.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/v2fall_18.9.120_amd64.deb.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/v2fall_18.9.120_amd64.deb.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/v2fall_18.9.120_amd64.deb.p04"
     ]
   },
   "linux_tar": {
-    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.119/V2Fall-18.9.119-Linux-x64.tar.gz",
-    "sha256": "86371f306fab14738c30ba5d0d04f3760a137dc536f138b4b26cf3f55c3b38af",
-    "size": 104965455,
+    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.120/V2Fall-18.9.120-Linux-x64.tar.gz",
+    "sha256": "80ee3ffe68533acc23f749af78038659a61e275cd5c8199ad683f9de89dd9e2e",
+    "size": 105052291,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Linux-x64.tar.gz.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Linux-x64.tar.gz.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Linux-x64.tar.gz.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Linux-x64.tar.gz.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Linux-x64.tar.gz.p04",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Linux-x64.tar.gz.p05"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Linux-x64.tar.gz.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Linux-x64.tar.gz.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Linux-x64.tar.gz.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Linux-x64.tar.gz.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Linux-x64.tar.gz.p04",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Linux-x64.tar.gz.p05"
     ],
     "delta": [
       {
         "from": "",
-        "fromv": "18.9.118",
-        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/delta/linux_tar-18.9.118-18.9.119.v2dd.zip",
-        "sha256": "fdc19954408dd8e46528d96bbe2143463eacc2ff9c0db93afd7c7a3700d27c12",
-        "size": 10644435
+        "fromv": "18.9.119",
+        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/delta/linux_tar-18.9.119-18.9.120.v2dd.zip",
+        "sha256": "c82af1cd6235188031916f6d628b517cb5f7795d5abd2769bc89ff1f71e47f22",
+        "size": 6488547
       }
     ]
   },
   "android_arm64": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.119-arm64.apk",
-    "sha256": "fbe786e6056d2cc51ed21a608d9714291b6f16aa3ec6d07536a4059b764ae5dc",
-    "size": 85523438,
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.120-arm64.apk",
+    "sha256": "5d37a5a2ecb5472a5fa363cad0cb2930fec103efd9bf25c95e3d13a419aec960",
+    "size": 85609386,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-arm64.apk.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-arm64.apk.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-arm64.apk.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-arm64.apk.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-arm64.apk.p04"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-arm64.apk.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-arm64.apk.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-arm64.apk.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-arm64.apk.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-arm64.apk.p04"
     ],
     "delta": [
       {
-        "from": "c2895f317a3e07d9cf0750670a5c1fb764896458f580d57706ebf5a52758fff9",
-        "fromv": "18.9.118",
-        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/delta/android_arm64-18.9.118-18.9.119.v2d",
-        "sha256": "580544431952252ed3df71d66c514851d03e8c131a35b818912539b9883cc8d1",
-        "size": 4831617
+        "from": "fbe786e6056d2cc51ed21a608d9714291b6f16aa3ec6d07536a4059b764ae5dc",
+        "fromv": "18.9.119",
+        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/delta/android_arm64-18.9.119-18.9.120.v2d",
+        "sha256": "6a8302e1a7d1192b1a30a43342bab11ab7616afa15873fb70b3cc6c999f8afb1",
+        "size": 4917331
       }
     ]
   },
   "android_armv7": {
-    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.119-armv7.apk",
-    "sha256": "a7a8715a83e4d7051efe0b40ed17aff7037cb02216149042acabbbaaaf907be8",
-    "size": 86882384,
+    "url": "https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-18.9.120-armv7.apk",
+    "sha256": "1692be14ac4ef050b4110e0de7ea7287aed3bc83ef5c3a242b562c1b9bef1fc8",
+    "size": 86968332,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-armv7.apk.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-armv7.apk.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-armv7.apk.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-armv7.apk.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-armv7.apk.p04"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-armv7.apk.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-armv7.apk.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-armv7.apk.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-armv7.apk.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-armv7.apk.p04"
     ],
     "delta": [
       {
-        "from": "3c02b16e1caeb89cd3c483190ddfe41aae1aedc4e02b4dcfbd76e205f919879f",
-        "fromv": "18.9.118",
-        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/delta/android_armv7-18.9.118-18.9.119.v2d",
-        "sha256": "34f1bf5088e0268976edf7afdabdf5bbb126813cb83177a8ec1143d07ad0beeb",
-        "size": 5026392
+        "from": "a7a8715a83e4d7051efe0b40ed17aff7037cb02216149042acabbbaaaf907be8",
+        "fromv": "18.9.119",
+        "url": "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/delta/android_armv7-18.9.119-18.9.120.v2d",
+        "sha256": "1881e6bb955d4871c5f60f30b539a651ba9a7e1039b686d4af1613481def1ca6",
+        "size": 5112081
       }
     ]
   },
   "windows_portable": {
-    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.119/V2Fall-18.9.119-Windows-x64-portable.zip",
-    "sha256": "6408d4a08da2d7149fb74d853fa8e05678622df8c1e25acf98e72346aeb24cd1",
-    "size": 109524575,
+    "url": "https://github.com/meisamodin/v2fall-updates/releases/download/v18.9.120/V2Fall-18.9.120-Windows-x64-portable.zip",
+    "sha256": "24efcedc7568eb2b3f54eb255899473cd01f1b88f110e99525b707e6580ae4ce",
+    "size": 109606275,
     "parts": [
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Windows-x64-portable.zip.p00",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Windows-x64-portable.zip.p01",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Windows-x64-portable.zip.p02",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Windows-x64-portable.zip.p03",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Windows-x64-portable.zip.p04",
-      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@ff654543c436c7abf751d8c1d5932dc51e668536/download/parts/V2Fall-18.9.119-Windows-x64-portable.zip.p05"
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Windows-x64-portable.zip.p00",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Windows-x64-portable.zip.p01",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Windows-x64-portable.zip.p02",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Windows-x64-portable.zip.p03",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Windows-x64-portable.zip.p04",
+      "https://cdn.jsdelivr.net/gh/meisamodin/v2fall-updates@638e90e3cc4f70be3d49bb4a4980ee706b8526b8/download/parts/V2Fall-18.9.120-Windows-x64-portable.zip.p05"
     ]
   },
-  "vcode": 29922530,
+  "vcode": 29923014,
   "min": "",
   "stable": true
 }
