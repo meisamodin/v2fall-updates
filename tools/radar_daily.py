@@ -11,7 +11,7 @@ ISP = {197207: 'همراه اول', 44244: 'ایرانسل', 58224: 'مخابر�
        44208: 'فن‌آوا', 39501: 'سامانتل', 42337: 'رسپینا', 24631: 'فناپ‌تلکام', 48159: 'زیرساخت (TIC)'}
 P = {'VLESS': 'VLESS', 'VMESS': 'VMess', 'TROJAN': 'Trojan', 'SS': 'Shadowsocks', 'HY2': 'Hysteria2', 'TUIC': 'TUIC',
      'WG': 'WireGuard', 'AWG': 'AmneziaWG', 'WARP': 'WARP', 'SSH': 'SSH', 'ANYTLS': 'AnyTLS', 'MIERU': 'Mieru',
-     'DNSTT': 'DNSTT', 'MDV': 'MasterDNS', 'TOR': 'Tor', 'PSI': 'Psiphon', 'RELAY': 'Ashflake', 'NAIVE': 'NaiveProxy'}
+     'DNSTT': 'DNSTT', 'MDV': 'MasterDNS', 'TOR': 'Tor', 'PSI': 'Psiphon', 'RELAY': 'Ashflake', 'NAIVE': 'NaiveProxy', 'XRAY': 'Xray'}
 TR = {'tcp': 'TCP', 'ws': 'WS', 'grpc': 'gRPC', 'xhttp': 'XHTTP', 'splithttp': 'XHTTP', 'httpupgrade': 'HTTPUpgrade',
       'h2': 'H2', 'http': 'HTTP', 'kcp': 'mKCP', 'quic': 'QUIC'}
 SIGN = '🆔 @v2fall\n⬇️ دانلود رایگان: v2fall.com\n📺 یوتیوب: youtube.com/@v2fall\n🤖 ربات: @v2fallbot'

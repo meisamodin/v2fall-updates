@@ -23,10 +23,11 @@ jobs:
       - uses: actions/checkout@v4
         with: { sparse-checkout: tools }
       - id: d
-        run: echo "day=$(TZ=Asia/Tehran date +%F)" >> "$GITHUB_OUTPUT"
+        # A late run after midnight still counts for the evening before (GitHub has delayed it by hours).
+        run: echo "day=$(TZ=Asia/Tehran date -d '-8 hours' +%F)" >> "$GITHUB_OUTPUT"
       - id: done
         uses: actions/cache/restore@v4
-        with: { path: .posted, key: 'radar-posted-${{ steps.d.outputs.day }}', lookup-only: true }
+        with: { path: .posted, key: 'radar-day-${{ steps.d.outputs.day }}', lookup-only: true }
       - name: Post
         if: steps.done.outputs.cache-hit != 'true' && !inputs.mark
         env:
@@ -45,4 +46,4 @@ jobs:
         run: mkdir -p .posted && date > .posted/at
       - if: steps.done.outputs.cache-hit != 'true' && hashFiles('.dry') == ''
         uses: actions/cache/save@v4
-        with: { path: .posted, key: 'radar-posted-${{ steps.d.outputs.day }}' }
+        with: { path: .posted, key: 'radar-day-${{ steps.d.outputs.day }}' }
