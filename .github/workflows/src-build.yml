@@ -528,7 +528,8 @@ jobs:
           fi
           mkdir -p dist
           ls android/app/build/outputs/apk/release/
-          cp android/app/build/outputs/apk/release/app-universal-release-unsigned.apk dist/V2Fall-${APP_VERSION}-android6-unsigned.apk
+          # armv7 only: half the size of the universal file, and every 64-bit phone of the Android 6 era runs 32-bit apps
+          cp android/app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk dist/V2Fall-${APP_VERSION}-android6-unsigned.apk
 
       - name: Sign APK (only if the KEYSTORE_B64 secret is set)
         env:

@@ -134,12 +134,12 @@ async function download(env, chat, lang) {
   const v = m && m.version ? m.version : '';
   const f = await kv.get('tg:apk');
   if (f) { const j = JSON.parse(f); await tg(env, 'copyMessage', { chat_id: chat, from_chat_id: j.chat, message_id: j.id }); }
-  const have = {}; for (const k of ['arm64', 'armv7', 'a6', 'win', 'macarm', 'macintel', 'deb', 'tar']) have[k] = !!(await kv.get('tg:f:' + k));
+  const have = {}; for (const k of ['apk', 'arm64', 'armv7', 'a6', 'win', 'macarm', 'macintel', 'deb', 'tar']) have[k] = !!(await kv.get('tg:f:' + k));
   const en = isEn(lang), nt = m && (en ? m.notes_en || m.notes : m.notes);
   const notes = nt ? (en ? '\n\n✨ What is new:\n' : '\n\n✨ تازه‌ها:\n') + String(nt).split('\n').slice(0, 5).join('\n') : '';
   await say(env, chat, `📥 V2Fall ${v}` + (en ? (f ? '\n📱 Install the Android file above.' : '') + '\n\n💻 Every version (Android, Windows, macOS, Linux) on the website and in the mini app.\n📢 If the website does not open: the @v2fall channel'
     : (f ? '\n📱 فایل اندروید بالا را نصب کن.' : '') + '\n\n💻 همهٔ نسخه‌ها (اندروید، ویندوز، مک، لینوکس) در سایت و مینی‌اپ.\n📢 اگر سایت باز نشد: کانال @v2fall') + notes,
-    [...[[['📱', 'arm64', 'f:arm64'], ['📱', 'armv7', 'f:armv7']], [['📱', 'اندروید ۶ به بالا', 'f:a6']], [['🪟', 'ویندوز', 'f:win', 'primary']], [['🍎', 'مک M', 'f:macarm'], ['🍎', 'مک اینتل', 'f:macintel']], [['🐧', 'لینوکس deb', 'f:deb'], ['🐧', 'لینوکس tar.gz', 'f:tar']]]
+    [...[[['📱', 'اندروید (همه، نسخهٔ کامل)', 'f:apk']], [['📱', 'arm64', 'f:arm64'], ['📱', 'armv7', 'f:armv7']], [['📱', 'اندروید ۶ به بالا', 'f:a6']], [['🪟', 'ویندوز', 'f:win', 'primary']], [['🍎', 'مک M', 'f:macarm'], ['🍎', 'مک اینتل', 'f:macintel']], [['🐧', 'لینوکس deb', 'f:deb'], ['🐧', 'لینوکس tar.gz', 'f:tar']]]
       .map(r => r.filter(b => have[b[2].slice(2)])).filter(r => r.length),
      [['🚀', 'باز کردن V2Fall در تلگرام', 'app:#download', 'success']], ...BACK], lang);
 }
