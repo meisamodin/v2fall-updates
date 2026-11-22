@@ -161,8 +161,8 @@ async function alertMenu(env, chat, lang) {
   const rows = [];
   for (let i = 0; i < AL_OPS.length; i += 2) rows.push(AL_OPS.slice(i, i + 2).map(a => [a === cur ? '✅' : '📶', nm(a), 'al:' + a]));
   if (cur) rows.push([['🔕', en ? 'Turn alerts off' : 'خاموش کردن هشدار', 'al:0', 'danger']]);
-  await say(env, chat, en ? `🔔 Pick your operator: when connections on it suddenly get worse (or recover), the bot writes to you here.${cur ? '\nNow: ' + nm(cur) : ''}`
-    : `🔔 اپراتورت را انتخاب کن: هر وقت اتصال روی آن ناگهان بدتر شد (یا دوباره خوب شد)، ربات همین‌جا خبرت می‌کند.${cur ? '\nالان: ' + nm(cur) : ''}`, [...rows, [['📡', 'رادار', 'radar']], ...BACK], lang);
+  await say(env, chat, en ? `🔔 Pick your operator: when connections on it suddenly get worse (or recover), the bot writes to you here. On evenings when a disruption is likely, you get a forecast too.${cur ? '\nNow: ' + nm(cur) : ''}`
+    : `🔔 اپراتورت را انتخاب کن: هر وقت اتصال روی آن ناگهان بدتر شد (یا دوباره خوب شد)، ربات همین‌جا خبرت می‌کند. شب‌هایی هم که احتمال اختلال بالاست، از عصر پیش‌بینی‌اش را می‌فرستد.${cur ? '\nالان: ' + nm(cur) : ''}`, [...rows, [['📡', 'رادار', 'radar']], ...BACK], lang);
 }
 async function alertSet(env, chat, a, lang) {
   const kv = env.CODES, old = +(await kv.get('tgal:' + chat) || 0), en = isEn(lang);

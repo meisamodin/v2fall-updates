@@ -109,6 +109,32 @@ export async function alertCheck(env) {
     const name = ISP[o.a][0];
     await post(`🐢 اینترنت بین‌الملل ${name} امروز کندتر شده\n\n${FA(o.slow[6])}٪ اندازه‌گیری‌های امروز روی ${name} کمتر از ۱ مگابیت بوده؛ در هفتهٔ پیش ${FA(o.base)}٪.${o.med !== null ? '\nسرعت معمول امروز: ' + bandFa(o.med) : ''}\n\n📡 v2fall.com/radar\n🔒 از اندازه‌گیری‌های ناشناس برنامه‌های V2Fall (فقط بازهٔ سرعت و اپراتور).\n\n#رادار_فیلترینگ #کندی_اینترنت ${tag(name)}\n\n${SIGN}`);
   }
+  // forecast for the bot's alert subscribers: once a day, from 16:00 Tehran, to people who asked for an operator's
+  // alerts, when a window of 60%+ risk starts within the next 8 hours. Only to them, never the channel.
+  const tehH = new Date(Date.now() + 12600000).getUTCHours();
+  if (tehH >= 16 && tehH < 21) {
+    for (const a of Object.keys(ISP).map(Number)) {
+      const key = 'rad:fc:' + a + ':' + day; if (await kv.get(key)) continue;
+      const pre = await kv.list({ prefix: 'tgsub:' + a + ':', limit: 1 }); if (!pre.keys.length) continue;
+      await kv.put(key, '1', { expirationTtl: 86400 * 2 });
+      const f = await forecast(db, a).catch(() => null), w = f && f.enough && f.wins.find(x => x.risk >= 60 && x.inH > 0 && x.inH <= 8);
+      if (!w) continue;
+      const name = ISP[a][0];
+      const text = `🔮 پیش‌بینی رادار برای ${name}\n\nامشب ساعت ${FA(w.from)} تا ${FA(w.to)} احتمال اختلال بالاست: در ${FA(w.of)} روز گذشته، ${FA(w.bad)} روز همین ساعت اتصال‌ها روی ${name} بدتر شده.\n\n💡 از الان یک سرور پشتیبان آماده کن یا در برنامه «جابه‌جایی خودکار» را روشن کن.\n📡 v2fall.com/radar`;
+      try {
+        let cur; do {
+          const l = await kv.list({ prefix: 'tgsub:' + a + ':', cursor: cur });
+          for (const k of l.keys) {
+            const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: k.name.split(':')[2], text, link_preview_options: { is_disabled: true } }) });
+            if (r.status === 403) await kv.delete(k.name);
+            await new Promise(z => setTimeout(z, 40));
+          }
+          cur = l.list_complete ? null : l.cursor;
+        } while (cur);
+      } catch (e) {}
+    }
+  }
   // early warning: several operators getting worse together (a drop on 2 or more, or drops and slowdowns on 3 or
   // more) is how the wide disruptions have started. Not a forecast: a nudge to get ready while the internet is still
   // open. At most once every 6 hours; the app reads the same note (/radar?w=1).
@@ -405,4 +431,41 @@ export async function incidentDetail(db, kv, id) {
   // other operators that fell at the same time
   const also = (await db.prepare('SELECT a, f, t, low FROM radar_inc WHERE a != ? AND f <= ? AND COALESCE(t, ?) >= ?').bind(a, to, now, x.f).all()).results || [];
   return { now, inc: { a: x.a, from: x.f, to: x.t, base: x.base, low: x.low, n: x.n, wide: !!x.wide }, also: also.filter(y => ISP[y.a]).map(y => ({ a: y.a, from: y.f, to: y.t, low: y.low })), h0, h1, ops };
+}
+
+// ---- forecast: the next 24 hours of one operator, from how each hour of the day went on each of the last 14 days.
+// An hour of a day is «bad» when it had 4+ reports and worked 15 points under that operator's 14-day level (or under
+// 50%). risk = bad days / days with reports for that hour. Not a model of the future: «on k of the last n days this
+// hour was bad». Hours in a row at 40%+ make a window.
+export async function forecast(db, a) {
+  const now = Math.floor(Date.now() / 3600000);
+  const r = await db.prepare('SELECT h, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE a = ? AND h > ? GROUP BY h').bind(a, now - 24 * 14).all();
+  let N = 0, OK = 0; const rows = r.results || [];
+  for (const x of rows) { N += x.n; OK += x.ok; }
+  const nowH = TEH(now).getUTCHours();
+  if (N < 150) return { a, now, nowH, enough: false, hours: [], wins: [] };
+  const avg = OK / N, days = Array.from({ length: 24 }, () => [0, 0]); // per hour of day: [days with reports, bad days]
+  for (const x of rows) {
+    if (x.n < 4) continue;
+    const H = TEH(x.h).getUTCHours(), rate = x.ok / x.n;
+    days[H][0]++; if (rate <= avg - 0.15 || rate < 0.5) days[H][1]++;
+  }
+  const hours = [];
+  for (let i = 0; i < 24; i++) { const H = (nowH + i) % 24, d = days[H]; hours.push([H, d[0], d[1], d[0] >= 4 ? Math.round(100 * d[1] / d[0]) : null]); } // [hour, days, bad days, risk %]
+  const wins = [];
+  for (let i = 0; i < 24; i++) {
+    if (!(hours[i][3] >= 40)) continue;
+    let j = i; while (j + 1 < 24 && hours[j + 1][3] >= 40) j++;
+    const span = hours.slice(i, j + 1), top = span.reduce((m, x) => (x[3] > m[3] ? x : m), span[0]);
+    wins.push({ inH: i, from: hours[i][0], to: (hours[j][0] + 1) % 24, risk: top[3], bad: top[2], of: top[1] });
+    i = j;
+  }
+  return { a, now, nowH, enough: true, avg: Math.round(avg * 100), hours, wins: wins.slice(0, 4) };
+}
+export function fcLine(f, en) {
+  if (!f || !f.enough || !f.wins.length) return '';
+  const w = f.wins[0], fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  const when = w.inH === 0 ? (en ? 'now' : 'الان') : (en ? `in ${w.inH} h` : `${fa(w.inH)} ساعت دیگر`);
+  return en ? `${w.risk >= 70 ? 'High' : 'Some'} risk of disruption ${String(w.from).padStart(2, '0')}:00–${String(w.to).padStart(2, '0')}:00 (${when}; bad on ${w.bad} of the last ${w.of} days)`
+    : `احتمال ${w.risk >= 70 ? 'بالای' : ''} اختلال ساعت ${fa(w.from)} تا ${fa(w.to)} (${when}؛ ${fa(w.bad)} روز از ${fa(w.of)} روز گذشته همین ساعت بد بوده)`.replace('احتمال  ', 'احتمال ');
 }

@@ -4,12 +4,12 @@
 //           ?all=1 every operator · ?h=<asn> 8 days hourly · ?cal=<asn> usual bad hours · ?ev=1 incident archive
 //           ?trend=1 country hourly + operators daily · ?sites=1 · ?sh=1|<asn> sites daily · ?speed=1 · ?export=csv
 //           ?long=1 every day so far (kept for good) · ?kinds=1[&a=<asn>] kinds of connection, 30 days · ?inc=<asn>-<hour>
-//           /radar/feed incidents as an Atom feed
+//           ?fc=<asn> forecast of the next 24 hours · /radar/feed incidents as an Atom feed
 // The app sends reports only through its own VPN tunnel, so the address that reaches us is the VPN's exit,
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
 // (hour, operator, kind of connection). Hourly rows older than 15 days are deleted; daily totals stay.
 
-import { ISP, alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary, incidents, trends, siteTrends, dayInit, dayRow, longTrend, kindTrend, incidentDetail } from '../lib/radar.js';
+import { ISP, alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary, incidents, trends, siteTrends, dayInit, dayRow, longTrend, kindTrend, incidentDetail, forecast } from '../lib/radar.js';
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -87,6 +87,14 @@ export async function onRequestGet({ request, env, waitUntil }) {
     const ck = new Request(u.origin + '/radar?sites=1'), hit5 = await caches.default.match(ck); if (hit5) return hit5;
     if (limited('t:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
     const res = J(await siteSummary(db), 200, 'public, max-age=600');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // forecast: the next 24 hours of one operator (?fc=<asn>), from each hour of the last 14 days
+  const fA = parseInt(u.searchParams.get('fc') || '', 10);
+  if (fA > 0) {
+    const ck = new Request(u.origin + '/radar?fc=' + fA), hitF = await caches.default.match(ck); if (hitF) return hitF;
+    if (limited('f:' + ip, 60, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await forecast(db, fA), 200, 'public, max-age=1200');
     await caches.default.put(ck, res.clone()); return res;
   }
   // long-term history (daily, kept for good) and the kinds of connection over 30 days
