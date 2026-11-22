@@ -1,0 +1,30 @@
+# temporary: can slipstream-rust (Apache-2.0) be built for Android?
+name: Slipstream Android build (try)
+on: push
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: aarch64-linux-android, abi: arm64-v8a }
+          - { target: armv7-linux-androideabi, abi: armeabi-v7a }
+    steps:
+      - name: Source (pinned)
+        run: |
+          git clone -q https://github.com/Mygod/slipstream-rust.git src && cd src && git checkout -q 7de506b222c83ae97a19a618e33fe26899af1bd5 && git submodule update --init --recursive -q
+      - run: rustup target add ${{ matrix.target }} && cargo install cargo-ndk --locked -q
+      - name: Build
+        working-directory: src
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+          ANDROID_ABI: ${{ matrix.abi }}
+          ANDROID_PLATFORM: android-23
+          PICOQUIC_ANDROID: "1"
+          CARGO_FEATURE_PICOQUIC_MINIMAL_BUILD: "1"
+        run: |
+          export ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME
+          cargo ndk -t ${{ matrix.abi }} -P 23 build --release -p slipstream-client --features openssl-vendored 2>&1 | tail -40
+          f=target/${{ matrix.target }}/release/slipstream-client; ls -la $f && file $f
+          $ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf -d $f | grep NEEDED
