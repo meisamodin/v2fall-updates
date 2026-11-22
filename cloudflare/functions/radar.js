@@ -5,7 +5,7 @@
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
 // (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
 
-import { alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary } from '../lib/radar.js';
+import { ISP, alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary } from '../lib/radar.js';
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -82,6 +82,17 @@ export async function onRequestGet({ request, env, waitUntil }) {
     const ck = new Request(u.origin + '/radar?sites=1'), hit5 = await caches.default.match(ck); if (hit5) return hit5;
     if (limited('t:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
     const res = J(await siteSummary(db), 200, 'public, max-age=600');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // open data: hourly counters of the last 7 days as CSV (hour UTC, operator id and name, kind, reports, worked)
+  if (u.searchParams.get('export') === 'csv') {
+    const ck = new Request(u.origin + '/radar?export=csv'), hitE = await caches.default.match(ck); if (hitE) return hitE;
+    if (limited('e:' + ip, 10, 3600)) return J({ error: 'too many' }, 429);
+    const now = Math.floor(Date.now() / 3600000);
+    const r = await db.prepare('SELECT h, a, k, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE h > ? GROUP BY h, a, k ORDER BY h, a, k').bind(now - 24 * 7).all();
+    const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const lines = ['hour_utc,operator_id,operator,kind,reports,worked'].concat((r.results || []).map(x => [new Date(x.h * 3600000).toISOString().slice(0, 13) + ':00Z', x.a, q((ISP[x.a] || [])[1] || 'AS' + x.a), q(x.k), x.n, x.ok].join(',')));
+    const res = new Response(lines.join('\n') + '\n', { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="v2fall-radar-7d.csv"', 'Cache-Control': 'public, max-age=3600', 'Access-Control-Allow-Origin': '*' } });
     await caches.default.put(ck, res.clone()); return res;
   }
   // public page (v2fall.com/radar): every operator with enough reports in the last 24 h, best kinds first

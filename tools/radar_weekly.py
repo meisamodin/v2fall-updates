@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from radar_daily import ISP, label, pct, fa, jalali, MONTHS, render_png, tg_photo  # noqa: E402
 
 API = 'https://dl.v2fall.com/radar'
-MAIN = [197207, 44244, 57218, 58224, 31549, 43754, 16322, 50810, 56402]
+MAIN = [197207, 44244, 57218, 58224, 31549, 43754, 16322, 50810, 56402, 39501, 432008, 432002, 432045, 432032]
 
 
 def get(q):

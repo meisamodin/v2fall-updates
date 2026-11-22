@@ -2,7 +2,7 @@
 // functions/radar.js fills), the /radar answer of @v2fallbot, and the automatic channel post when one operator
 // suddenly gets much worse (and a second post when it is back). Nothing here is per user: only the counters.
 
-export const ISP = { 197207: ['همراه اول', 'MCI'], 44244: ['ایرانسل', 'Irancell'], 58224: ['مخابرات', 'TCI'], 57218: ['رایتل', 'RighTel'], 31549: ['شاتل', 'Shatel'], 43754: ['آسیاتک', 'Asiatech'], 16322: ['پارس‌آنلاین', 'Pars Online'], 50810: ['مبین‌نت', 'Mobinnet'], 56402: ['های‌وب', 'HiWEB'], 25184: ['افرانت', 'Afranet'], 12880: ['زیرساخت', 'DCI'], 49100: ['پیشگامان', 'Pishgaman'], 44208: ['فن‌آوا', 'Fanava'], 39501: ['سامانتل', 'Samantel'], 42337: ['رسپینا', 'Respina'], 24631: ['فناپ‌تلکام', 'Fanap Telecom'], 48159: ['زیرساخت (TIC)', 'TIC'] };
+export const ISP = { 197207: ['همراه اول', 'MCI'], 44244: ['ایرانسل', 'Irancell'], 58224: ['مخابرات', 'TCI'], 57218: ['رایتل', 'RighTel'], 31549: ['شاتل', 'Shatel'], 43754: ['آسیاتک', 'Asiatech'], 16322: ['پارس‌آنلاین', 'Pars Online'], 50810: ['مبین‌نت', 'Mobinnet'], 56402: ['های‌وب', 'HiWEB'], 25184: ['افرانت', 'Afranet'], 12880: ['زیرساخت', 'DCI'], 49100: ['پیشگامان', 'Pishgaman'], 44208: ['فن‌آوا', 'Fanava'], 39501: ['سامانتل', 'Samantel'], 42337: ['رسپینا', 'Respina'], 24631: ['فناپ‌تلکام', 'Fanap Telecom'], 48159: ['زیرساخت (TIC)', 'TIC'], 432008: ['شاتل موبایل', 'Shatel Mobile'], 432002: ['آپتل', 'Aptel'], 432045: ['زی‌تل', 'Zi-Tel'], 432032: ['تالیا', 'Taliya'], 432001: ['کیش‌سل پارس', 'Kish Cell Pars'], 432006: ['آرین‌تل', 'Arian-Tel'], 432003: ['لوتوس', 'Lotus (Parsian Hamrah)'], 432007: ['هوشمند امین', 'Hooshmand Amin'], 432014: ['ارتباطات کیش', 'TKC Kish'], 432070: ['ارتباطات سیار اصفهان', 'MTCE Isfahan'] };
 const ispName = (a, en) => (ISP[a] || [])[en ? 1 : 0] || 'AS' + a;
 const P = { VLESS: 'VLESS', VMESS: 'VMess', TROJAN: 'Trojan', SS: 'Shadowsocks', HY2: 'Hysteria2', TUIC: 'TUIC', WG: 'WireGuard', AWG: 'AmneziaWG', WARP: 'WARP', SSH: 'SSH', ANYTLS: 'AnyTLS', MIERU: 'Mieru', DNSTT: 'DNSTT', MDV: 'MasterDNS', TOR: 'Tor', PSI: 'Psiphon', RELAY: 'Ashflake', NAIVE: 'NaiveProxy' };
 const TR = { tcp: 'TCP', ws: 'WS', grpc: 'gRPC', xhttp: 'XHTTP', splithttp: 'XHTTP', httpupgrade: 'HTTPUpgrade', h2: 'H2', http: 'HTTP', kcp: 'mKCP', quic: 'QUIC' };
@@ -79,8 +79,24 @@ export async function alertCheck(env) {
       text = `✅ ${name} بهتر شد\n\nموفقیت اتصال‌ها روی ${name} در دو ساعت گذشته دوباره به حدود ${FA(Math.round(o.rr * 100))}٪ برگشته.\n\n📡 رادار زنده: v2fall.com/radar\n\n#رادار_فیلترینگ ${tag(name)}\n\n${SIGN}`;
       await kv.delete(key);
     }
-    if (text) await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chat, text, link_preview_options: { is_disabled: true } }) });
+    if (text) {
+      await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chat, text, link_preview_options: { is_disabled: true } }) });
+      // people who asked the bot for this operator's alerts get it directly too (tgsub:<operator>:<chat>)
+      try {
+        let cur; do {
+          const l = await kv.list({ prefix: 'tgsub:' + o.a + ':', cursor: cur });
+          for (const k of l.keys) {
+            const to = k.name.split(':')[2];
+            const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: to, text, link_preview_options: { is_disabled: true } }) });
+            if (r.status === 403) await kv.delete(k.name); // blocked the bot: stop
+            await new Promise(z => setTimeout(z, 40)); // well under Telegram's 30 messages a second
+          }
+          cur = l.list_complete ? null : l.cursor;
+        } while (cur);
+      } catch (e) {}
+    }
   }  const post = text => fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chat, text, link_preview_options: { is_disabled: true } }) });
   await siteAlertCheck(env, post).catch(() => {});

@@ -315,7 +315,7 @@ $('plats').innerHTML = Object.keys(PL).filter(k => k !== mine).map(k => platCard
 
 // today's Filter Radar: every operator in the last 24 h; a tap shows the kinds of connection that work there
 (function radar() {
-  const ISPN = { 197207: ['همراه اول', 'MCI'], 44244: ['ایرانسل', 'Irancell'], 58224: ['مخابرات', 'TCI'], 57218: ['رایتل', 'RighTel'], 31549: ['شاتل', 'Shatel'], 43754: ['آسیاتک', 'Asiatech'], 16322: ['پارس‌آنلاین', 'ParsOnline'], 50810: ['مبین‌نت', 'Mobinnet'], 56402: ['های‌وب', 'HiWEB'] };
+  const ISPN = { 197207: ['همراه اول', 'MCI'], 44244: ['ایرانسل', 'Irancell'], 58224: ['مخابرات', 'TCI'], 57218: ['رایتل', 'RighTel'], 31549: ['شاتل', 'Shatel'], 43754: ['آسیاتک', 'Asiatech'], 16322: ['پارس‌آنلاین', 'ParsOnline'], 50810: ['مبین‌نت', 'Mobinnet'], 56402: ['های‌وب', 'HiWEB'] , 39501: ['سامانتل', 'Samantel'], 432008: ['شاتل موبایل', 'Shatel Mobile'], 432002: ['آپتل', 'Aptel'], 432045: ['زی‌تل', 'Zi-Tel'], 432032: ['تالیا', 'Taliya'], 432001: ['کیش‌سل پارس', 'Kish Cell Pars'], 432006: ['آرین‌تل', 'Arian-Tel'], 432003: ['لوتوس', 'Lotus (Parsian Hamrah)'], 432007: ['هوشمند امین', 'Hooshmand Amin'], 432014: ['ارتباطات کیش', 'TKC Kish'], 432070: ['ارتباطات سیار اصفهان', 'MTCE Isfahan'] };
   const PN = { VLESS: 'VLESS', VMESS: 'VMess', TROJAN: 'Trojan', SS: 'Shadowsocks', HY2: 'Hysteria2', TUIC: 'TUIC', WG: 'WireGuard', SSH: 'SSH', XRAY: 'Xray' };
   const lab = k => { const [p, t, sec, f] = String(k).split('|'); return [PN[p] || p, { reality: 'Reality', tls: 'TLS' }[sec] || '', t ? t.toUpperCase() : ''].filter(Boolean).join(' · ') + (f === '1' ? ' + Fragment' : ''); };
   const fa = n => EN ? String(n) : String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]), pc = n => EN ? n + '%' : fa(n) + '٪';

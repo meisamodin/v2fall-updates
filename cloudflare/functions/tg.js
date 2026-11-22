@@ -6,7 +6,7 @@
 // - admin only: forward the channel post with the APK (what /download sends); /r R-XXXXXX shows a report;
 //   send any message with premium emoji → the bot uses them instead of the plain ones (texts and buttons)
 
-import { botText } from '../lib/radar.js';
+import { botText, ISP } from '../lib/radar.js';
 
 const SITE = 'https://v2fall.com', APP = 'https://dl.v2fall.com/app/';
 // which build a file is, from its name (as the release names them)
@@ -147,7 +147,26 @@ async function download(env, chat, lang) {
 async function radar(env, chat, lang) {
   const en = isEn(lang);
   const text = env.STATS ? await botText(env.STATS, en) : (en ? '📡 Filter Radar is not available right now.' : '📡 رادار فیلترینگ الان در دسترس نیست.');
-  await say(env, chat, text, [[['📡', 'رادار کامل در سایت', 'url:' + SITE + (en ? '/en/radar' : '/radar'), 'primary']], [['🔄', 'تازه کردن', 'radar']], ...BACK], lang);
+  await say(env, chat, text, [[['📡', 'رادار کامل در سایت', 'url:' + SITE + (en ? '/en/radar' : '/radar'), 'primary']], [['🔔', 'هشدار اختلال اپراتور من', 'al'], ['🔄', 'تازه کردن', 'radar']], ...BACK], lang);
+}
+// «هشدار اختلال اپراتور من»: the user picks an operator; when the radar sees a drop (or the recovery) on it, the bot
+// writes to them directly. Stored as tgal:<chat> = operator and tgsub:<operator>:<chat> for the alert loop.
+const AL_OPS = [197207, 44244, 57218, 58224, 31549, 43754, 16322, 50810, 56402, 39501, 432008, 432002, 432045, 432032, 25184, 49100, 44208, 42337];
+async function alertMenu(env, chat, lang) {
+  const en = isEn(lang), kv = env.CODES, cur = +(await kv.get('tgal:' + chat) || 0);
+  const nm = a => (ISP[a] || [])[en ? 1 : 0] || 'AS' + a;
+  const rows = [];
+  for (let i = 0; i < AL_OPS.length; i += 2) rows.push(AL_OPS.slice(i, i + 2).map(a => [a === cur ? '✅' : '📶', nm(a), 'al:' + a]));
+  if (cur) rows.push([['🔕', en ? 'Turn alerts off' : 'خاموش کردن هشدار', 'al:0', 'danger']]);
+  await say(env, chat, en ? `🔔 Pick your operator: when connections on it suddenly get worse (or recover), the bot writes to you here.${cur ? '\nNow: ' + nm(cur) : ''}`
+    : `🔔 اپراتورت را انتخاب کن: هر وقت اتصال روی آن ناگهان بدتر شد (یا دوباره خوب شد)، ربات همین‌جا خبرت می‌کند.${cur ? '\nالان: ' + nm(cur) : ''}`, [...rows, [['📡', 'رادار', 'radar']], ...BACK], lang);
+}
+async function alertSet(env, chat, a, lang) {
+  const kv = env.CODES, old = +(await kv.get('tgal:' + chat) || 0), en = isEn(lang);
+  if (old) await kv.delete('tgsub:' + old + ':' + chat);
+  if (!a || !AL_OPS.includes(a)) { await kv.delete('tgal:' + chat); await say(env, chat, en ? '🔕 Alerts are off.' : '🔕 هشدار خاموش شد.', [[['🔔', 'هشدار اختلال اپراتور من', 'al']], ...BACK], lang); return; }
+  await kv.put('tgal:' + chat, String(a)); await kv.put('tgsub:' + a + ':' + chat, '1');
+  await say(env, chat, (en ? '✅ Done. You will get a message here when ' : '✅ انجام شد. وقتی اتصال روی ') + ((ISP[a] || [])[en ? 1 : 0] || 'AS' + a) + (en ? ' suddenly gets worse or recovers.' : ' ناگهان بدتر یا دوباره خوب شود، همین‌جا پیام می‌گیری.'), [[['🔔', 'تغییر اپراتور', 'al']], ...BACK], lang);
 }
 
 const FLOOD = new Map();
@@ -184,6 +203,8 @@ export async function onRequestPost(ctx) {
       else if (c.data.startsWith('f:')) { const f = await kv.get('tg:f:' + c.data.slice(2)); if (f) { const j = JSON.parse(f); await tg(env, 'copyMessage', { chat_id: chat, from_chat_id: j.chat, message_id: j.id }); } }
       else if (c.data === 'start') await menu(chat);
       else if (c.data === 'radar') await radar(env, chat, lang);
+      else if (c.data === 'al') await alertMenu(env, chat, lang);
+      else if (/^al:\d{1,10}$/.test(c.data)) await alertSet(env, chat, +c.data.slice(3), lang);
       else if (c.data === 'lang') { const nl = isEn(lang) ? 'fa' : 'en'; await kv.put('tgl:' + from.id, nl); { const o = await kv.getWithMetadata('tgu:' + from.id); await kv.put('tgu:' + from.id, nl, { metadata: { l: nl, t: (o && o.metadata && o.metadata.t) || Date.now() } }); } await say(env, chat, isEn(nl) ? 'start' : T.start, MENU, nl); }
       else if (c.data === 'guide') await sayT(chat, 'guide', GUIDE_KB);
       else if (c.data === 'donate') await sayT(chat, 'donate', [...DONATE_KB, ...BACK]);
