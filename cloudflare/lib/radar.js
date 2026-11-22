@@ -212,6 +212,7 @@ export async function siteAlertCheck(env, post) {
       if (was === x.change) continue;
       await kv.put(key, x.change, { expirationTtl: 86400 * 7 });
       if (!was && x.change === 'opened') continue; // the first time we see a site at all, only a block is news
+      await siteEvent(kv, { type: x.change, a: o.a, s: x.s, h: sum.now, from: sum.now - 2 });
       const op = ISP[o.a][0], site = SITES[x.s][1];
       await post(x.change === 'blocked'
         ? `🚫 ${site} روی ${op} فیلتر شد\n\nدر سه ساعت گذشته ${site} روی ${op} بدون VPN باز نمی‌شود، در حالی که پیش از آن باز می‌شد.\n\n📡 رادار سایت‌ها: v2fall.com/radar\n🔒 از گزارش‌های ناشناس برنامه‌های V2Fall: فقط «باز شد / نشد» و اپراتور.\n\n#رادار_فیلترینگ #فیلترینگ ${tag(op)}\n\n${SIGN}`
@@ -265,3 +266,65 @@ export async function speedSummary(db) {
 }
 const BAND_FA = ['زیر ۲۵۰ کیلوبیت', '۰.۲۵ تا ۱ مگابیت', '۱ تا ۴ مگابیت', '۴ تا ۱۶ مگابیت', 'بیشتر از ۱۶ مگابیت'];
 export const bandFa = b => BAND_FA[b] || '';
+
+// ---- incidents: every sudden drop of the last 14 days on each named operator, worked out from the same hourly
+// counters (no extra storage, so the archive is there from day one). An incident starts when the last 2 hours are
+// 35 points or more under the 22 hours before them (the channel alert's rule, slightly looser on report counts)
+// and ends when 2 hours are back within 15 points of that level. Overlapping incidents on 2 or more operators are
+// marked «wide». Site blocks / openings come from the site alerts (rad:sev, kept 30 days).
+export async function incidents(db, kv) {
+  const now = Math.floor(Date.now() / 3600000), from = now - 24 * 14;
+  const r = await db.prepare('SELECT a, h, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE h > ? GROUP BY a, h').bind(from - 24).all();
+  const by = new Map();
+  for (const x of r.results || []) { if (!ISP[x.a]) continue; const m = by.get(x.a) || new Map(); m.set(x.h, [x.n, x.ok]); by.set(x.a, m); }
+  const sum = (m, a, b) => { let n = 0, ok = 0; for (let h = a; h <= b; h++) { const v = m.get(h); if (v) { n += v[0]; ok += v[1]; } } return [n, ok]; };
+  const out = [];
+  for (const [a, m] of by) {
+    let cur = null;
+    for (let h = from; h <= now; h++) {
+      const [rn, rok] = sum(m, h - 1, h), rr = rn ? rok / rn : null;
+      if (!cur) {
+        const [bn, bok] = sum(m, h - 23, h - 2), br = bn ? bok / bn : 0;
+        if (bn >= 40 && br >= 0.6 && rn >= 15 && rr <= br - 0.35) cur = { a, from: h - 1, base: br, low: rr, n: rn };
+      } else {
+        if (rn >= 8 && rr >= cur.base - 0.15) { out.push({ ...cur, to: h - 1 }); cur = null; }
+        else { if (rn >= 8 && rr < cur.low) cur.low = rr; cur.n += m.get(h) ? m.get(h)[0] : 0; }
+      }
+    }
+    if (cur) out.push({ ...cur, to: null }); // still going
+  }
+  for (const e of out) e.wide = out.some(o => o !== e && o.a !== e.a && o.from <= (e.to ?? now) && (o.to ?? now) >= e.from);
+  const ev = out.map(e => ({ type: 'drop', a: e.a, from: e.from, to: e.to, base: Math.round(e.base * 100), low: Math.round(e.low * 100), n: e.n, wide: e.wide }));
+  try { const s = JSON.parse(await kv.get('rad:sev') || '[]'); for (const x of s) if (x.h > now - 24 * 30) ev.push(x); } catch (e) {}
+  ev.sort((p, q) => (q.from ?? q.h) - (p.from ?? p.h));
+  return { now, ev: ev.slice(0, 120) };
+}
+async function siteEvent(kv, x) {
+  try { const l = JSON.parse(await kv.get('rad:sev') || '[]'); l.unshift(x); await kv.put('rad:sev', JSON.stringify(l.slice(0, 200))); } catch (e) {}
+}
+
+// ---- trends: the whole country hour by hour (8 days, every named operator together) and each operator day by day
+// (14 days, Tehran days) — the «status page» strips of the site and the app
+export async function trends(db) {
+  const now = Math.floor(Date.now() / 3600000);
+  const r = await db.prepare('SELECT a, h, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE h > ? GROUP BY a, h').bind(now - 24 * 14).all();
+  const nat = new Map(), days = {};
+  const dayOf = h => Math.floor((h * 3600000 + 12600000) / 864e5), today = dayOf(now);
+  for (const x of r.results || []) {
+    if (!ISP[x.a]) continue;
+    if (x.h > now - 24 * 8) { const v = nat.get(x.h) || [0, 0]; v[0] += x.n; v[1] += x.ok; nat.set(x.h, v); }
+    const d = 13 - (today - dayOf(x.h)); if (d < 0 || d > 13) continue;
+    const o = days[x.a] || (days[x.a] = Array.from({ length: 14 }, () => [0, 0])); o[d][0] += x.n; o[d][1] += x.ok;
+  }
+  return { now, nat: [...nat.entries()].sort((p, q) => p[0] - q[0]).map(([h, v]) => [h, v[0], v[1]]), days };
+}
+// ---- each popular site day by day (14 days, all operators together, or one operator)
+export async function siteTrends(db, a) {
+  await siteInit(db);
+  const now = Math.floor(Date.now() / 3600000), dayOf = h => Math.floor((h * 3600000 + 12600000) / 864e5), today = dayOf(now);
+  const r = a ? await db.prepare('SELECT h, s, SUM(n) AS n, SUM(ok) AS ok FROM radar_site WHERE h > ? AND a = ? GROUP BY h, s').bind(now - 24 * 14, a).all()
+    : await db.prepare('SELECT h, s, SUM(n) AS n, SUM(ok) AS ok FROM radar_site WHERE h > ? GROUP BY h, s').bind(now - 24 * 14).all();
+  const s = SITES.map(() => Array.from({ length: 14 }, () => [0, 0]));
+  for (const x of r.results || []) { const d = 13 - (today - dayOf(x.h)); if (d < 0 || d > 13 || !s[x.s]) continue; s[x.s][d][0] += x.n; s[x.s][d][1] += x.ok; }
+  return { now, a: a || 0, sites: SITES.map(x => x[0]), days: s };
+}

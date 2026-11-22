@@ -1,11 +1,13 @@
 // Filter Radar: what kind of connection works on which Iranian operator, from anonymous reports of V2Fall apps.
 //   report: GET /radar?d=<base64url of {"v":1,"r":[[asn, cc, proto, transport, security, frag, ok, bucket], …]}>
 //   read:   GET /radar?q=<asn>  → {n, k: [{k: "PROTO|transport|security|frag", n, ok}, …]}  (last 24 h, cached 10 min)
+//           ?all=1 every operator · ?h=<asn> 8 days hourly · ?cal=<asn> usual bad hours · ?ev=1 incident archive
+//           ?trend=1 country hourly + operators daily · ?sites=1 · ?sh=1|<asn> sites daily · ?speed=1 · ?export=csv
 // The app sends reports only through its own VPN tunnel, so the address that reaches us is the VPN's exit,
 // never the user's. Nothing per user is stored: no IP, no id, no server address, no SNI — only counters per
 // (hour, operator, kind of connection). Rows older than 15 days are deleted (the app shows the last 7).
 
-import { ISP, alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary } from '../lib/radar.js';
+import { ISP, alertCheck, wideNote, calendar, siteReport, siteSummary, speedReport, speedSummary, incidents, trends, siteTrends } from '../lib/radar.js';
 
 const J = (o, s = 200, cache = 'no-store') => Response.json(o, { status: s, headers: { 'Cache-Control': cache, 'Access-Control-Allow-Origin': '*' } });
 const RL = new Map();
@@ -82,6 +84,28 @@ export async function onRequestGet({ request, env, waitUntil }) {
     const ck = new Request(u.origin + '/radar?sites=1'), hit5 = await caches.default.match(ck); if (hit5) return hit5;
     if (limited('t:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
     const res = J(await siteSummary(db), 200, 'public, max-age=600');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // incident archive (14 days of drops on each operator, site blocks / openings for 30 days)
+  if (u.searchParams.get('ev')) {
+    const ck = new Request(u.origin + '/radar?ev=1'), hitV = await caches.default.match(ck); if (hitV) return hitV;
+    if (limited('i:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await incidents(db, env.CODES), 200, 'public, max-age=900');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // trends: the whole country per hour (8 days) and every operator per day (14 days)
+  if (u.searchParams.get('trend')) {
+    const ck = new Request(u.origin + '/radar?trend=1'), hitT = await caches.default.match(ck); if (hitT) return hitT;
+    if (limited('n:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await trends(db), 200, 'public, max-age=1800');
+    await caches.default.put(ck, res.clone()); return res;
+  }
+  // each popular site per day (14 days): ?sh=1 every operator, ?sh=<asn> one operator
+  const sA = parseInt(u.searchParams.get('sh') || '', 10);
+  if (sA > 0) {
+    const one = sA > 1 ? sA : 0, ck = new Request(u.origin + '/radar?sh=' + (one || 1)), hitS = await caches.default.match(ck); if (hitS) return hitS;
+    if (limited('y:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
+    const res = J(await siteTrends(db, one), 200, 'public, max-age=1800');
     await caches.default.put(ck, res.clone()); return res;
   }
   // open data: hourly counters of the last 7 days as CSV (hour UTC, operator id and name, kind, reports, worked)
