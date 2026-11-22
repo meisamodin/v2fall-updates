@@ -1,0 +1,36 @@
+name: Radar weekly post
+
+# Fridays: the week's Filter Radar for each main operator as one picture card plus a short text in @v2fall
+# (tools/radar_weekly.py). No post when fewer than two operators had enough reports that week.
+on:
+  schedule:
+    - cron: '47 13 * * 5'   # Fridays 17:17 in Tehran (UTC+3:30)
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "Only print the text and make the picture, post nothing"
+        type: boolean
+        default: false
+
+concurrency: { group: radar-weekly, cancel-in-progress: false }
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1, sparse-checkout: tools }
+      - name: Font for the picture
+        run: |
+          npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
+          F=$(find package -iname "*.woff2" | grep -iE "wght|variable" | grep -viE "ui|fd|round|nl|misc" | head -1)
+          [ -n "$F" ] && echo "RADAR_FONT=file://$(realpath "$F")" >> "$GITHUB_ENV" || echo "::warning::no font, text-only post"
+      - name: Post
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry }}" = "true" ]; then python3 tools/radar_weekly.py; else python3 tools/radar_weekly.py --send; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: radar-week, path: radar_week.png, if-no-files-found: ignore, retention-days: 7 }
