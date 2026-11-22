@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
   # builds publish with GITHUB_TOKEN, and those pushes do not trigger other workflows: run after them
   workflow_run:
-    workflows: ["Build stable (source)", "Build experimental (source)", "Publish release (download counter)"]
+    workflows: ["Build stable (source)", "Build experimental (source)", "Publish release (download counter)", "WebView2 runtime mirror"]
     types: [completed]
 
 concurrency:
@@ -77,6 +77,7 @@ jobs:
           set -e
           mkdir -p site/experimental
           [ -d download/parts ] && mkdir -p site/download && cp -r download/parts site/download/
+          [ -d deps ] && cp -r deps site/  # WebView2 runtime for Windows 10 PCs that cannot reach Microsoft
           [ -d download/delta ] && mkdir -p site/download && cp -r download/delta site/download/
           [ -d cloudflare/static ] && cp -r cloudflare/static/. site/
           [ -d experimental/parts ] && cp -r experimental/parts site/experimental/

@@ -1,0 +1,33 @@
+name: WebView2 runtime mirror
+# Puts Microsoft's offline WebView2 runtime installer (x64) on V2Fall's mirrors in parts, for Windows 10 PCs that
+# cannot reach Microsoft: deps/webview2/manifest.json + WebView2-x64.exe.pNN (served by dl.v2fall.com, jsDelivr, raw).
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  mirror:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1, sparse-checkout: .github }
+      - name: Download and check the signature
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://go.microsoft.com/fwlink/?linkid=2124701" -OutFile wv2.exe
+          $s = Get-AuthenticodeSignature wv2.exe
+          if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'Microsoft Corporation') { Write-Error "not signed by Microsoft: $($s.Status) $($s.SignerCertificate.Subject)"; exit 1 }
+          Write-Host "signed by $($s.SignerCertificate.Subject), size $((Get-Item wv2.exe).Length)"
+      - name: Split and commit
+        shell: bash
+        run: |
+          set -e
+          git sparse-checkout disable
+          rm -rf deps/webview2 && mkdir -p deps/webview2
+          split -b 19000000 -d -a 2 wv2.exe deps/webview2/WebView2-x64.exe.p
+          sha=$(sha256sum wv2.exe | cut -d' ' -f1); size=$(stat -c %s wv2.exe)
+          parts=$(cd deps/webview2 && ls WebView2-x64.exe.p* | sed 's/.*/"&"/' | paste -sd, -)
+          printf '{"sha256":"%s","size":%s,"parts":[%s]}\n' "$sha" "$size" "$parts" > deps/webview2/manifest.json
+          cat deps/webview2/manifest.json
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deps/webview2 && git commit -qm "WebView2 runtime mirror ($size bytes)" && for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 10; done
