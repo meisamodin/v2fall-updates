@@ -110,8 +110,9 @@ export async function onRequestGet({ request, env, waitUntil }) {
     const ck = new Request(u.origin + '/radar?h=' + hA), hit2 = await caches.default.match(ck); if (hit2) return hit2;
     if (limited('h:' + ip, 30, 600)) return J({ error: 'too many' }, 429);
     const now = Math.floor(Date.now() / 3600000);
-    const r = await db.prepare('SELECT h, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE a = ? AND h > ? GROUP BY h ORDER BY h').bind(hA, now - 24 * 7).all();
-    const res = J({ a: hA, now, hours: (r.results || []).map(x => [x.h, x.n, x.ok]) }, 200, 'public, max-age=1800');
+    const r = await db.prepare('SELECT h, SUM(n) AS n, SUM(ok) AS ok, SUM(ms) AS ms FROM radar WHERE a = ? AND h > ? GROUP BY h ORDER BY h').bind(hA, now - 24 * 8).all();
+    // [hour, reports, worked, delay-bucket sum of the ones that worked]
+    const res = J({ a: hA, now, hours: (r.results || []).map(x => [x.h, x.n, x.ok, x.ms || 0]) }, 200, 'public, max-age=1800');
     await caches.default.put(ck, res.clone()); return res;
   }
   const a = parseInt(u.searchParams.get('q') || '', 10);

@@ -111,15 +111,15 @@ export async function alertCheck(env) {
 const TEH = h => new Date(h * 3600000 + 12600000); // UTC hour index → a Date whose UTC fields are Tehran's (+3:30)
 export async function calendar(db, a) {
   const now = Math.floor(Date.now() / 3600000);
-  const r = await db.prepare('SELECT h, SUM(n) AS n, SUM(ok) AS ok FROM radar WHERE a = ? AND h > ? GROUP BY h').bind(a, now - 24 * 14).all();
-  const hr = Array.from({ length: 24 }, () => [0, 0]), dw = Array.from({ length: 7 }, () => [0, 0]);
+  const r = await db.prepare('SELECT h, SUM(n) AS n, SUM(ok) AS ok, SUM(ms) AS ms FROM radar WHERE a = ? AND h > ? GROUP BY h').bind(a, now - 24 * 14).all();
+  const hr = Array.from({ length: 24 }, () => [0, 0, 0]), dw = Array.from({ length: 7 }, () => [0, 0]);
   let N = 0, OK = 0;
   for (const x of r.results || []) {
     const t = TEH(x.h), H = t.getUTCHours(), D = t.getUTCDay();
-    hr[H][0] += x.n; hr[H][1] += x.ok; dw[D][0] += x.n; dw[D][1] += x.ok; N += x.n; OK += x.ok;
+    hr[H][0] += x.n; hr[H][1] += x.ok; hr[H][2] += x.ms || 0; dw[D][0] += x.n; dw[D][1] += x.ok; N += x.n; OK += x.ok;
   }
   const avg = N ? OK / N : 0, rate = v => v[0] ? v[1] / v[0] : null;
-  const hours = hr.map(v => [v[0], v[0] >= 15 ? Math.round(rate(v) * 100) : null]);
+  const hours = hr.map(v => [v[0], v[0] >= 5 ? Math.round(rate(v) * 100) : null, v[1] ? Math.round(v[2] * 10 / v[1]) : null]); // [reports, %, delay bucket ×10]
   const bad = hr.map(v => v[0] >= 15 && rate(v) <= avg - 0.12);
   // join neighbouring risky hours into windows (across midnight too)
   const wins = [];
@@ -135,7 +135,8 @@ export async function calendar(db, a) {
   // the next risky window starting within 12 hours (Tehran time), for "tonight from 20:00"
   const nowH = TEH(now).getUTCHours(); let next = null;
   for (const w of wins) { const inH = (w.from - nowH + 24) % 24; const inside = (nowH - w.from + 24) % 24 < (w.to - w.from + 24) % 24 || w.to === w.from; if (inside) { next = { ...w, inH: 0 }; break; } if (inH <= 12 && (!next || inH < next.inH)) next = { ...w, inH }; }
-  return { a, n: N, avg: Math.round(avg * 100), hours, wins: wins.slice(0, 3), days, next, enough: N >= 200 };
+  const days2 = dw.map(v => [v[0], v[0] >= 10 ? Math.round(rate(v) * 100) : null]); // Sunday first, [reports, %]
+  return { a, n: N, avg: Math.round(avg * 100), hours, wins: wins.slice(0, 3), days, days2, next, nowH, enough: N >= 200 };
 }
 const faN = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 export function calLine(c, en) {
