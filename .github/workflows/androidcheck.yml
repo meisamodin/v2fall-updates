@@ -1,0 +1,24 @@
+# temporary: compile check of the Android app (v2fall next) without a release
+name: Android compile check
+on: push
+jobs:
+  kt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: next
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          path: libbox.aar
+          key: libbox-1.14.4-arm-arm64-v2
+          fail-on-cache-miss: true
+      - run: mkdir -p android/app/libs && mv -f libbox.aar android/app/libs/
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.11.1" }
+      - run: gradle -p android compileReleaseKotlin --no-daemon && echo "KOTLIN OK"
