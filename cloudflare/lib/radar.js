@@ -25,7 +25,7 @@ export async function summary(db) {
     o.n += x.n; o.ok += x.ok; o.rn += x.rn; o.rok += x.rok;
     o.k.push({ k: x.k, n: x.n, ok: x.ok, rn: x.rn, rok: x.rok }); ops.set(x.a, o);
   }
-  const v = [...ops.values()].filter(o => o.n >= 10).map(o => {
+  const v = [...ops.values()].filter(o => o.n >= 3).map(o => {
     o.pn = o.n - o.rn; o.pok = o.ok - o.rok;
     o.pr = o.pn ? o.pok / o.pn : 0; o.rr = o.rn ? o.rok / o.rn : 0;
     // same rule as the app's notice, a little stricter for a public post
