@@ -24,6 +24,12 @@ def get(q):
 def collect():
     """per operator: 7-day reports and success, the usual worst window, the best kinds (24 h)"""
     allops = {o['a']: o for o in ((get('all=1') or {}).get('ops') or [])}
+    ev = get('ev=1') or {}
+    since = (ev.get('now') or 0) - 24 * 7
+    inc = {}
+    for e in ev.get('ev') or []:
+        if e.get('type') == 'drop' and (e.get('from') or 0) > since:
+            inc[e['a']] = inc.get(e['a'], 0) + 1
     out = []
     for a in MAIN:
         h = get(f'h={a}')
@@ -37,7 +43,7 @@ def collect():
         c = get(f'cal={a}') or {}
         win = (c.get('wins') or [None])[0] if c.get('enough') else None
         kinds = sorted((k for k in (allops.get(a, {}).get('k') or []) if k['n'] >= 5), key=lambda k: (-(k['ok'] / k['n']), -k['n']))[:2]
-        out.append({'a': a, 'n': n, 'p': pct(ok, n), 'win': win, 'kinds': kinds})
+        out.append({'a': a, 'n': n, 'p': pct(ok, n), 'win': win, 'kinds': kinds, 'inc': inc.get(a, 0)})
     return sorted(out, key=lambda o: -o['n'])
 
 
@@ -50,6 +56,8 @@ def text(ops):
         line = f"{dot} {ISP[o['a']]}: {fa(o['p'])}٪ اتصال‌ها وصل شد"
         if o['win']:
             line += f"؛ معمولاً ساعت {fa(o['win']['from'])} تا {fa(o['win']['to'])} بدتر است"
+        if o['inc']:
+            line += f"؛ {fa(o['inc'])} بار افت ناگهانی"
         lines.append(line)
         if o['kinds']:
             lines.append('   بهترین: ' + '، '.join(label(k['k']) for k in o['kinds']))
