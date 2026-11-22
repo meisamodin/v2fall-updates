@@ -1,0 +1,15 @@
+name: Radar probe
+on:
+  push:
+    branches: [radar-probe]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for q in "all=1" "sites=1" "speed=1" "w=1"; do echo "== $q"; curl -s "https://dl.v2fall.com/radar?$q" | python3 -c "
+          import json,sys
+          j=json.load(sys.stdin); ops=j.get('ops') or []
+          print('keys', list(j.keys())[:8], 'ops', len(ops))
+          for o in ops[:20]: print(' a=%s n=%s rn=%s k=%s' % (o.get('a'), o.get('n'), o.get('rn'), len(o.get('k') or o.get('s') or [])))
+          " 2>&1 | head -25; done
