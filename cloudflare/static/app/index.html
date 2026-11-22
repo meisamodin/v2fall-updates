@@ -114,6 +114,11 @@ details p { color: var(--mut); font-size: 14px; padding-bottom: 14px; }
 @keyframes in { from { opacity: 0; transform: translateY(10px); } }
 .rv { opacity: 0; transform: translateY(14px); transition: opacity .5s, transform .5s; } .rv.in { opacity: 1; transform: none; }
 .notes { color: var(--mut); font-size: 13px; white-space: pre-wrap; }
+/* today's Filter Radar (dl.v2fall.com/radar?all=1) */
+.rd-r { display: grid; grid-template-columns: 74px 1fr 42px; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; padding: 5px 0; cursor: pointer; }
+.rd-b { height: 9px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; } .rd-b i { display: block; height: 100%; border-radius: 99px; }
+.rd-r b { text-align: end; } .rd-k { display: none; padding: 2px 12px 8px; font-size: 12px; color: var(--mut); } .rd-k.on { display: grid; gap: 3px; }
+.rd-k div { display: flex; justify-content: space-between; gap: 8px; } .rd-f { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11.5px; color: var(--mut); }
 .toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); padding: 10px 16px; border-radius: 16px; background: rgba(18,22,19,.92); border: 1px solid var(--line); font-size: 14px; z-index: 20; display: none; backdrop-filter: blur(12px); }
 .player { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.92); display: none; place-items: center; }
 .player.on { display: grid; } .player video { max-width: 100%; max-height: 92vh; border-radius: 18px; }
@@ -144,6 +149,9 @@ details p { color: var(--mut); font-size: 14px; padding-bottom: 14px; }
         <div class="grid"><button class="btn b" onclick="go('guide')">📚 آموزش‌ها</button><button class="btn a" onclick="go('support')">🐞 پشتیبانی</button></div>
       </div>
     </div>
+
+    <h2 id="rd-h">📡 رادار فیلترینگ امروز</h2>
+    <div class="glass card" id="rdr"><div class="notes">…</div></div>
 
     <h2>📸 نگاهی به برنامه <small>بکش ←</small></h2>
     <div class="rail" id="shots"></div>
@@ -305,6 +313,24 @@ function platCard(k, big) {
 $('mine').innerHTML = platCard(mine, true);
 $('plats').innerHTML = Object.keys(PL).filter(k => k !== mine).map(k => platCard(k)).join('') + `<div class="glass card rv" style="margin:0;text-align:center;cursor:pointer" onclick="site('#download')"><div class="ic r" style="margin:0 auto 8px">🌍</div><b style="display:block">${L('سایت V2Fall', 'V2Fall website')}</b><span class="sub" style="font-size:12px">${L('همهٔ نسخه‌ها', 'Every version')}</span></div>`;
 
+// today's Filter Radar: every operator in the last 24 h; a tap shows the kinds of connection that work there
+(function radar() {
+  const ISPN = { 197207: ['همراه اول', 'MCI'], 44244: ['ایرانسل', 'Irancell'], 58224: ['مخابرات', 'TCI'], 57218: ['رایتل', 'RighTel'], 31549: ['شاتل', 'Shatel'], 43754: ['آسیاتک', 'Asiatech'], 16322: ['پارس‌آنلاین', 'ParsOnline'], 50810: ['مبین‌نت', 'Mobinnet'], 56402: ['های‌وب', 'HiWEB'] };
+  const PN = { VLESS: 'VLESS', VMESS: 'VMess', TROJAN: 'Trojan', SS: 'Shadowsocks', HY2: 'Hysteria2', TUIC: 'TUIC', WG: 'WireGuard', SSH: 'SSH', XRAY: 'Xray' };
+  const lab = k => { const [p, t, sec, f] = String(k).split('|'); return [PN[p] || p, { reality: 'Reality', tls: 'TLS' }[sec] || '', t ? t.toUpperCase() : ''].filter(Boolean).join(' · ') + (f === '1' ? ' + Fragment' : ''); };
+  const fa = n => EN ? String(n) : String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]), pc = n => EN ? n + '%' : fa(n) + '٪';
+  const col = p => p >= 70 ? '#3DD68C' : p >= 40 ? '#F5C542' : '#F2555A';
+  const box = document.getElementById('rdr'); if (!box) return;
+  if (EN) document.getElementById('rd-h').textContent = "📡 Today's Filter Radar";
+  fetch('/radar?all=1').then(r => r.json()).then(j => {
+    const ops = (j.ops || []).filter(o => ISPN[o.a] && o.n >= 10).slice(0, 7);
+    if (!ops.length) { box.innerHTML = '<div class="notes">' + (EN ? 'Not enough reports yet today.' : 'امروز هنوز گزارش کافی نیامده.') + '</div>'; return; }
+    box.innerHTML = ops.map(o => { const p = Math.round(o.ok * 100 / o.n);
+      return `<div class="rd-r" onclick="this.nextElementSibling.classList.toggle('on')"><span>${ISPN[o.a][EN ? 1 : 0]}</span><div class="rd-b"><i style="width:${Math.max(4, p)}%;background:${col(p)}"></i></div><b style="color:${col(p)}">${pc(p)}</b></div>`
+        + `<div class="rd-k">${(o.k || []).slice(0, 3).map(x => `<div><span dir="ltr">${lab(x.k)}</span><b style="color:${col(Math.round(x.ok * 100 / x.n))}">${pc(Math.round(x.ok * 100 / x.n))}</b></div>`).join('')}</div>`; }).join('')
+      + `<div class="rd-f"><span>${EN ? 'Connections that worked, last 24 h · tap an operator' : 'موفقیت اتصال در ۲۴ ساعت گذشته · روی اپراتور بزن'}</span><a href="https://v2fall.com/radar" onclick="event.preventDefault();tgLink('https://v2fall.com/radar')" style="color:#F0994B;font-weight:700;text-decoration:none">${EN ? 'Details →' : 'جزئیات ←'}</a></div>`;
+  }).catch(() => { box.innerHTML = '<div class="notes">' + (EN ? 'The radar could not be loaded.' : 'رادار باز نشد.') + '</div>'; });
+})();
 fetch('/latest.json', { cache: 'no-store' }).then(r => r.json()).then(m => {
   $('ver').textContent = m.version; $('ver2').textContent = m.version; $('ver3').textContent = m.version;
   $('notes').textContent = String((EN && m.notes_en) || m.notes || '').split('\n').slice(0, 6).join('\n');
