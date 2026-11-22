@@ -7,6 +7,7 @@
 //   send any message with premium emoji → the bot uses them instead of the plain ones (texts and buttons)
 
 import { botText, ISP } from '../lib/radar.js';
+import { rvList, rvSave, rvClean } from '../lib/reviews.js';
 
 const SITE = 'https://v2fall.com', APP = 'https://dl.v2fall.com/app/';
 // which build a file is, from its name (as the release names them)
@@ -33,7 +34,8 @@ const MENU = [
   [['🌍', 'Ashflake', 'ashflake', 'success']],
   [['🧰', 'ابزارهای تازه', 'tools', 'primary'], ['🎨', 'ظاهر برنامه', 'look', 'primary']],
   [['📚', 'آموزش‌ها', 'guide', 'primary'], ['🌐', 'حالت فقط DNS', 'dns', 'primary']],
-  [['⭐', 'حمایت از V2Fall', 'donate', 'primary'], ['🐞', 'پشتیبانی', 'support', 'danger']],
+  [['💬', 'نظر کاربرها', 'rv', 'primary'], ['⭐', 'حمایت از V2Fall', 'donate', 'primary']],
+  [['🐞', 'پشتیبانی', 'support', 'danger']],
   [['🌍', 'سایت V2Fall', 'url:' + SITE], ['📢', 'کانال', 'url:https://t.me/v2fall']],
   [['🌐', 'English', 'lang']],
 ];
@@ -63,6 +65,7 @@ const T = {
 // Persian get English, and "🌐 English / فارسی" switches it
 const DONATE_KB = [[['⭐', '50', 'don:50'], ['⭐', '100', 'don:100']], [['⭐', '250', 'don:250'], ['⭐', '500', 'don:500']], [['✏️', 'مقدار دلخواه', 'don:ask']]];
 const EN = {
+  'نظر کاربرها': 'User reviews', 'نظر بده': 'Write a review', 'همه در سایت': 'All on the website', 'انصراف': 'Cancel',
   'باز کردن V2Fall در تلگرام': 'Open V2Fall in Telegram', 'دریافت آخرین نسخه': 'Get the latest version', 'تست کانفیگ': 'Test a config', 'آموزش‌ها': 'Guides',
   'حالت فقط DNS': 'DNS-only mode', 'حمایت از V2Fall': 'Support V2Fall',  'پشتیبانی': 'Support', 'سایت V2Fall': 'V2Fall website', 'کانال': 'Channel', 'منوی اصلی': 'Main menu', 'English': 'فارسی',
   'ابزارهای تازه': 'New tools', 'ظاهر برنامه': 'Look', 'اندروید ۶ به بالا': 'Android 6+', 'شروع سریع': 'Quick start', 'وارپ رایگان': 'Free WARP', 'وصل ماندن در قطعی': 'Stay online in shutdowns', 'IP تمیز': 'Clean IP', 'پشتیبان با کد': 'Backup code',
@@ -169,6 +172,19 @@ async function alertSet(env, chat, a, lang) {
   await say(env, chat, (en ? '✅ Done. You will get a message here when ' : '✅ انجام شد. وقتی اتصال روی ') + ((ISP[a] || [])[en ? 1 : 0] || 'AS' + a) + (en ? ' suddenly gets worse or recovers.' : ' ناگهان بدتر یا دوباره خوب شود، همین‌جا پیام می‌گیری.'), [[['🔔', 'تغییر اپراتور', 'al']], ...BACK], lang);
 }
 
+// «💬 نظر کاربرها»: the latest approved reviews, and «✍️ نظر بده»
+async function reviews(env, chat, lang) {
+  const en = isEn(lang), all = await rvList(env.CODES), list = all.filter(r => (r.l === 'en') === en).slice(0, 6);
+  const body = list.length ? list.map(r => '💬 «' + r.text + '»').join('\n\n') : (en ? 'No reviews yet; be the first.' : 'هنوز نظری ثبت نشده؛ اولین نفر باش.');
+  await say(env, chat, (en ? '💬 What V2Fall users say\n\n' : '💬 کاربران V2Fall چه می‌گویند\n\n') + body, [[['✍️', 'نظر بده', 'rv:w', 'success']], [['🌐', 'همه در سایت', 'url:' + SITE + (en ? '/en/reviews' : '/reviews')]], ...BACK], lang);
+}
+async function reviewAsk(env, chat, lang) {
+  await env.CODES.put('rv:w:' + chat, '1', { expirationTtl: 1800 });
+  await say(env, chat, isEn(lang)
+    ? '✍️ Write what you think of V2Fall in one message (up to 500 characters).\n\n🔒 By sending it you agree it may be shown on the V2Fall website and bot WITHOUT your name, username or id. We read every review first; links and ids in it are removed.'
+    : '✍️ نظرت دربارهٔ V2Fall را در یک پیام بنویس (تا ۵۰۰ حرف).\n\n🔒 با فرستادن، موافقت می‌کنی که در سایت و ربات V2Fall بدون اسم، یوزرنیم و آیدی تو نشان داده شود. هر نظر اول خوانده می‌شود؛ لینک و آیدی داخلش برداشته می‌شود.', [[['✖️', 'انصراف', 'rv:x']]], lang);
+}
+
 const FLOOD = new Map();
 export async function onRequestPost(ctx) {
   const { request, env } = ctx;
@@ -203,6 +219,18 @@ export async function onRequestPost(ctx) {
       else if (c.data.startsWith('f:')) { const f = await kv.get('tg:f:' + c.data.slice(2)); if (f) { const j = JSON.parse(f); await tg(env, 'copyMessage', { chat_id: chat, from_chat_id: j.chat, message_id: j.id }); } }
       else if (c.data === 'start') await menu(chat);
       else if (c.data === 'radar') await radar(env, chat, lang);
+      else if (c.data === 'rv') await reviews(env, chat, lang);
+      else if (c.data === 'rv:w') await reviewAsk(env, chat, lang);
+      else if (c.data === 'rv:x') { await kv.delete('rv:w:' + chat); await menu(chat); }
+      else if (/^rv[ad]:[a-z0-9]{8}$/.test(c.data) && admin && String(chat) === admin) {
+        const id = c.data.slice(4), pj = await kv.get('rv:p:' + id);
+        if (!pj) await say(env, chat, 'این نظر دیگر نیست (قبلاً بررسی شده یا ۷ روزش گذشته).');
+        else {
+          const p = JSON.parse(pj); await kv.delete('rv:p:' + id);
+          if (c.data[2] === 'a') { const l = await rvList(kv); l.unshift({ id, text: p.text, l: p.l, t: p.t }); await rvSave(kv, l); await say(env, chat, '✅ منتشر شد (در سایت و ربات، بدون اسم). برای برداشتن: /rvdel ' + id); await say(env, p.chat, p.l === 'en' ? '💙 Thanks! Your review is now on the V2Fall website.' : '💙 ممنون! نظرت در سایت V2Fall گذاشته شد.', BACK, p.l); }
+          else await say(env, chat, '🗑 رد شد.');
+        }
+      }
       else if (c.data === 'al') await alertMenu(env, chat, lang);
       else if (/^al:\d{1,10}$/.test(c.data)) await alertSet(env, chat, +c.data.slice(3), lang);
       else if (c.data === 'lang') { const nl = isEn(lang) ? 'fa' : 'en'; await kv.put('tgl:' + from.id, nl); { const o = await kv.getWithMetadata('tgu:' + from.id); await kv.put('tgu:' + from.id, nl, { metadata: { l: nl, t: (o && o.metadata && o.metadata.t) || Date.now() } }); } await say(env, chat, isEn(nl) ? 'start' : T.start, MENU, nl); }
@@ -270,12 +298,25 @@ export async function onRequestPost(ctx) {
         await kv.put('st:k:' + k, '1', { expirationTtl: 600 });
         await say(env, chat, '📊 لینک ورود به صفحهٔ آمار (یک‌بارمصرف، ۱۰ دقیقه اعتبار؛ برای کسی نفرستید):', [[['📊', 'باز کردن آمار', 'url:https://dl.v2fall.com/stats?k=' + k, 'primary']]]); return new Response('ok');
       }
+      // /rvdel <id>: take an approved review down
+      { const dm = text.match(/^\/rvdel\s+([a-z0-9]{8})/); if (dm) { const l = await rvList(kv), n = l.length, r = l.filter(x => x.id !== dm[1]); await rvSave(kv, r); await say(env, chat, n > r.length ? '🗑 برداشته شد.' : 'پیدا نشد.'); return new Response('ok'); } }
+      if (/^\/rvlist\b/.test(text)) { const l = await rvList(kv); await say(env, chat, l.length ? l.slice(0, 30).map(r => r.id + ' · «' + r.text.slice(0, 80) + '»').join('\n') : 'هنوز نظری منتشر نشده.'); return new Response('ok'); }
       if (/^\/users\b/.test(text)) { let n = 0, c; do { const l = await kv.list({ prefix: 'tgu:', cursor: c }); n += l.keys.length; c = l.list_complete ? null : l.cursor; } while (c); await say(env, chat, `👥 ${n} نفر ربات را Start کرده‌اند.`); return new Response('ok'); }
       const rm = text.match(/^\/r\s+R?-?([A-Z0-9]{6})/i);
       if (rm) { const r = await kv.get('r:' + rm[1].toUpperCase()); await say(env, chat, r ? JSON.stringify(JSON.parse(r), null, 1).slice(0, 4000) : 'پیدا نشد'); return new Response('ok'); }
       const rq = m.reply_to_message, rt = rq && ((String(rq.text || rq.caption || '').match(/#u(\d+)/) || [])[1] || await kv.get('tg:fw:' + rq.message_id));
       if (rt) { await tg(env, 'copyMessage', { chat_id: +rt, from_chat_id: chat, message_id: m.message_id }); await say(env, chat, '✅ فرستاده شد'); return new Response('ok'); }
       if (/^\/emoji\b/.test(text)) { await say(env, chat, '✨ دو راه:\n\n۱) لینک یک پک ایموجی پرمیوم را بفرست (مثل t.me/addemoji/…) — همهٔ ایموجی‌هایش یک‌جا ذخیره می‌شود.\n\n۲) یا یک پیام با ایموجی‌های پرمیوم بفرست، هر کدام جای یکی از این‌ها:\n👋 🛡 🚀 📥 🩺 📚 🌐 🐞 🌍 📢 🔎 ⚠️ ✅ ❌ 💡 🔒 ⚡ ✍️ 📱 💻 ✨ 🏠 ☁️ 🛟 🧹 🔑 📊 🎮 🎬 🆔 🔗 ✉️ ℹ️'); return new Response('ok'); }
+    }
+    if (text && !text.startsWith('/') && await kv.get('rv:w:' + chat)) {
+      await kv.delete('rv:w:' + chat);
+      const clean = rvClean(text), en = isEn(lang);
+      if (clean.length < 8) { await say(env, chat, en ? 'That is a bit short; tap «Write a review» again.' : 'کمی کوتاه است؛ دوباره «نظر بده» را بزن.', [[['✍️', 'نظر بده', 'rv:w']], ...BACK], lang); return new Response('ok'); }
+      const id = Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('');
+      await kv.put('rv:p:' + id, JSON.stringify({ text: clean, l: en ? 'en' : 'fa', t: Date.now(), chat }), { expirationTtl: 7 * 86400 });
+      if (admin) await tg(env, 'sendMessage', { chat_id: admin, text: '💬 نظر تازه برای سایت (بی‌نام منتشر می‌شود):\n\n«' + clean + '»', reply_markup: { inline_keyboard: [[{ text: '✅ انتشار', callback_data: 'rva:' + id, style: 'success' }, { text: '🗑 رد', callback_data: 'rvd:' + id, style: 'danger' }]] } });
+      await say(env, chat, en ? '💙 Thanks! We will read it and put it on the site soon.' : '💙 ممنون! می‌خوانیمش و به‌زودی در سایت می‌گذاریم.', BACK, lang);
+      return new Response('ok');
     }
     const cmd = (text.match(/^\/([a-z]+)/i) || [])[1];
     { // a custom amount: "/donate 300", or a plain number right after the "custom amount" button
@@ -287,6 +328,7 @@ export async function onRequestPost(ctx) {
     if (cmd === 'start' || cmd === 'help') { await menu(chat); return new Response('ok'); }
     if (cmd === 'download') { await download(env, chat, lang); return new Response('ok'); }
     if (cmd === 'radar') { await radar(env, chat, lang); return new Response('ok'); }
+    if (cmd === 'reviews' || /^\/start\s+reviews?\b/.test(text)) { await reviews(env, chat, lang); return new Response('ok'); }
     if (cmd === 'guide') { await sayT(chat, 'guide', GUIDE_KB); return new Response('ok'); }
     if (cmd && T[cmd]) { await sayT(chat, cmd, BACK); return new Response('ok'); }
     // config links are not taken, stored or forwarded — for privacy; the app tests them on the user's own internet
