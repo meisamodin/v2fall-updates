@@ -1,0 +1,22 @@
+# temporary: tries the UI check step on a runner
+name: UI check (try)
+on: push
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: next
+          token: ${{ secrets.SOURCE_TOKEN }}
+          path: src
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: UI check
+        working-directory: src
+        run: |
+          npm i --no-save --no-audit --no-fund playwright@1.49.1 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node tools/ui-check.js web/index.html
