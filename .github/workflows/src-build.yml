@@ -16,7 +16,7 @@ permissions:
 env:
   SING_BOX_VERSION: "1.14.4"
   XRAY_VERSION: "26.9.9"
-  APP_VERSION: "19.0.0"
+  APP_VERSION: "19.0.1"
   DNSTT_VERSION: "1.20260501.0" # pinned: @latest made builds non-reproducible
   MIERU_VERSION: "3.39.0" # pinned for reproducible builds
   MDV_SHA: "4052a6b95e758adf2dc26fa1fe527457e58d627c" # masterking32/MasterDnsVPN — fast DNS tunnel
@@ -647,6 +647,13 @@ jobs:
           & "$(go env GOPATH)/bin/go-winres" simply --icon ../assets/appIcon.png --manifest gui --admin --product-name V2Fall --file-description V2Fall --product-version $v --file-version $v --copyright "odin"
           go mod tidy
           go build -tags production -trimpath -ldflags "-s -w -H windowsgui -X main.AppVersion=$env:APP_VERSION" -o ../build/win/V2Fall.exe .
+          # the app must really start: a panic in an init (a Go regexp count over 1000 in 18.9.121 / 19.0.0)
+          # left every desktop user with an app that never opened
+          $sp = Start-Process ../build/win/V2Fall.exe -PassThru -RedirectStandardError "$env:RUNNER_TEMP\v2f-err.txt"
+          Start-Sleep 12
+          if ($sp.HasExited) { Get-Content "$env:RUNNER_TEMP\v2f-err.txt" -Head 40; throw "V2Fall.exe exited at start-up (code $($sp.ExitCode))" }
+          Stop-Process $sp -Force -ErrorAction SilentlyContinue; Get-Process V2Fall -EA 0 | Stop-Process -Force -EA 0
+          Write-Host "V2Fall.exe starts and stays up"
 
       - name: Build installer
         shell: pwsh
