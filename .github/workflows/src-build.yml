@@ -416,6 +416,7 @@ jobs:
           mkdir -p android/app/src/main/assets
           cp webp/index.html android/app/src/main/assets/index.html
           mkdir -p android/app/src/main/assets/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt android/app/src/main/assets/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
+          mkdir -p android/app/src/main/assets/vendor && cp web/vendor/* android/app/src/main/assets/vendor/  # xterm.js for the SSH terminal (MIT)
           # monotonic across workflows: minutes since epoch, same scale as test-build.yml,
           # so the stable release is never a "downgrade" for people on the experimental channel
           export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 2 ))
@@ -531,6 +532,7 @@ jobs:
           mkdir -p android/app/src/main/assets
           cp webp/index.html android/app/src/main/assets/index.html
           mkdir -p android/app/src/main/assets/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt android/app/src/main/assets/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
+          mkdir -p android/app/src/main/assets/vendor && cp web/vendor/* android/app/src/main/assets/vendor/  # xterm.js for the SSH terminal (MIT)
           # monotonic across workflows: minutes since epoch, same scale as test-build.yml,
           # so the stable release is never a "downgrade" for people on the experimental channel
           export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 2 ))
@@ -609,6 +611,7 @@ jobs:
           New-Item -ItemType Directory -Force desktop-app/frontend/fonts, build/win/core, dist | Out-Null
           Copy-Item webp/index.html desktop-app/frontend/index.html
           New-Item -ItemType Directory -Force desktop-app/frontend/fonts | Out-Null; Copy-Item web/fonts/*.woff2, web/fonts/OFL-*.txt desktop-app/frontend/fonts/ -ErrorAction SilentlyContinue  # extra UI fonts (OFL)
+          New-Item -ItemType Directory -Force desktop-app/frontend/vendor | Out-Null; Copy-Item web/vendor/* desktop-app/frontend/vendor/  # xterm.js for the SSH terminal (MIT)
           npm pack vazirmatn@33.0.3 --silent; tar xzf vazirmatn-33.0.3.tgz
           $f = Get-ChildItem package -Recurse -Filter *.woff2 | Where-Object { $_.Name -match 'wght|ariable' -and $_.Name -notmatch 'UI|FD|Round|NL' } | Select-Object -First 1
           if ($f) { Copy-Item $f.FullName desktop-app/frontend/fonts/Vazirmatn-Variable.woff2 }
@@ -705,6 +708,7 @@ jobs:
           mkdir -p desktop-app/frontend/fonts dist build
           cp webp/index.html desktop-app/frontend/index.html
           mkdir -p desktop-app/frontend/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt desktop-app/frontend/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
+          mkdir -p desktop-app/frontend/vendor && cp web/vendor/* desktop-app/frontend/vendor/  # xterm.js for the SSH terminal (MIT)
           npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
           f=$(find package -name '*.woff2' | grep -i -E 'wght|ariable' | grep -v -E 'UI|FD|Round|NL' | head -1); [ -n "$f" ] && cp "$f" desktop-app/frontend/fonts/Vazirmatn-Variable.woff2
           (npm pack country-flag-emoji-polyfill --silent && mkdir -p cf && tar xzf country-flag-emoji-polyfill-*.tgz -C cf && ff=$(find cf -name '*.woff2' | head -1) && [ -n "$ff" ] && cp "$ff" desktop-app/frontend/fonts/TwemojiCountryFlags.woff2) || echo "::warning::flag font not bundled"
@@ -798,6 +802,7 @@ jobs:
           mkdir -p desktop-app/frontend/fonts dist
           cp webp/index.html desktop-app/frontend/index.html
           mkdir -p desktop-app/frontend/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt desktop-app/frontend/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
+          mkdir -p desktop-app/frontend/vendor && cp web/vendor/* desktop-app/frontend/vendor/  # xterm.js for the SSH terminal (MIT)
           npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
           f=$(find package -name '*.woff2' | grep -i -E 'wght|ariable' | grep -v -E 'UI|FD|Round|NL' | head -1); [ -n "$f" ] && cp "$f" desktop-app/frontend/fonts/Vazirmatn-Variable.woff2
           (npm pack country-flag-emoji-polyfill --silent && mkdir -p cf && tar xzf country-flag-emoji-polyfill-*.tgz -C cf && ff=$(find cf -name '*.woff2' | head -1) && [ -n "$ff" ] && cp "$ff" desktop-app/frontend/fonts/TwemojiCountryFlags.woff2) || echo "::warning::flag font not bundled"
