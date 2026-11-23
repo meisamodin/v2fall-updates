@@ -19,10 +19,11 @@ jobs:
           $exe = @("C:\Program Files\V2Fall\V2Fall.exe", "$env:LOCALAPPDATA\Programs\V2Fall\V2Fall.exe") | ? { Test-Path $_ } | Select -First 1
           "exe: $exe"
           Get-ChildItem (Split-Path $exe) | Select Name,Length | Format-Table -AutoSize | Out-String -Width 200
-          $a = Start-Process $exe -PassThru
+          $a = Start-Process $exe -PassThru -RedirectStandardError "$env:TEMP\v2f-err.txt" -RedirectStandardOutput "$env:TEMP\v2f-out.txt"
           Start-Sleep 20
           "launched pid $($a.Id) exited=$($a.HasExited) code=$(if ($a.HasExited) { $a.ExitCode })"
           Get-Process V2Fall -EA 0 | Format-Table Id,Responding,MainWindowTitle -AutoSize | Out-String
+          "--- stderr"; Get-Content "$env:TEMP\v2f-err.txt" -Head 60 -EA 0; "--- stdout"; Get-Content "$env:TEMP\v2f-out.txt" -Head 20 -EA 0
           "--- crash.log"; Get-Content "$env:LOCALAPPDATA\V2Fall\crash.log" -Tail 40 -EA 0
           "--- app log"; Get-ChildItem "$env:APPDATA\V2Fall" -Recurse -Include *.log -EA 0 | % { "== $($_.FullName)"; Get-Content $_.FullName -Tail 30 }
           "--- events"; Get-WinEvent -FilterHashtable @{LogName='Application';StartTime=(Get-Date).AddMinutes(-10)} -EA 0 | ? { $_.Message -match 'V2Fall|WebView' } | Select -First 5 | fl TimeCreated,Id,ProviderName,Message
