@@ -304,6 +304,17 @@ export async function onRequestPost(ctx) {
       if (/^\/users\b/.test(text)) { let n = 0, c; do { const l = await kv.list({ prefix: 'tgu:', cursor: c }); n += l.keys.length; c = l.list_complete ? null : l.cursor; } while (c); await say(env, chat, `👥 ${n} نفر ربات را Start کرده‌اند.`); return new Response('ok'); }
       const rm = text.match(/^\/r\s+R?-?([A-Z0-9]{6})/i);
       if (rm) { const r = await kv.get('r:' + rm[1].toUpperCase()); await say(env, chat, r ? JSON.stringify(JSON.parse(r), null, 1).slice(0, 4000) : 'پیدا نشد'); return new Response('ok'); }
+      { // a reply to an in-app problem report ("🐞 R-XXXXXX" or its log file): shown in that user's app, no Telegram needed
+        const q = m.reply_to_message, rid = q && ((String(q.text || q.caption || '').match(/^🐞 R-([A-Z0-9]{6})/) || [])[1] || ((q.document && q.document.file_name || '').match(/^R-([A-Z0-9]{6})\.txt$/) || [])[1]);
+        if (rid && text && !text.startsWith('/')) {
+          const rep = await kv.get('r:' + rid);
+          if (!rep) { await say(env, chat, 'این گزارش پیدا نشد (بیش از ۳۰ روز گذشته).'); return new Response('ok'); }
+          let a = []; try { a = JSON.parse(await kv.get('ra:' + rid) || '[]'); } catch (e) {}
+          a.push({ t: Date.now(), text: text.slice(0, 2000) }); await kv.put('ra:' + rid, JSON.stringify(a.slice(-10)), { expirationTtl: 30 * 86400 });
+          await say(env, chat, '✅ جواب ذخیره شد؛ دفعهٔ بعد که کاربر برنامه را باز کند، در برنامه‌اش نشان داده می‌شود (از نسخهٔ ۱۲۱ به بعد).');
+          return new Response('ok');
+        }
+      }
       const rq = m.reply_to_message, rt = rq && ((String(rq.text || rq.caption || '').match(/#u(\d+)/) || [])[1] || await kv.get('tg:fw:' + rq.message_id));
       if (rt) { await tg(env, 'copyMessage', { chat_id: +rt, from_chat_id: chat, message_id: m.message_id }); await say(env, chat, '✅ فرستاده شد'); return new Response('ok'); }
       if (/^\/emoji\b/.test(text)) { await say(env, chat, '✨ دو راه:\n\n۱) لینک یک پک ایموجی پرمیوم را بفرست (مثل t.me/addemoji/…) — همهٔ ایموجی‌هایش یک‌جا ذخیره می‌شود.\n\n۲) یا یک پیام با ایموجی‌های پرمیوم بفرست، هر کدام جای یکی از این‌ها:\n👋 🛡 🚀 📥 🩺 📚 🌐 🐞 🌍 📢 🔎 ⚠️ ✅ ❌ 💡 🔒 ⚡ ✍️ 📱 💻 ✨ 🏠 ☁️ 🛟 🧹 🔑 📊 🎮 🎬 🆔 🔗 ✉️ ℹ️'); return new Response('ok'); }

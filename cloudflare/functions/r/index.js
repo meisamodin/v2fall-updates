@@ -23,6 +23,8 @@ export async function onRequestPost({ request, env }) {
     msg: clip(j.msg, 2000), contact: clip(j.contact, 80), log: clip(j.log, 60000),
   };
   let id = ''; const r = crypto.getRandomValues(new Uint8Array(6)); for (const b of r) id += ABC[b % ABC.length];
+  // k: only the app that sent the report can read the answers to it (GET /r?id=…&k=…)
+  rep.k = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join('');
   await kv.put('r:' + id, JSON.stringify(rep), { expirationTtl: 30 * 86400 });
   if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_ADMIN_ID) {
     const head = `🐞 R-${id}\nV2Fall ${rep.ver} · ${rep.plat}\n${rep.state} · ${rep.proto} · ${rep.cc} ${rep.asn}` + (rep.contact ? `\n👤 ${rep.contact}` : '') + (rep.msg ? `\n\n${rep.msg}` : '');
@@ -36,5 +38,16 @@ export async function onRequestPost({ request, env }) {
       }
     } catch (e) {}
   }
-  return Response.json({ ok: true, id: 'R-' + id }, { headers: CORS });
+  return Response.json({ ok: true, id: 'R-' + id, k: rep.k }, { headers: CORS });
+}
+
+// GET /r?id=R-XXXXXX&k=… — the support team's answers to that report (written as a reply to it in the admin chat)
+export async function onRequestGet({ request, env }) {
+  const u = new URL(request.url), id = String(u.searchParams.get('id') || '').replace(/^R-/i, '').toUpperCase(), k = String(u.searchParams.get('k') || '');
+  if (!/^[A-Z0-9]{6}$/.test(id) || !/^[0-9a-f]{24}$/.test(k)) return new Response('bad', { status: 400, headers: CORS });
+  const raw = await env.CODES.get('r:' + id); if (!raw) return Response.json({ a: [] }, { headers: CORS });
+  let rep = {}; try { rep = JSON.parse(raw); } catch (e) {}
+  if (!rep.k || rep.k !== k) return new Response('no', { status: 403, headers: CORS });
+  let a = []; try { a = JSON.parse(await env.CODES.get('ra:' + id) || '[]'); } catch (e) {}
+  return Response.json({ a }, { headers: { ...CORS, 'Cache-Control': 'no-store' } });
 }
