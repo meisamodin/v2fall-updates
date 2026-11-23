@@ -16,7 +16,7 @@ permissions:
 env:
   SING_BOX_VERSION: "1.14.4"
   XRAY_VERSION: "26.9.9"
-  APP_VERSION: "19.0.1"
+  APP_VERSION: "19.0.2"
   DNSTT_VERSION: "1.20260501.0" # pinned: @latest made builds non-reproducible
   MIERU_VERSION: "3.39.0" # pinned for reproducible builds
   MDV_SHA: "4052a6b95e758adf2dc26fa1fe527457e58d627c" # masterking32/MasterDnsVPN — fast DNS tunnel
@@ -161,8 +161,8 @@ jobs:
           # the client from a renamed copy (no "dnstt" in its package paths: antivirus engines flag that name)
           bash "$GITHUB_WORKSPACE/tools/helpers/dnstt-rename.sh" "$(go list -m -f '{{.Dir}}' www.bamsoftware.com/git/dnstt.git)" "$GITHUB_WORKSPACE/dtsrc"
           b() { (cd "$GITHUB_WORKSPACE/dtsrc" && go mod tidy >/dev/null 2>&1; CGO_ENABLED=0 GOOS=$1 GOARCH=$2 GOARM=7 go build -trimpath -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/out/$3" ./dtc); }
-          b linux arm64 android-arm64/libdnstt.so
-          b linux arm android-arm/libdnstt.so
+          b linux arm64 android-arm64/libdtc.so
+          b linux arm android-arm/libdtc.so
           b windows amd64 windows/dnstt-client.exe
           b darwin arm64 darwin-arm64/dnstt-client
           b darwin amd64 darwin-amd64/dnstt-client
@@ -240,6 +240,17 @@ jobs:
           smoke $B/mieru help
           smoke $B/awg -h
           smoke $B/dnstt-client -h
+          # DNSTT end to end: the original dnstt-server and our renamed client (the name hidden in the binary)
+          # must still speak the same protocol, with a real HTTP request through the tunnel
+          if grep -qai dnstt $B/dnstt-client; then echo "::error::the dnstt client still contains its name"; exit 1; fi
+          mkdir -p /tmp/dt && cd /tmp/dt && "$GITHUB_WORKSPACE/srvtools/dnstt-server-linux-amd64" -gen-key -privkey-file s.key -pubkey-file s.pub
+          (python3 -m http.server 18080 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          (nohup "$GITHUB_WORKSPACE/srvtools/dnstt-server-linux-amd64" -udp 127.0.0.1:15355 -privkey-file s.key t.lab.test 127.0.0.1:18080 > srv.log 2>&1 &)
+          (nohup "$GITHUB_WORKSPACE/$B/dnstt-client" -udp 127.0.0.1:15355 -pubkey-file s.pub t.lab.test 127.0.0.1:18081 > cli.log 2>&1 &)
+          ok=""; for i in $(seq 1 30); do curl -s -o /dev/null --max-time 10 http://127.0.0.1:18081/ && { ok=1; break; }; sleep 1; done
+          [ -n "$ok" ] || { echo "::error::DNSTT end-to-end failed"; tail -20 cli.log srv.log; exit 1; }
+          echo "ok: DNSTT (renamed client) carries real traffic"; pkill -f dnstt-server || true; pkill -f dnstt-client || true; pkill -f "http.server 18080" || true
+          cd "$GITHUB_WORKSPACE"
           smoke $B/mdv-client -version
           # MasterDnsVPN end to end: our server script (test mode) + the client config the app writes,
           # real traffic through a DNS tunnel on this machine
@@ -392,8 +403,8 @@ jobs:
             cp xr/xray android/app/src/main/jniLibs/$abi/libxray.so
             chmod +x android/app/src/main/jniLibs/$abi/libxray.so
           done
-          cp dnstt-bin/android-arm64/libdnstt.so android/app/src/main/jniLibs/arm64-v8a/libdnstt.so
-          cp dnstt-bin/android-arm/libdnstt.so android/app/src/main/jniLibs/armeabi-v7a/libdnstt.so
+          cp dnstt-bin/android-arm64/libdtc.so android/app/src/main/jniLibs/arm64-v8a/libdtc.so
+          cp dnstt-bin/android-arm/libdtc.so android/app/src/main/jniLibs/armeabi-v7a/libdtc.so
           for h in libmieru libwarp libawg libusque libmdv libsoar libv2frelay libpsiphon; do
             cp dnstt-bin/android-arm64/$h.so android/app/src/main/jniLibs/arm64-v8a/$h.so
             cp dnstt-bin/android-arm/$h.so android/app/src/main/jniLibs/armeabi-v7a/$h.so
@@ -508,8 +519,8 @@ jobs:
             cp xr/xray android/app/src/main/jniLibs/$abi/libxray.so
             chmod +x android/app/src/main/jniLibs/$abi/libxray.so
           done
-          cp dnstt-bin/android-arm64/libdnstt.so android/app/src/main/jniLibs/arm64-v8a/libdnstt.so
-          cp dnstt-bin/android-arm/libdnstt.so android/app/src/main/jniLibs/armeabi-v7a/libdnstt.so
+          cp dnstt-bin/android-arm64/libdtc.so android/app/src/main/jniLibs/arm64-v8a/libdtc.so
+          cp dnstt-bin/android-arm/libdtc.so android/app/src/main/jniLibs/armeabi-v7a/libdtc.so
           for h in libmieru libwarp libawg libusque libmdv libsoar libv2frelay libpsiphon; do
             cp dnstt-bin/android-arm64/$h.so android/app/src/main/jniLibs/arm64-v8a/$h.so
             cp dnstt-bin/android-arm/$h.so android/app/src/main/jniLibs/armeabi-v7a/$h.so
