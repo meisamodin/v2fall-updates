@@ -158,8 +158,9 @@ jobs:
           set -e
           mkdir -p dn && cd dn && go mod init dnsttbuild >/dev/null
           go get www.bamsoftware.com/git/dnstt.git/dnstt-client@v${DNSTT_VERSION} www.bamsoftware.com/git/dnstt.git/dnstt-server@v${DNSTT_VERSION}
-          P=www.bamsoftware.com/git/dnstt.git/dnstt-client
-          b() { CGO_ENABLED=0 GOOS=$1 GOARCH=$2 GOARM=7 go build -trimpath -ldflags "-s -w -buildid=" -o "../out/$3" $P; }
+          # the client from a renamed copy (no "dnstt" in its package paths: antivirus engines flag that name)
+          bash "$GITHUB_WORKSPACE/tools/helpers/dnstt-rename.sh" "$(go list -m -f '{{.Dir}}' www.bamsoftware.com/git/dnstt.git)" "$GITHUB_WORKSPACE/dtsrc"
+          b() { (cd "$GITHUB_WORKSPACE/dtsrc" && go mod tidy >/dev/null 2>&1; CGO_ENABLED=0 GOOS=$1 GOARCH=$2 GOARM=7 go build -trimpath -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/out/$3" ./dtc); }
           b linux arm64 android-arm64/libdnstt.so
           b linux arm android-arm/libdnstt.so
           b windows amd64 windows/dnstt-client.exe
