@@ -23,4 +23,5 @@ jobs:
           print('\n'.join(sorted(set(walk(j)))))
           PY
           wc -l urls.txt
-          cat urls.txt | xargs -P 6 -I{} sh -c 'curl -sS -L -o /dev/null -m 300 -w "%{http_code} %{size_download} %{time_total}s {}\n" "{}" || echo "FAIL {}"'
+          cat urls.txt | xargs -P 2 -I{} sh -c 'curl -sS -L -o /dev/null -m 300 -w "%{http_code} %{size_download} %{time_total}s {}\n" "{}" || echo "FAIL {}"' | tee res.txt
+          sleep 20; grep -vE '^200 ' res.txt | awk '{print $NF}' | while read u; do sleep 3; curl -sS -L -o /dev/null -m 300 -w "retry %{http_code} %{size_download} $u\n" "$u"; done
