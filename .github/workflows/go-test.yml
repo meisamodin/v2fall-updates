@@ -1,0 +1,32 @@
+name: Go module test
+# quick check of one Go module of the app: tidy, vet, tests
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        default: next
+      dir:
+        default: tools/v2f-relay
+      run:
+        default: "."
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: meisamodin/v2fall
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+          sparse-checkout: ${{ inputs.dir }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: false
+      - working-directory: ${{ inputs.dir }}
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          go mod tidy && go vet ./... && go test -count=1 -v -run "${{ inputs.run }}" . 2>&1 | tail -60
+          go build -o /dev/null . && GOOS=windows go build -o /dev/null . && GOOS=linux GOARCH=arm GOARM=7 go build -o /dev/null . && echo builds
