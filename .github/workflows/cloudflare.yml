@@ -70,6 +70,8 @@ jobs:
             [ -n "$D1" ] && echo "created D1 database $D1" || echo "::warning::stats database not available ($(echo "$R" | jq -c .errors)) — give the token 'D1: Edit'"
           fi
           [ -n "$D1" ] && printf '\n[[d1_databases]]\nbinding = "STATS"\ndatabase_name = "%s"\ndatabase_id = "%s"\n' "$D1_NAME" "$D1" >> cloudflare/wrangler.toml
+          # Workers AI (open models) for "Ask the AI" in the app's server checkup — functions/ai/server.js
+          printf '\n[ai]\nbinding = "AI"\n' >> cloudflare/wrangler.toml
           cat cloudflare/wrangler.toml | grep -v '^id\|database_id'
 
       - name: Build the site (parts + manifests pointing at the own domain)
