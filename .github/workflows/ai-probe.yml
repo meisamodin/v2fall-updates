@@ -1,0 +1,14 @@
+name: AI endpoint probe
+# one question to /ai/server, as the app's server checkup asks it
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for h in https://dl.v2fall.com https://dl.multiapvps.org; do
+            echo "== $h"
+            curl -sS -m 90 -X POST "$h/ai/server" -H 'Content-Type: application/json' \
+              -d '{"lang":"fa","text":"OS: Ubuntu 24.04\n- [bad] x-ui is not running (failed)\nLogs:\nx-ui: failed to start: listen tcp :443: bind: address already in use"}' -w '\nHTTP %{http_code}\n'
+            break
+          done
