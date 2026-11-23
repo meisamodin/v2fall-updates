@@ -14,7 +14,9 @@ jobs:
           $mp = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe"
           & $mp -SignatureUpdate | Out-Null
           Get-MpComputerStatus | fl AntivirusSignatureVersion,RealTimeProtectionEnabled,AMServiceEnabled
-          Set-MpPreference -MAPSReporting Advanced -SubmitSamplesConsent NeverSend -ErrorAction SilentlyContinue
+          Set-MpPreference -DisableRealtimeMonitoring $false -DisableBehaviorMonitoring $false -MAPSReporting Advanced -CloudBlockLevel High -SubmitSamplesConsent NeverSend -ErrorAction Continue
+          Get-MpComputerStatus | fl RealTimeProtectionEnabled,BehaviorMonitorEnabled,IsTamperProtected
+          Get-MpPreference | fl MAPSReporting,CloudBlockLevel,DisableBlockAtFirstSeen
           foreach ($v in "${{ inputs.versions }}".Split(' ')) {
             $d = "C:\scan\$v"; New-Item -ItemType Directory -Force $d | Out-Null
             gh release download "v$v" -R ${{ github.repository }} -p "V2Fall-$v-Windows-x64-portable.zip" -D $d
@@ -23,6 +25,8 @@ jobs:
             Get-ChildItem "$d\x" -Recurse -File -Include *.exe | % { $_.FullName.Replace("$d\x\",'') + "  " + $_.Length }
             & $mp -Scan -ScanType 3 -File "$d\x" -DisableRemediation
             Write-Host "exit $LASTEXITCODE"
+            try { $p = Start-Process "$d\x\V2Fall.exe" -PassThru -ErrorAction Stop; Start-Sleep 25; Write-Host "started pid $($p.Id) exited=$($p.HasExited)"; Stop-Process $p -Force -ErrorAction SilentlyContinue } catch { Write-Host "launch failed: $_" }
+            Start-Sleep 5; Write-Host "exe still there: $(Test-Path "$d\x\V2Fall.exe")"
           }
           Get-MpThreatDetection | fl ThreatID,Resources,InitialDetectionTime
           Get-MpThreat | fl ThreatID,ThreatName,SeverityID
