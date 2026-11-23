@@ -1,0 +1,25 @@
+name: Fetch vendor files
+# downloads pinned npm packages the app ships as plain files (xterm.js for the SSH terminal), as an artifact
+on: workflow_dispatch
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set -e
+          mkdir -p v && cd v
+          for p in @xterm/xterm@5.5.0 @xterm/addon-fit@0.10.0 @xterm/addon-web-links@0.11.0 @xterm/addon-search@0.15.0 @xterm/addon-unicode11@0.8.0; do npm pack -s "$p"; done
+          for f in *.tgz; do mkdir -p "${f%.tgz}" && tar xzf "$f" -C "${f%.tgz}"; done
+          mkdir -p out
+          cp xterm-xterm-5.5.0/package/lib/xterm.js out/xterm.js
+          cp xterm-xterm-5.5.0/package/css/xterm.css out/xterm.css
+          cp xterm-addon-fit-0.10.0/package/lib/addon-fit.js out/addon-fit.js
+          cp xterm-addon-web-links-0.11.0/package/lib/addon-web-links.js out/addon-web-links.js
+          cp xterm-addon-search-0.15.0/package/lib/addon-search.js out/addon-search.js
+          cp xterm-addon-unicode11-0.8.0/package/lib/addon-unicode11.js out/addon-unicode11.js
+          cp xterm-xterm-5.5.0/package/LICENSE out/LICENSE-xterm
+          sha256sum out/* ; ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vendor
+          path: v/out
