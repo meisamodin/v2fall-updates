@@ -20,6 +20,7 @@ env:
   DNSTT_VERSION: "1.20260501.0" # pinned: @latest made builds non-reproducible
   MIERU_VERSION: "3.39.0" # pinned for reproducible builds
   MDV_SHA: "4052a6b95e758adf2dc26fa1fe527457e58d627c" # masterking32/MasterDnsVPN — fast DNS tunnel
+  SOAR_VERSION: "0.2.5" # getlantern/soar — DNS tunnel over every resolver at once (also what Unbar uses)
   WARP_VERSION: "1.2.6" # bepass-org/warp-plus — pinned for reproducible builds
   USQUE_VERSION: "4.2.1" # Diniboy1123/usque — WARP over MASQUE
   TOR_VERSION: "15.0.5" # Tor Project expert bundle (tor + lyrebird + conjure), checked against its sha256sums
@@ -150,7 +151,7 @@ jobs:
           path: |
             out
             srvtools
-          key: helpers-r2-${{ hashFiles('tools/helpers/**') }}-${{ env.DNSTT_VERSION }}-${{ env.MIERU_VERSION }}-${{ env.WARP_VERSION }}-${{ env.USQUE_VERSION }}-${{ env.TOR_VERSION }}-${{ env.MDV_SHA }}-${{ hashFiles('tools/awg/**') }}
+          key: helpers-r2-${{ hashFiles('tools/helpers/**') }}-${{ env.DNSTT_VERSION }}-${{ env.MIERU_VERSION }}-${{ env.WARP_VERSION }}-${{ env.USQUE_VERSION }}-${{ env.TOR_VERSION }}-${{ env.MDV_SHA }}-${{ hashFiles('tools/awg/**') }}-${{ env.SOAR_VERSION }}-${{ hashFiles('tools/soar/**') }}
       - name: Build dnstt-client for every platform
         if: steps.hc.outputs.cache-hit != 'true'
         run: |
@@ -203,6 +204,10 @@ jobs:
           export GOTOOLCHAIN=auto
           helper mdvsrc ./cmd/client libmdv.so mdv-client
           for a in amd64 arm64; do (cd mdvsrc && CGO_ENABLED=0 GOOS=linux GOARCH=$a go build -trimpath -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/srvtools/mdv-server-linux-$a" ./cmd/server); done
+          # Soar: our SOCKS5 helper over the getlantern/soar client (tools/soar) + the reference server for v2fall-soar.sh
+          (cd tools/soar && go get "github.com/getlantern/soar@v${SOAR_VERSION}" && go mod tidy)
+          helper tools/soar . libsoar.so v2f-soar
+          for a in amd64 arm64; do GOBIN= CGO_ENABLED=0 GOOS=linux GOARCH=$a go build -C tools/soar -trimpath -ldflags "-s -w -buildid=" -o "$GITHUB_WORKSPACE/srvtools/soar-server-linux-$a" github.com/getlantern/soar/cmd/soar-server; done
           export GOTOOLCHAIN=local
           bash tools/helpers/tor-package.sh fetch out "$TOR_VERSION"
           ls -laR out srvtools
@@ -248,6 +253,17 @@ jobs:
           if [ -z "$ok" ]; then echo "::error::MasterDnsVPN end-to-end failed"; tail -40 /tmp/mdvc/client.log; tail -40 /usr/local/v2fall-mdv/server.log; exit 1; fi
           echo "ok: MasterDnsVPN carries real traffic"
           pkill -f mdv-client || true; pkill -f mdv-server || true
+          # Soar end to end: a real soar-server, our helper with it as its only resolver, HTTPS through it, the scan mode;
+          # then our server script in test mode and a connection with the link it printed
+          smoke $B/v2f-soar -h
+          bash tools/soar/e2e.sh "$GITHUB_WORKSPACE/$B/v2f-soar" "$PWD/srvtools/soar-server-linux-amd64"
+          mkdir -p /tmp/soarsrv && V2F_TEST=1 SOAR_DIR=/tmp/soarsrv SOAR_BIN="$PWD/srvtools/soar-server-linux-amd64" SOAR_PORT=15354 bash server/v2fall-soar.sh t.lab.test | tee /tmp/soarsrv/out
+          LINK=$(grep -o 'soar://[^ ]*' /tmp/soarsrv/out | head -1); PUB=${LINK#soar://}; PUB=${PUB%%@*}
+          (V2F_DNS= nohup "$GITHUB_WORKSPACE/$B/v2f-soar" -zone t.lab.test -pubkey "$PUB" -resolvers 127.0.0.1:15354 -country "" -listen 127.0.0.1:18556 > /tmp/soarsrv/client.log 2>&1 &)
+          ok=""; for i in $(seq 1 20); do code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 --socks5-hostname 127.0.0.1:18556 https://www.gstatic.com/generate_204 || true); [ "$code" = 204 ] && { ok=1; break; }; sleep 2; done
+          if [ -z "$ok" ]; then echo "::error::Soar with the server script's link failed"; tail -30 /tmp/soarsrv/client.log; tail -30 /tmp/soarsrv/server.log; exit 1; fi
+          echo "ok: Soar carries real traffic with the link from v2fall-soar.sh"
+          pkill -f v2f-soar || true; pkill -f soar-server || true
       - uses: actions/cache/save@v4
         with:
           enableCrossOsArchive: true
@@ -377,7 +393,7 @@ jobs:
           done
           cp dnstt-bin/android-arm64/libdnstt.so android/app/src/main/jniLibs/arm64-v8a/libdnstt.so
           cp dnstt-bin/android-arm/libdnstt.so android/app/src/main/jniLibs/armeabi-v7a/libdnstt.so
-          for h in libmieru libwarp libawg libusque libmdv libv2frelay libpsiphon; do
+          for h in libmieru libwarp libawg libusque libmdv libsoar libv2frelay libpsiphon; do
             cp dnstt-bin/android-arm64/$h.so android/app/src/main/jniLibs/arm64-v8a/$h.so
             cp dnstt-bin/android-arm/$h.so android/app/src/main/jniLibs/armeabi-v7a/$h.so
           done
@@ -400,6 +416,7 @@ jobs:
           mkdir -p android/app/src/main/assets
           cp webp/index.html android/app/src/main/assets/index.html
           mkdir -p android/app/src/main/assets/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt android/app/src/main/assets/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
+          mkdir -p android/app/src/main/assets/vendor && cp web/vendor/* android/app/src/main/assets/vendor/  # xterm.js for the SSH terminal (MIT)
           # monotonic across workflows: minutes since epoch, same scale as test-build.yml,
           # so the stable release is never a "downgrade" for people on the experimental channel
           export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 2 ))
@@ -492,7 +509,7 @@ jobs:
           done
           cp dnstt-bin/android-arm64/libdnstt.so android/app/src/main/jniLibs/arm64-v8a/libdnstt.so
           cp dnstt-bin/android-arm/libdnstt.so android/app/src/main/jniLibs/armeabi-v7a/libdnstt.so
-          for h in libmieru libwarp libawg libusque libmdv libv2frelay libpsiphon; do
+          for h in libmieru libwarp libawg libusque libmdv libsoar libv2frelay libpsiphon; do
             cp dnstt-bin/android-arm64/$h.so android/app/src/main/jniLibs/arm64-v8a/$h.so
             cp dnstt-bin/android-arm/$h.so android/app/src/main/jniLibs/armeabi-v7a/$h.so
           done
@@ -515,6 +532,7 @@ jobs:
           mkdir -p android/app/src/main/assets
           cp webp/index.html android/app/src/main/assets/index.html
           mkdir -p android/app/src/main/assets/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt android/app/src/main/assets/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
+          mkdir -p android/app/src/main/assets/vendor && cp web/vendor/* android/app/src/main/assets/vendor/  # xterm.js for the SSH terminal (MIT)
           # monotonic across workflows: minutes since epoch, same scale as test-build.yml,
           # so the stable release is never a "downgrade" for people on the experimental channel
           export V2F_VERSION_CODE=$(( $(date -u +%s) / 60 + 2 ))
@@ -593,6 +611,7 @@ jobs:
           New-Item -ItemType Directory -Force desktop-app/frontend/fonts, build/win/core, dist | Out-Null
           Copy-Item webp/index.html desktop-app/frontend/index.html
           New-Item -ItemType Directory -Force desktop-app/frontend/fonts | Out-Null; Copy-Item web/fonts/*.woff2, web/fonts/OFL-*.txt desktop-app/frontend/fonts/ -ErrorAction SilentlyContinue  # extra UI fonts (OFL)
+          New-Item -ItemType Directory -Force desktop-app/frontend/vendor | Out-Null; Copy-Item web/vendor/* desktop-app/frontend/vendor/  # xterm.js for the SSH terminal (MIT)
           npm pack vazirmatn@33.0.3 --silent; tar xzf vazirmatn-33.0.3.tgz
           $f = Get-ChildItem package -Recurse -Filter *.woff2 | Where-Object { $_.Name -match 'wght|ariable' -and $_.Name -notmatch 'UI|FD|Round|NL' } | Select-Object -First 1
           if ($f) { Copy-Item $f.FullName desktop-app/frontend/fonts/Vazirmatn-Variable.woff2 }
@@ -611,6 +630,7 @@ jobs:
           Copy-Item dnstt-bin/windows/warp-plus.exe build/win/core/warp-plus.exe
           Copy-Item dnstt-bin/windows/usque.exe build/win/core/usque.exe
           Copy-Item dnstt-bin/windows/mdv-client.exe build/win/core/mdv-client.exe
+          Copy-Item dnstt-bin/windows/v2f-soar.exe build/win/core/v2f-soar.exe
           Copy-Item dnstt-bin/windows/v2f-relay.exe build/win/core/v2f-relay.exe
           Copy-Item dnstt-bin/windows/awg.exe build/win/core/awg.exe
           Copy-Item dnstt-bin/windows/v2f-psiphon.exe build/win/core/v2f-psiphon.exe
@@ -688,6 +708,7 @@ jobs:
           mkdir -p desktop-app/frontend/fonts dist build
           cp webp/index.html desktop-app/frontend/index.html
           mkdir -p desktop-app/frontend/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt desktop-app/frontend/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
+          mkdir -p desktop-app/frontend/vendor && cp web/vendor/* desktop-app/frontend/vendor/  # xterm.js for the SSH terminal (MIT)
           npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
           f=$(find package -name '*.woff2' | grep -i -E 'wght|ariable' | grep -v -E 'UI|FD|Round|NL' | head -1); [ -n "$f" ] && cp "$f" desktop-app/frontend/fonts/Vazirmatn-Variable.woff2
           (npm pack country-flag-emoji-polyfill --silent && mkdir -p cf && tar xzf country-flag-emoji-polyfill-*.tgz -C cf && ff=$(find cf -name '*.woff2' | head -1) && [ -n "$ff" ] && cp "$ff" desktop-app/frontend/fonts/TwemojiCountryFlags.woff2) || echo "::warning::flag font not bundled"
@@ -722,7 +743,7 @@ jobs:
             cp sing-box-${SING_BOX_VERSION}-${SB}/sing-box $APP/Contents/MacOS/core/v2fall-core
             curl -fsSL -o xr.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-${XR}.zip" && unzip -q -o xr.zip -d xr
             cp xr/xray $APP/Contents/MacOS/core/xray
-            for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-relay v2f-psiphon; do cp dnstt-bin/darwin-$GOA/$h $APP/Contents/MacOS/core/$h; done
+            for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-soar v2f-relay v2f-psiphon; do cp dnstt-bin/darwin-$GOA/$h $APP/Contents/MacOS/core/$h; done
             bash tools/helpers/tor-package.sh desktop dnstt-bin/darwin-$GOA $APP/Contents/MacOS/core
             chmod +x $APP/Contents/MacOS/core/*
             (cd desktop-app && CGO_ENABLED=1 GOARCH=$GOA MACOSX_DEPLOYMENT_TARGET=11.0 go build -tags production -trimpath -ldflags "-s -w -X main.AppVersion=${APP_VERSION}" -o ../$APP/Contents/MacOS/V2Fall .)
@@ -781,6 +802,7 @@ jobs:
           mkdir -p desktop-app/frontend/fonts dist
           cp webp/index.html desktop-app/frontend/index.html
           mkdir -p desktop-app/frontend/fonts && cp web/fonts/*.woff2 web/fonts/OFL-*.txt desktop-app/frontend/fonts/ 2>/dev/null || true  # extra UI fonts (OFL)
+          mkdir -p desktop-app/frontend/vendor && cp web/vendor/* desktop-app/frontend/vendor/  # xterm.js for the SSH terminal (MIT)
           npm pack vazirmatn@33.0.3 --silent && tar xzf vazirmatn-33.0.3.tgz
           f=$(find package -name '*.woff2' | grep -i -E 'wght|ariable' | grep -v -E 'UI|FD|Round|NL' | head -1); [ -n "$f" ] && cp "$f" desktop-app/frontend/fonts/Vazirmatn-Variable.woff2
           (npm pack country-flag-emoji-polyfill --silent && mkdir -p cf && tar xzf country-flag-emoji-polyfill-*.tgz -C cf && ff=$(find cf -name '*.woff2' | head -1) && [ -n "$ff" ] && cp "$ff" desktop-app/frontend/fonts/TwemojiCountryFlags.woff2) || echo "::warning::flag font not bundled"
@@ -789,7 +811,7 @@ jobs:
           cp sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box $R/core/v2fall-core
           curl -fsSL -o xr.zip "https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-64.zip" && unzip -q -o xr.zip -d xr
           cp xr/xray $R/core/xray
-          for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-relay v2f-psiphon; do cp dnstt-bin/linux-amd64/$h $R/core/$h; done
+          for h in dnstt-client mieru warp-plus awg usque mdv-client v2f-soar v2f-relay v2f-psiphon; do cp dnstt-bin/linux-amd64/$h $R/core/$h; done
           chmod 755 $R/core/*
           bash tools/helpers/tor-package.sh desktop dnstt-bin/linux-amd64 $R/core
           cd desktop-app && go mod tidy
