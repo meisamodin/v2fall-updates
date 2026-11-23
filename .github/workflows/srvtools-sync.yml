@@ -1,0 +1,27 @@
+name: Sync server tools
+# copies the server binaries and setup scripts a build made (release build-N) into tools/, where the setup scripts download them
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: "build number (the build-N release)"
+        required: true
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          mkdir -p /tmp/st && cd /tmp/st
+          gh release download "build-${{ inputs.build }}" -R "${{ github.repository }}" -p 'soar-server-linux-*' -p 'mdv-server-linux-*' -p 'dnstt-server-linux-*' -p 'v2fall-*.sh'
+          ls -la
+          cd "$GITHUB_WORKSPACE"
+          cp -f /tmp/st/* tools/
+          chmod 755 tools/*-linux-* || true
+          git config user.name "v2fall-bot" && git config user.email "v2fall-bot@users.noreply.github.com"
+          git add tools && (git diff --cached --quiet && echo "nothing new" || (git commit -qm "Server tools from build ${{ inputs.build }}" && git push))
