@@ -1,0 +1,26 @@
+name: Warm the download mirrors
+# fetches every part of the latest release once through jsDelivr (and the GitHub raw link), so the first
+# users after a release do not wait for a cold CDN
+on:
+  workflow_dispatch:
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: latest.json }
+      - run: |
+          python3 - <<'PY' > urls.txt
+          import json
+          j = json.load(open('latest.json'))
+          def walk(o):
+              if isinstance(o, dict):
+                  for v in o.values(): yield from walk(v)
+              elif isinstance(o, list):
+                  for v in o: yield from walk(v)
+              elif isinstance(o, str) and o.startswith('https://') and ('/download/' in o or '/releases/download/' in o):
+                  yield o
+          print('\n'.join(sorted(set(walk(j)))))
+          PY
+          wc -l urls.txt
+          cat urls.txt | xargs -P 6 -I{} sh -c 'curl -sS -L -o /dev/null -m 300 -w "%{http_code} %{size_download} %{time_total}s {}\n" "{}" || echo "FAIL {}"'
