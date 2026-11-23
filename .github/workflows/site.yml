@@ -83,6 +83,47 @@ jobs:
           [ -n "$KV" ] && [ "$KV" != null ]
           printf 'name = "%s"\npages_build_output_dir = "dist-site"\ncompatibility_date = "2026-11-01"\n\n[[kv_namespaces]]\nbinding = "LIKES"\nid = "%s"\n' "$PROJECT" "$KV" > wrangler.toml
 
+      - name: Open the built site in a browser before it goes live
+        working-directory: src/website
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_ID: ${{ secrets.TELEGRAM_ADMIN_ID }}
+        run: |
+          # a page that throws in the browser (last time: a blank home page) must not replace the live site
+          set -e
+          (cd dist-site && python3 -m http.server 4173 >/dev/null 2>&1 &) ; sleep 2
+          G=$(cd dist-site && ls guide/checkup.html guide/*.html 2>/dev/null | head -1 || true)
+          mkdir -p /tmp/chk && cd /tmp/chk && npm i -s playwright-core@1.49.1 >/dev/null 2>&1
+          cat > c.js <<'JS'
+          const { chromium } = require('playwright-core');
+          (async () => {
+            const b = await chromium.launch({ channel: 'chrome' });
+            const pages = ['index.html', 'en.html', 'radar.html', 'en/radar.html', 'reviews.html', process.env.G].filter(Boolean);
+            const bad = [];
+            for (const path of pages) for (const width of [412, 1280]) {
+              const p = await b.newPage({ viewport: { width, height: 900 } });
+              const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 200)));
+              await p.goto('http://127.0.0.1:4173/' + path, { waitUntil: 'load', timeout: 45000 }).catch(e => errs.push('load: ' + e.message.slice(0, 120)));
+              await p.waitForTimeout(2500);
+              const n = await p.evaluate(() => (document.getElementById('root') || {}).innerHTML?.length || 0).catch(() => 0);
+              console.log(path, width, 'root', n, errs.length ? 'ERRORS ' + errs.join(' | ') : 'ok');
+              if (n < 2000 || errs.length) bad.push(path + ' @' + width + ': ' + (errs[0] || 'empty page'));
+              await p.close();
+            }
+            await b.close();
+            if (bad.length) { require('fs').writeFileSync('bad.txt', bad.join('\n')); process.exit(1); }
+          })();
+          JS
+          if ! G="$G" node c.js; then
+            if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_ADMIN_ID" ]; then
+              curl -sS -o /dev/null "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" --data-urlencode "chat_id=$TELEGRAM_ADMIN_ID" \
+                --data-urlencode "text=⚠️ سایت منتشر نشد: صفحه در مرورگر خطا داد (سایت قبلی سر جایش ماند).
+          $(head -c 700 bad.txt)
+          $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            fi
+            exit 1
+          fi
+
       - name: Deploy
         working-directory: src/website
         run: npx --yes wrangler@4 pages deploy --project-name "$PROJECT" --branch main --commit-dirty=true
