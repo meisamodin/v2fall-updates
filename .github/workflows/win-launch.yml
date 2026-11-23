@@ -1,0 +1,26 @@
+name: Windows launch test
+# installs a released setup silently on a clean Windows runner, starts V2Fall and reports whether it stays up
+on:
+  workflow_dispatch:
+    inputs:
+      url: { description: 'setup URL', default: 'https://github.com/meisamodin/v2fall-updates/raw/main/download/V2Fall-Setup-19.0.0.exe' }
+jobs:
+  run:
+    runs-on: windows-latest
+    steps:
+      - shell: pwsh
+        run: |
+          Invoke-WebRequest "${{ inputs.url }}" -OutFile setup.exe
+          (Get-FileHash setup.exe).Hash
+          $p = Start-Process .\setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -PassThru -Wait
+          "setup exit: $($p.ExitCode)"
+          Start-Sleep 5
+          Get-Process V2Fall -EA 0 | Stop-Process -Force
+          Get-ChildItem "C:\Program Files\V2Fall" | Select Name,Length | Format-Table -AutoSize | Out-String -Width 200
+          $a = Start-Process "C:\Program Files\V2Fall\V2Fall.exe" -PassThru
+          Start-Sleep 20
+          "launched pid $($a.Id) exited=$($a.HasExited) code=$(if ($a.HasExited) { $a.ExitCode })"
+          Get-Process V2Fall -EA 0 | Format-Table Id,Responding,MainWindowTitle -AutoSize | Out-String
+          "--- crash.log"; Get-Content "$env:LOCALAPPDATA\V2Fall\crash.log" -Tail 40 -EA 0
+          "--- app log"; Get-ChildItem "$env:APPDATA\V2Fall" -Recurse -Include *.log -EA 0 | % { "== $($_.FullName)"; Get-Content $_.FullName -Tail 30 }
+          "--- events"; Get-WinEvent -FilterHashtable @{LogName='Application';StartTime=(Get-Date).AddMinutes(-10)} -EA 0 | ? { $_.Message -match 'V2Fall|WebView' } | Select -First 5 | fl TimeCreated,Id,ProviderName,Message
