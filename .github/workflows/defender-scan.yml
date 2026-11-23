@@ -1,0 +1,28 @@
+name: Defender scan
+on:
+  workflow_dispatch:
+    inputs:
+      versions: { description: 'space-separated versions', default: '18.9.120 18.9.121' }
+      url: { description: 'optional extra zip URL to scan', default: '' }
+jobs:
+  scan:
+    runs-on: windows-latest
+    steps:
+      - shell: pwsh
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          $mp = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe"
+          & $mp -SignatureUpdate | Out-Null
+          Get-MpComputerStatus | fl AntivirusSignatureVersion,RealTimeProtectionEnabled,AMServiceEnabled
+          Set-MpPreference -MAPSReporting Advanced -SubmitSamplesConsent NeverSend -ErrorAction SilentlyContinue
+          foreach ($v in "${{ inputs.versions }}".Split(' ')) {
+            $d = "C:\scan\$v"; New-Item -ItemType Directory -Force $d | Out-Null
+            gh release download "v$v" -R ${{ github.repository }} -p "V2Fall-$v-Windows-x64-portable.zip" -D $d
+            Expand-Archive "$d\*.zip" "$d\x" -Force
+            Write-Host "===== $v"
+            Get-ChildItem "$d\x" -Recurse -File -Include *.exe | % { $_.FullName.Replace("$d\x\",'') + "  " + $_.Length }
+            & $mp -Scan -ScanType 3 -File "$d\x" -DisableRemediation
+            Write-Host "exit $LASTEXITCODE"
+          }
+          Get-MpThreatDetection | fl ThreatID,Resources,InitialDetectionTime
+          Get-MpThreat | fl ThreatID,ThreatName,SeverityID
