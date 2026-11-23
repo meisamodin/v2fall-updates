@@ -16,8 +16,10 @@ jobs:
           "setup exit: $($p.ExitCode)"
           Start-Sleep 5
           Get-Process V2Fall -EA 0 | Stop-Process -Force
-          Get-ChildItem "C:\Program Files\V2Fall" | Select Name,Length | Format-Table -AutoSize | Out-String -Width 200
-          $a = Start-Process "C:\Program Files\V2Fall\V2Fall.exe" -PassThru
+          $exe = @("C:\Program Files\V2Fall\V2Fall.exe", "$env:LOCALAPPDATA\Programs\V2Fall\V2Fall.exe") | ? { Test-Path $_ } | Select -First 1
+          "exe: $exe"
+          Get-ChildItem (Split-Path $exe) | Select Name,Length | Format-Table -AutoSize | Out-String -Width 200
+          $a = Start-Process $exe -PassThru
           Start-Sleep 20
           "launched pid $($a.Id) exited=$($a.HasExited) code=$(if ($a.HasExited) { $a.ExitCode })"
           Get-Process V2Fall -EA 0 | Format-Table Id,Responding,MainWindowTitle -AutoSize | Out-String
