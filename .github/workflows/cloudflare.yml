@@ -118,7 +118,12 @@ jobs:
           TELEGRAM_ADMIN_ID: ${{ secrets.TELEGRAM_ADMIN_ID }}
           CF_TURN_KEY_ID: ${{ secrets.CF_TURN_KEY_ID }}
           CF_TURN_KEY_TOKEN: ${{ secrets.CF_TURN_KEY_TOKEN }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
         run: |
+          # optional: a Google AI Studio key makes "Ask the AI" use Gemini first (free tier); without it, Workers AI
+          if [ -n "$GEMINI_KEY" ]; then
+            printf %s "$GEMINI_KEY" | npx --yes wrangler@4 pages secret put GEMINI_KEY --project-name "$PROJECT"
+          else echo "no GEMINI_KEY secret (Ask the AI uses Workers AI only)"; fi
           # Ashflake: TURN relay key (Cloudflare Realtime) for /rb/ice
           if [ -n "$CF_TURN_KEY_ID" ] && [ -n "$CF_TURN_KEY_TOKEN" ]; then
             printf %s "$CF_TURN_KEY_ID" | npx --yes wrangler@4 pages secret put CF_TURN_KEY_ID --project-name "$PROJECT" >/dev/null
