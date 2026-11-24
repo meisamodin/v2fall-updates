@@ -49,10 +49,20 @@ jobs:
             w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "media/$FILE")
             h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "media/$FILE")
             d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "media/$FILE" | cut -d. -f1)
-            r=$(curl -sS "$api/sendVideo" --form-string chat_id="$CHAT" -F video=@"media/$FILE" --form-string caption="$CAPTION" \
-                 -F width="$w" -F height="$h" -F duration="$d" -F supports_streaming=true)
-          else
-            r=$(curl -sS "$api/sendMessage" --data-urlencode chat_id="$CHAT" --data-urlencode text="$CAPTION")
           fi
+          # Telegram flood-limits a channel after many posts; honor the retry_after it returns instead of failing
+          try=0; r=""
+          while [ $try -lt 8 ]; do
+            if [ -n "$FILE" ]; then
+              r=$(curl -sS "$api/sendVideo" --form-string chat_id="$CHAT" -F video=@"media/$FILE" --form-string caption="$CAPTION" \
+                   -F width="$w" -F height="$h" -F duration="$d" -F supports_streaming=true)
+            else
+              r=$(curl -sS "$api/sendMessage" --data-urlencode chat_id="$CHAT" --data-urlencode text="$CAPTION")
+            fi
+            echo "$r" | python3 -c "import json,sys;sys.exit(0 if json.load(sys.stdin).get('ok') else 1)" && break
+            ra=$(echo "$r" | python3 -c "import json,sys;print(json.load(sys.stdin).get('parameters',{}).get('retry_after',''))" 2>/dev/null)
+            if [ -n "$ra" ]; then echo "flood-limited, waiting $((ra+5))s"; sleep $((ra+5)); try=$((try+1)); continue; fi
+            break
+          done
           echo "$r" | python3 -c "import json,sys;j=json.load(sys.stdin);print('ok' if j.get('ok') else j);sys.exit(0 if j.get('ok') else 1)"
           echo "$r" | python3 -c "import json,sys;m=json.load(sys.stdin)['result'];print('message', m['message_id'])" >> "$GITHUB_STEP_SUMMARY"

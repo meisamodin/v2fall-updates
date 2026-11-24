@@ -82,15 +82,23 @@ jobs:
           sent=""; failed=""
           for fn in $files; do
             k=$(kind "$fn"); [ -n "$k" ] || continue
-            R=$(curl -sS -m 900 -F chat_id="$CHAT" -F document=@"f/$fn" -F caption="V2Fall $V — $fn" "$L/sendDocument")
-            id=$(echo "$R" | jq -r '.result.message_id // empty')
-            if [ -z "$id" ]; then echo "::warning::$fn: $(echo "$R" | jq -c '{ok, description}')"; failed="$failed $fn"; continue; fi
+            id=""; try=0
+            while [ $try -lt 8 ]; do
+              R=$(curl -sS -m 900 -F chat_id="$CHAT" -F document=@"f/$fn" -F caption="V2Fall $V — $fn" "$L/sendDocument")
+              id=$(echo "$R" | jq -r '.result.message_id // empty')
+              [ -n "$id" ] && break
+              ra=$(echo "$R" | jq -r '.parameters.retry_after // empty')
+              if [ -n "$ra" ]; then echo "::notice::$fn flood-limited, waiting $((ra+5))s"; sleep $((ra+5)); try=$((try+1)); continue; fi
+              echo "::warning::$fn: $(echo "$R" | jq -c '{ok, description}')"; break
+            done
+            if [ -z "$id" ]; then failed="$failed $fn"; continue; fi
             echo "sent $fn ($k) → message $id"; sent="$sent $fn"
             if [ "$TEST" != true ]; then
               ref=$(jq -cn --argjson c "$CHAT" --argjson i "$id" '{chat:$c,id:$i}')
               curl -sS -X PUT -H "Authorization: Bearer $CF_TOKEN" "$A/tg:f:$k" --data "$ref" | jq -c '{success}'
               [ "$k" = apk ] && curl -sS -X PUT -H "Authorization: Bearer $CF_TOKEN" "$A/tg:apk" --data "$ref" | jq -c '{success}'
             fi
+            sleep 4
           done
           echo "SENT=$sent" >> $GITHUB_ENV; echo "FAILED=$failed" >> $GITHUB_ENV
           [ -n "$sent" ]
