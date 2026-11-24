@@ -1,0 +1,43 @@
+name: Restore bot to cloud
+
+# One-purpose recovery: if a tg-files run was cancelled before its "back to the cloud" step (e.g. the upload
+# hit the job timeout), the bot is left logged out of the cloud Bot API and @v2fall's bot stops answering.
+# This starts a local Bot API server, logs the bot out of it cleanly, then re-points the cloud webhook at the
+# worker so the bot answers again. It uploads nothing.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      API_ID: ${{ secrets.TG_API_ID }}
+      API_HASH: ${{ secrets.TG_API_HASH }}
+      DOMAIN: dl.v2fall.com
+    steps:
+      - name: Return the bot to the cloud Bot API and restore its webhook
+        run: |
+          set -u
+          # end any stale session on a (now-dead) local server: start a fresh one, log out from it, remove it
+          docker run -d --name tgapi -p 8081:8081 -e TELEGRAM_API_ID="$API_ID" -e TELEGRAM_API_HASH="$API_HASH" aiogram/telegram-bot-api:latest >/dev/null || true
+          for i in $(seq 1 60); do curl -fsS "http://127.0.0.1:8081/bot$TOKEN/getMe" >/dev/null 2>&1 && break; sleep 3; done
+          curl -sS -X POST "http://127.0.0.1:8081/bot$TOKEN/logOut" | jq -c '{ok, description}' || true
+          docker rm -f tgapi >/dev/null 2>&1 || true
+          # back to the cloud: set the webhook to the worker so updates are delivered again
+          B="https://api.telegram.org/bot$TOKEN"; SEC=$(printf %s "v2fall-tg:$TOKEN" | sha256sum | cut -c1-32)
+          ok=0
+          for i in $(seq 1 20); do
+            R=$(curl -sS -m 30 --retry 3 -X POST "$B/setWebhook" \
+                  --data-urlencode "url=https://$DOMAIN/tg" \
+                  --data-urlencode "secret_token=$SEC" \
+                  --data-urlencode 'allowed_updates=["message","callback_query","channel_post","pre_checkout_query"]')
+            [ -n "$R" ] || R='{"ok":false,"description":"no answer"}'
+            echo "$R" | jq -c '{ok, description}'
+            echo "$R" | jq -e .ok >/dev/null && { ok=1; break; }
+            sleep 60
+          done
+          echo "--- getMe:"; curl -sS -m 30 "$B/getMe" | jq -c '{ok, username: .result.username}'
+          echo "--- getWebhookInfo:"; curl -sS -m 30 "$B/getWebhookInfo" | jq -c '.result | {url, pending_update_count, last_error_message}'
+          [ "$ok" = 1 ]
